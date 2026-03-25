@@ -12,6 +12,12 @@ interface WardrobeDao {
     @Query("SELECT * FROM wardrobe_items ORDER BY addedAtEpochMs DESC")
     fun observeAll(): Flow<List<WardrobeItemEntity>>
 
+    @Query("SELECT * FROM wardrobe_items")
+    suspend fun getAllSnapshot(): List<WardrobeItemEntity>
+
+    @Query("DELETE FROM wardrobe_items")
+    suspend fun deleteAllItems()
+
     @Query("SELECT * FROM wardrobe_items WHERE id = :id")
     fun observeById(id: String): Flow<WardrobeItemEntity?>
 

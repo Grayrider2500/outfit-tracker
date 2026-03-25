@@ -48,6 +48,7 @@ import coil.compose.AsyncImage
 import com.dressed.app.data.model.WardrobeCategories
 import com.dressed.app.data.model.WardrobeColors
 import com.dressed.app.data.model.WardrobeSeasons
+import com.dressed.app.data.model.WardrobeSizes
 import com.dressed.app.ui.WardrobeViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -59,6 +60,7 @@ fun AddItemScreen(
 ) {
     var name by rememberSaveable { mutableStateOf("") }
     var category by rememberSaveable { mutableStateOf("") }
+    var sizeText by rememberSaveable { mutableStateOf("") }
 
     val palette = remember { WardrobeColors.PALETTE }
     var selectedSwatch by remember { mutableStateOf(palette.first()) }
@@ -162,6 +164,43 @@ fun AddItemScreen(
                 }
             }
 
+            val sizeSuggestions = remember(category) { WardrobeSizes.suggestionsFor(category) }
+
+            Spacer(Modifier.height(16.dp))
+            Text("Size (optional)", style = MaterialTheme.typography.labelLarge)
+            Spacer(Modifier.height(6.dp))
+            if (category.isNotBlank() && sizeSuggestions.isNotEmpty()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    sizeSuggestions.forEach { label ->
+                        FilterChip(
+                            selected = sizeText == label,
+                            onClick = { sizeText = label },
+                            label = { Text(label, style = MaterialTheme.typography.labelMedium) },
+                        )
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+            } else if (category.isBlank()) {
+                Text(
+                    "Pick a category for common size shortcuts, or type your own below.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(8.dp))
+            }
+            OutlinedTextField(
+                value = sizeText,
+                onValueChange = { sizeText = it },
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text("e.g. M, 10, 9.5, or custom") },
+                singleLine = true,
+            )
+
             Spacer(Modifier.height(16.dp))
 
             Text("Color", style = MaterialTheme.typography.labelLarge)
@@ -240,6 +279,7 @@ fun AddItemScreen(
                             viewModel.addItem(
                                 name = n,
                                 category = category,
+                                sizeLabel = sizeText,
                                 colorHex = selectedSwatch.hex,
                                 colorName = selectedSwatch.name,
                                 seasons = seasons.toList(),

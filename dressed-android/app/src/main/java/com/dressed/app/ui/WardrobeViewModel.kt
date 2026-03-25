@@ -8,11 +8,15 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.dressed.app.DressedApplication
 import com.dressed.app.data.WardrobeRepository
+import com.dressed.app.data.backup.WardrobeBackupCodec
 import com.dressed.app.data.local.ImageStorage
 import com.dressed.app.data.local.WardrobeItemEntity
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.UUID
+import kotlin.text.Charsets
 
 class WardrobeViewModel(
     application: Application,
@@ -26,6 +30,7 @@ class WardrobeViewModel(
     fun addItem(
         name: String,
         category: String,
+        sizeLabel: String,
         colorHex: String,
         colorName: String,
         seasons: List<String>,
@@ -38,6 +43,7 @@ class WardrobeViewModel(
                 id = UUID.randomUUID().toString(),
                 name = name.trim(),
                 category = category,
+                sizeLabel = sizeLabel.trim(),
                 colorHex = colorHex,
                 colorName = colorName,
                 seasons = seasons,
@@ -56,6 +62,36 @@ class WardrobeViewModel(
 
     fun deleteItem(id: String) {
         viewModelScope.launch { repository.deleteItemAndPhoto(id) }
+    }
+
+    fun exportBackup(uri: Uri, onDone: (errorMessage: String?) -> Unit) {
+        viewModelScope.launch {
+            val err = withContext(Dispatchers.IO) {
+                runCatching {
+                    val items = repository.getAllSnapshot()
+                    val json = WardrobeBackupCodec.toJson(items)
+                    val out = getApplication<Application>().contentResolver.openOutputStream(uri)
+                        ?: error("Could not open file for writing")
+                    out.use { it.write(json.toByteArray(Charsets.UTF_8)) }
+                }.exceptionOrNull()?.message
+            }
+            onDone(err)
+        }
+    }
+
+    fun importBackup(uri: Uri, onDone: (errorMessage: String?) -> Unit) {
+        viewModelScope.launch {
+            val err = withContext(Dispatchers.IO) {
+                runCatching {
+                    val text = getApplication<Application>().contentResolver.openInputStream(uri)?.use { input ->
+                        input.readBytes().toString(Charsets.UTF_8)
+                    } ?: error("Could not read file")
+                    val items = WardrobeBackupCodec.fromJson(getApplication(), text).getOrThrow()
+                    repository.replaceAllWardrobe(items)
+                }.exceptionOrNull()?.message
+            }
+            onDone(err)
+        }
     }
 
     companion object {

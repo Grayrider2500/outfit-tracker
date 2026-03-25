@@ -19,7 +19,9 @@ class DressedApplication : Application() {
             applicationContext,
             DressedDatabase::class.java,
             "dressed.db",
-        ).build()
-        wardrobeRepository = WardrobeRepository(database.wardrobeDao())
+        )
+            .addMigrations(DressedDatabase.MIGRATION_1_2)
+            .build()
+        wardrobeRepository = WardrobeRepository(database, database.wardrobeDao())
     }
 }

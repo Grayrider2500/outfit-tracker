@@ -159,6 +159,12 @@ fun ItemDetailScreen(
                     style = MaterialTheme.typography.headlineSmall,
                     color = MaterialTheme.colorScheme.onBackground,
                 )
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text = if (current.sizeLabel.isBlank()) "Size —" else "Size ${current.sizeLabel}",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
                 Spacer(Modifier.height(10.dp))
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
