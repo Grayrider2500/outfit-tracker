@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Dressed – Layout Mockup</title>
+<title>Dressed – Layout Mockup (synced with app)</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -27,7 +27,6 @@
     font-family: 'Arial', sans-serif;
   }
 
-  /* Phone shell */
   .phone {
     width: 390px;
     height: 844px;
@@ -40,7 +39,6 @@
     flex-direction: column;
   }
 
-  /* Status bar */
   .status-bar {
     background: transparent;
     height: 44px;
@@ -67,7 +65,6 @@
     align-items: center;
   }
 
-  /* Screens */
   .screen {
     display: none;
     flex-direction: column;
@@ -90,14 +87,6 @@
     align-items: center;
     justify-content: flex-start;
     padding: 40px 32px 56px;
-  }
-
-  .landing-top {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    margin-top: 32px;
-    margin-bottom: 55px;
   }
 
   .landing-footer {
@@ -157,16 +146,17 @@
   }
 
   .brand-mark {
-    width: 180px;
-    height: 180px;
+    width: 148px;
+    height: 148px;
     border-radius: 40px;
     background: rgba(150,100,255,0.25);
     border: 1px solid rgba(180,140,255,0.45);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 81px;
-    margin-bottom: 28px;
+    font-size: 64px;
+    margin-bottom: 24px;
+    margin-top: 48px;
     backdrop-filter: blur(8px);
   }
 
@@ -180,8 +170,8 @@
   }
 
   .brand-tagline {
-    font-size: 12px;
-    letter-spacing: 0.22em;
+    font-size: 11px;
+    letter-spacing: 0.24em;
     color: rgba(240,230,255,0.55);
     text-transform: uppercase;
     font-family: 'Arial', sans-serif;
@@ -190,32 +180,35 @@
   .landing-middle {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    gap: 6px;
+    align-items: stretch;
+    gap: 0;
     width: 100%;
+    margin-top: 8px;
   }
 
   .divider-line {
     width: 40px;
     height: 1px;
     background: rgba(255,255,255,0.2);
-    margin: 8px auto 24px;
+    margin: 28px auto 24px;
   }
 
   .nav-btn {
     width: 100%;
-    padding: 18px 24px;
+    padding: 16px 20px;
     border-radius: 16px;
     border: none;
     cursor: pointer;
     font-size: 16px;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.06em;
     font-family: 'Georgia', serif;
     transition: all 0.2s ease;
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-start;
+    gap: 14px;
     text-align: left;
+    margin-bottom: 12px;
   }
 
   .nav-btn:active { transform: scale(0.97); }
@@ -225,7 +218,6 @@
     color: #f0e6ff;
     border: 1px solid rgba(180,140,255,0.45);
     backdrop-filter: blur(8px);
-    margin-bottom: 12px;
   }
 
   .nav-btn.primary:hover {
@@ -242,22 +234,24 @@
     background: rgba(140,90,255,0.25);
   }
 
+  .nav-btn .nav-ico { font-size: 22px; opacity: 0.9; flex-shrink: 0; width: 28px; text-align: center; }
+  .nav-btn .nav-text { flex: 1; }
   .btn-label { font-size: 16px; }
   .btn-sub {
-    font-size: 11px;
+    font-size: 10px;
     font-family: 'Arial', sans-serif;
     letter-spacing: 0.1em;
     text-transform: uppercase;
-    opacity: 0.6;
-    margin-top: 3px;
+    opacity: 0.65;
+    margin-top: 4px;
   }
-  .btn-arrow { font-size: 18px; opacity: 0.5; }
+  .btn-arrow { font-size: 18px; opacity: 0.45; margin-left: auto; }
 
   .landing-footer {
     font-size: 11px;
     color: rgba(240,230,255,0.3);
     font-family: 'Arial', sans-serif;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.16em;
     text-transform: uppercase;
   }
 
@@ -282,7 +276,7 @@
     border: 1px solid rgba(255,255,255,0.2);
     color: #e8d5f5;
     border-radius: 10px;
-    padding: 8px 14px;
+    padding: 8px 12px;
     font-size: 13px;
     font-family: 'Arial', sans-serif;
     cursor: pointer;
@@ -306,11 +300,11 @@
   }
 
   .top-bar-title .page-sub {
-    font-size: 10px;
-    color: rgba(240,230,255,0.5);
+    font-size: 11px;
+    color: rgba(240,230,255,0.55);
     font-family: 'Arial', sans-serif;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    text-transform: none;
     margin-top: 2px;
   }
 
@@ -327,10 +321,11 @@
     align-items: center;
     justify-content: center;
     transition: background 0.2s;
+    flex-shrink: 0;
   }
   .top-bar-action:hover { background: #7c3aed; }
 
-  /* Category filter bar */
+  /* Category chips — centered like the Android FlowRow */
   .filter-bar {
     display: flex;
     flex-wrap: wrap;
@@ -361,7 +356,6 @@
     border-color: #4a2d6b;
   }
 
-  /* Grid */
   .wardrobe-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -387,14 +381,15 @@
     align-items: center;
     justify-content: center;
     font-size: 40px;
+    overflow: hidden;
   }
 
-  .item-photo.p1 { background: linear-gradient(135deg, #e8d5f5, #c9a8e8); }
-  .item-photo.p2 { background: linear-gradient(135deg, #dde5ff, #b8c4f0); }
-  .item-photo.p3 { background: linear-gradient(135deg, #f5e6d0, #e8ccaa); }
-  .item-photo.p4 { background: linear-gradient(135deg, #d5ede8, #a8d5cc); }
-  .item-photo.p5 { background: linear-gradient(135deg, #fde8e8, #f0b8b8); }
-  .item-photo.p6 { background: linear-gradient(135deg, #eee8f5, #d4c0e8); }
+  .item-photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
 
   .item-info {
     padding: 10px 12px 12px;
@@ -420,6 +415,15 @@
     width: 9px;
     height: 9px;
     border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .wardrobe-note {
+    font-size: 10px;
+    color: #9b7bb8;
+    font-family: Arial, sans-serif;
+    text-align: center;
+    padding: 4px 16px 8px;
     flex-shrink: 0;
   }
 
@@ -505,6 +509,27 @@
   }
   .add-outline-btn:hover { background: rgba(150,100,255,0.08); }
 
+  .add-browse-btn {
+    width: 100%;
+    padding: 10px;
+    margin-top: 8px;
+    border-radius: 12px;
+    border: 1.5px solid rgba(107,74,173,0.35);
+    background: white;
+    color: #4a2d6b;
+    font-size: 12px;
+    font-family: 'Arial', sans-serif;
+    cursor: pointer;
+  }
+
+  .add-microcopy {
+    font-size: 11px;
+    color: #9b7bb8;
+    font-family: Arial, sans-serif;
+    line-height: 1.45;
+    margin-top: 8px;
+  }
+
   .add-text-input {
     width: 100%;
     padding: 11px 14px;
@@ -523,6 +548,7 @@
     display: flex;
     flex-wrap: wrap;
     gap: 7px;
+    justify-content: flex-start;
   }
 
   .add-chip {
@@ -543,23 +569,95 @@
     border-color: #6b4aad;
   }
 
-  .add-swatch-row {
+  /* Color wheel (matches app: hue ring + saturation + brightness) */
+  .color-wheel-hint {
+    font-size: 12px;
+    color: #9b7bb8;
+    font-family: Arial, sans-serif;
+    line-height: 1.45;
+    margin-bottom: 8px;
+  }
+  .color-preview-row {
     display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
   }
-
-  .add-swatch {
-    width: 36px;
+  #colorHexLabel {
+    font-size: 13px;
+    font-family: 'Courier New', monospace;
+    color: #2d1f42;
+    letter-spacing: 0.04em;
+  }
+  .color-preview-swatch {
+    width: 52px;
     height: 36px;
-    border-radius: 10px;
-    cursor: pointer;
-    transition: transform 0.15s;
+    border-radius: 8px;
+    border: 1px solid rgba(61,43,92,0.15);
+    flex-shrink: 0;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.4);
   }
-  .add-swatch:hover { transform: scale(1.1); }
-  .add-swatch.selected {
-    outline: 3px solid #7c3aed;
-    outline-offset: 2px;
+  .hue-donut-wrap {
+    position: relative;
+    width: 220px;
+    height: 220px;
+    margin: 4px auto 12px;
+    cursor: crosshair;
+    touch-action: none;
+  }
+  .hue-donut {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: conic-gradient(
+      hsl(0,100%,50%),
+      hsl(60,100%,50%),
+      hsl(120,100%,50%),
+      hsl(180,100%,50%),
+      hsl(240,100%,50%),
+      hsl(300,100%,50%),
+      hsl(360,100%,50%)
+    );
+    position: relative;
+  }
+  .hue-donut::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 58%;
+    height: 58%;
+    border-radius: 50%;
+    background: #f5f0fb;
+    box-shadow: inset 0 0 0 1px rgba(61,43,92,0.06);
+  }
+  .hue-marker {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 3px solid white;
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.35);
+    pointer-events: none;
+    margin-left: -8px;
+    margin-top: -8px;
+    z-index: 2;
+  }
+  .slider-label {
+    font-size: 12px;
+    font-family: Arial, sans-serif;
+    color: #4a2d6b;
+    margin-top: 6px;
+    font-weight: 600;
+  }
+  input[type=range].mock-slider {
+    width: 100%;
+    margin: 6px 0 4px;
+    accent-color: #6b4aad;
   }
 
   .add-save-btn {
@@ -614,7 +712,7 @@
   .search-input::placeholder { color: #b09ac0; }
 
   .filter-section {
-    padding: 16px 16px 8px;
+    padding: 12px 16px 8px;
     flex-shrink: 0;
   }
 
@@ -631,12 +729,14 @@
     display: flex;
     gap: 8px;
     flex-wrap: wrap;
+    justify-content: flex-start;
   }
 
   .sort-row {
     display: flex;
+    flex-wrap: wrap;
     gap: 8px;
-    padding: 0 16px 14px;
+    padding: 8px 16px 14px;
     flex-shrink: 0;
     border-bottom: 1px solid rgba(61,43,92,0.08);
   }
@@ -675,6 +775,7 @@
     align-items: center;
     gap: 14px;
     box-shadow: 0 2px 8px rgba(61,43,92,0.07);
+    cursor: default;
   }
 
   .result-thumb {
@@ -686,9 +787,18 @@
     justify-content: center;
     font-size: 24px;
     flex-shrink: 0;
+    overflow: hidden;
+    background: #ede5f8;
   }
 
-  .result-info { flex: 1; }
+  .result-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .result-info { flex: 1; min-width: 0; }
   .result-name {
     font-size: 14px;
     color: #2d1f42;
@@ -698,12 +808,42 @@
     font-size: 11px;
     color: #8b6aaa;
     font-family: 'Arial', sans-serif;
+    line-height: 1.3;
   }
-  .result-arrow { color: #c4b0d8; font-size: 16px; }
+  .result-arrow { color: #c4b0d8; font-size: 16px; flex-shrink: 0; }
 
-  /* ─── ANNOTATION BAR ─── */
+  /* ─── OUTFITS placeholder ─── */
+  #screen-outfits {
+    background: #f5f0fb;
+  }
+  #screen-outfits .status-bar { color: #2d1f42; }
+
+  .outfits-body {
+    flex: 1;
+    padding: 32px 28px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+  .outfits-body h2 {
+    font-size: 22px;
+    font-weight: 400;
+    color: #2d1f42;
+    margin-bottom: 14px;
+  }
+  .outfits-body p {
+    font-size: 15px;
+    line-height: 1.55;
+    color: #4a2d6b;
+    opacity: 0.85;
+    font-family: Georgia, serif;
+  }
+
   .annotation-bar {
     width: 390px;
+    max-width: 100%;
     margin-top: 20px;
     background: rgba(255,255,255,0.06);
     border: 1px solid rgba(255,255,255,0.12);
@@ -719,11 +859,11 @@
 </head>
 <body>
 
-<div class="label">Dressed — Interactive Layout Mockup</div>
+<div class="label">Dressed — Interactive layout mockup (matches current Android app)</div>
 
 <div class="phone">
 
-  <!-- ═══════════ LANDING SCREEN ═══════════ -->
+  <!-- ═══════════ LANDING ═══════════ -->
   <div class="screen active" id="screen-landing">
     <div class="status-bar">
       <span class="time" style="color:#e8d5f5">9:41</span>
@@ -738,27 +878,36 @@
         <div class="dropdown-item" onclick="toggleMenu()">📂 &nbsp;Restore from file…</div>
       </div>
 
-      <div class="landing-top">
-        <div class="brand-mark">👗</div>
-        <div class="brand-name">Dressed</div>
-        <div class="brand-tagline">Your personal wardrobe</div>
-      </div>
+      <div class="brand-mark">👗</div>
+      <div class="brand-name">Dressed</div>
+      <div class="brand-tagline">Your personal wardrobe</div>
 
       <div class="landing-middle">
         <div class="divider-line"></div>
 
-        <button class="nav-btn primary" onclick="showScreen('wardrobe')">
-          <div>
+        <button type="button" class="nav-btn primary" onclick="showScreen('wardrobe')">
+          <span class="nav-ico">🧥</span>
+          <div class="nav-text">
             <div class="btn-label">My Wardrobe</div>
             <div class="btn-sub">Browse &amp; manage pieces</div>
           </div>
           <span class="btn-arrow">›</span>
         </button>
 
-        <button class="nav-btn secondary" onclick="showScreen('search')">
-          <div>
+        <button type="button" class="nav-btn secondary" onclick="showScreen('search')">
+          <span class="nav-ico">🔍</span>
+          <div class="nav-text">
             <div class="btn-label">Search &amp; Filter</div>
-            <div class="btn-sub">Find by category, color, season</div>
+            <div class="btn-sub">Find by name, category &amp; season</div>
+          </div>
+          <span class="btn-arrow">›</span>
+        </button>
+
+        <button type="button" class="nav-btn secondary" onclick="showScreen('outfits')">
+          <span class="nav-ico">✨</span>
+          <div class="nav-text">
+            <div class="btn-label">Outfits</div>
+            <div class="btn-sub">Put looks together (coming soon)</div>
           </div>
           <span class="btn-arrow">›</span>
         </button>
@@ -768,7 +917,7 @@
     </div>
   </div>
 
-  <!-- ═══════════ WARDROBE SCREEN ═══════════ -->
+  <!-- ═══════════ WARDROBE ═══════════ -->
   <div class="screen" id="screen-wardrobe">
     <div class="status-bar">
       <span class="time">9:41</span>
@@ -776,12 +925,12 @@
     </div>
 
     <div class="top-bar">
-      <button class="back-btn" onclick="showScreen('landing')">← Home</button>
+      <button type="button" class="back-btn" onclick="showScreen('landing')">← Home</button>
       <div class="top-bar-title">
         <div class="page-name">Wardrobe</div>
-        <div class="page-sub">12 pieces</div>
+        <div class="page-sub" id="wardrobeTotalLabel" title="Total pieces in wardrobe (same as Android app)">18 items</div>
       </div>
-      <button class="top-bar-action" onclick="showScreen('add')">+</button>
+      <button type="button" class="top-bar-action" onclick="showScreen('add')" aria-label="Add">+</button>
     </div>
 
     <div class="filter-bar">
@@ -793,54 +942,145 @@
       <div class="chip">Outerwear</div>
       <div class="chip">Accessories</div>
     </div>
+    <p class="wardrobe-note">The number under <strong>Wardrobe</strong> is the <strong>total record count</strong> for the whole closet (matches the app). Chips only filter what you see below. Sample: 18 pieces (3 per category)—images are fashion-oriented stock photos (not random landscapes).</p>
 
-    <div class="wardrobe-grid">
-      <div class="item-card">
-        <div class="item-photo p1">👚</div>
+    <div class="wardrobe-grid" id="wardrobeGrid">
+      <!-- 3 × Tops -->
+      <div class="item-card" data-category="tops">
+        <div class="item-photo"><img src="https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=420&h=560&q=80" alt="" loading="lazy" decoding="async" width="420" height="560" /></div>
         <div class="item-info">
-          <div class="item-name">Silk blouse</div>
-          <div class="item-meta"><div class="color-dot" style="background:#e8d5f5"></div> Lavender · S</div>
+          <div class="item-name">White linen blouse</div>
+          <div class="item-meta"><div class="color-dot" style="background:#f5f0e8"></div> Tops · S</div>
         </div>
       </div>
-      <div class="item-card">
-        <div class="item-photo p2">👖</div>
+      <div class="item-card" data-category="tops">
+        <div class="item-photo"><img src="https://images.unsplash.com/photo-1434389677669-e08b4cac3105?auto=format&fit=crop&w=420&h=560&q=80" alt="" loading="lazy" decoding="async" width="420" height="560" /></div>
+        <div class="item-info">
+          <div class="item-name">Navy cashmere crewneck</div>
+          <div class="item-meta"><div class="color-dot" style="background:#2c3d5c"></div> Tops · M</div>
+        </div>
+      </div>
+      <div class="item-card" data-category="tops">
+        <div class="item-photo"><img src="https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&w=420&h=560&q=80" alt="" loading="lazy" decoding="async" width="420" height="560" /></div>
+        <div class="item-info">
+          <div class="item-name">Stripe Oxford shirt</div>
+          <div class="item-meta"><div class="color-dot" style="background:#c4a882"></div> Tops · M</div>
+        </div>
+      </div>
+      <!-- 3 × Bottoms -->
+      <div class="item-card" data-category="bottoms">
+        <div class="item-photo"><img src="https://images.unsplash.com/photo-1473966968600-fa801b869a1a?auto=format&fit=crop&w=420&h=560&q=80" alt="" loading="lazy" decoding="async" width="420" height="560" /></div>
         <div class="item-info">
           <div class="item-name">Wide-leg trousers</div>
-          <div class="item-meta"><div class="color-dot" style="background:#b8c4f0"></div> Slate · 28</div>
+          <div class="item-meta"><div class="color-dot" style="background:#4a5a6e"></div> Bottoms · 28</div>
         </div>
       </div>
-      <div class="item-card">
-        <div class="item-photo p3">👗</div>
+      <div class="item-card" data-category="bottoms">
+        <div class="item-photo"><img src="https://loremflickr.com/420/560/jeans,denim?lock=71" alt="" loading="lazy" decoding="async" width="420" height="560" /></div>
+        <div class="item-info">
+          <div class="item-name">Dark slim jeans</div>
+          <div class="item-meta"><div class="color-dot" style="background:#1a1a22"></div> Bottoms · 30</div>
+        </div>
+      </div>
+      <div class="item-card" data-category="bottoms">
+        <div class="item-photo"><img src="https://loremflickr.com/420/560/skirt,clothing?lock=72" alt="" loading="lazy" decoding="async" width="420" height="560" /></div>
+        <div class="item-info">
+          <div class="item-name">Pleated midi skirt</div>
+          <div class="item-meta"><div class="color-dot" style="background:#d4c4b0"></div> Bottoms · 6</div>
+        </div>
+      </div>
+      <!-- 3 × Dresses -->
+      <div class="item-card" data-category="dresses">
+        <div class="item-photo"><img src="https://images.unsplash.com/photo-1595777457583-95e059d581b8?auto=format&fit=crop&w=420&h=560&q=80" alt="" loading="lazy" decoding="async" width="420" height="560" /></div>
         <div class="item-info">
           <div class="item-name">Linen midi dress</div>
-          <div class="item-meta"><div class="color-dot" style="background:#e8ccaa"></div> Sand · M</div>
+          <div class="item-meta"><div class="color-dot" style="background:#e8ccaa"></div> Dresses · M</div>
         </div>
       </div>
-      <div class="item-card">
-        <div class="item-photo p4">🧥</div>
+      <div class="item-card" data-category="dresses">
+        <div class="item-photo"><img src="https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?auto=format&fit=crop&w=420&h=560&q=80" alt="" loading="lazy" decoding="async" width="420" height="560" /></div>
         <div class="item-info">
-          <div class="item-name">Wool coat</div>
-          <div class="item-meta"><div class="color-dot" style="background:#a8d5cc"></div> Sage · M</div>
+          <div class="item-name">Shirt dress</div>
+          <div class="item-meta"><div class="color-dot" style="background:#6b7fa3"></div> Dresses · S</div>
         </div>
       </div>
-      <div class="item-card">
-        <div class="item-photo p5">👠</div>
+      <div class="item-card" data-category="dresses">
+        <div class="item-photo"><img src="https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?auto=format&fit=crop&w=420&h=560&q=80" alt="" loading="lazy" decoding="async" width="420" height="560" /></div>
+        <div class="item-info">
+          <div class="item-name">Knit maxi dress</div>
+          <div class="item-meta"><div class="color-dot" style="background:#5c4037"></div> Dresses · L</div>
+        </div>
+      </div>
+      <!-- 3 × Shoes -->
+      <div class="item-card" data-category="shoes">
+        <div class="item-photo"><img src="https://loremflickr.com/420/560/heels,womens-shoes?lock=73" alt="" loading="lazy" decoding="async" width="420" height="560" /></div>
         <div class="item-info">
           <div class="item-name">Block heel mules</div>
-          <div class="item-meta"><div class="color-dot" style="background:#f0b8b8"></div> Blush · 8</div>
+          <div class="item-meta"><div class="color-dot" style="background:#c4788a"></div> Shoes · 8</div>
         </div>
       </div>
-      <div class="item-card">
-        <div class="item-photo p6">👜</div>
+      <div class="item-card" data-category="shoes">
+        <div class="item-photo"><img src="https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=420&h=560&q=80" alt="" loading="lazy" decoding="async" width="420" height="560" /></div>
         <div class="item-info">
-          <div class="item-name">Structured bag</div>
-          <div class="item-meta"><div class="color-dot" style="background:#d4c0e8"></div> Plum · —</div>
+          <div class="item-name">White leather sneakers</div>
+          <div class="item-meta"><div class="color-dot" style="background:#f5f5f0"></div> Shoes · 9</div>
+        </div>
+      </div>
+      <div class="item-card" data-category="shoes">
+        <div class="item-photo"><img src="https://images.unsplash.com/photo-1533867617858-e7b97e060509?auto=format&fit=crop&w=420&h=560&q=80" alt="" loading="lazy" decoding="async" width="420" height="560" /></div>
+        <div class="item-info">
+          <div class="item-name">Leather loafers</div>
+          <div class="item-meta"><div class="color-dot" style="background:#4a3728"></div> Shoes · 8.5</div>
+        </div>
+      </div>
+      <!-- 3 × Outerwear -->
+      <div class="item-card" data-category="outerwear">
+        <div class="item-photo"><img src="https://images.unsplash.com/photo-1539533018447-63fcce2678e3?auto=format&fit=crop&w=420&h=560&q=80" alt="" loading="lazy" decoding="async" width="420" height="560" /></div>
+        <div class="item-info">
+          <div class="item-name">Wool wrap coat</div>
+          <div class="item-meta"><div class="color-dot" style="background:#3d2b2b"></div> Outerwear · M</div>
+        </div>
+      </div>
+      <div class="item-card" data-category="outerwear">
+        <div class="item-photo"><img src="https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=420&h=560&q=80" alt="" loading="lazy" decoding="async" width="420" height="560" /></div>
+        <div class="item-info">
+          <div class="item-name">Vintage denim jacket</div>
+          <div class="item-meta"><div class="color-dot" style="background:#4a5a8a"></div> Outerwear · L</div>
+        </div>
+      </div>
+      <div class="item-card" data-category="outerwear">
+        <div class="item-photo"><img src="https://images.unsplash.com/photo-1591047139829-d91aecb6caea?auto=format&fit=crop&w=420&h=560&q=80" alt="" loading="lazy" decoding="async" width="420" height="560" /></div>
+        <div class="item-info">
+          <div class="item-name">Classic trench</div>
+          <div class="item-meta"><div class="color-dot" style="background:#c9a87c"></div> Outerwear · S</div>
+        </div>
+      </div>
+      <!-- 3 × Accessories -->
+      <div class="item-card" data-category="accessories">
+        <div class="item-photo"><img src="https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=420&h=560&q=80" alt="" loading="lazy" decoding="async" width="420" height="560" /></div>
+        <div class="item-info">
+          <div class="item-name">Structured leather tote</div>
+          <div class="item-meta"><div class="color-dot" style="background:#2c1810"></div> Accessories · —</div>
+        </div>
+      </div>
+      <div class="item-card" data-category="accessories">
+        <div class="item-photo"><img src="https://images.unsplash.com/photo-1558769132-cb1aea458c5e?auto=format&fit=crop&w=420&h=560&q=80" alt="" loading="lazy" decoding="async" width="420" height="560" /></div>
+        <div class="item-info">
+          <div class="item-name">Printed silk scarf</div>
+          <div class="item-meta"><div class="color-dot" style="background:#c4788a"></div> Accessories · —</div>
+        </div>
+      </div>
+      <div class="item-card" data-category="accessories">
+        <div class="item-photo"><img src="https://loremflickr.com/420/560/belt,leather?lock=74" alt="" loading="lazy" decoding="async" width="420" height="560" /></div>
+        <div class="item-info">
+          <div class="item-name">Woven leather belt</div>
+          <div class="item-meta"><div class="color-dot" style="background:#5d4037"></div> Accessories · —</div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- ═══════════ ADD ITEM SCREEN ═══════════ -->
+  <!-- ═══════════ ADD ITEM ═══════════ -->
   <div class="screen" id="screen-add">
     <div class="status-bar" style="color:#2d1f42">
       <span class="time">9:41</span>
@@ -848,7 +1088,7 @@
     </div>
 
     <div class="top-bar">
-      <button class="back-btn" onclick="showScreen('wardrobe')">Cancel</button>
+      <button type="button" class="back-btn" onclick="showScreen('wardrobe')">Cancel</button>
       <div class="top-bar-title">
         <div class="page-name">Add a New Piece</div>
       </div>
@@ -857,7 +1097,6 @@
 
     <div class="add-form">
 
-      <!-- Photo -->
       <div class="add-field-label">Photo</div>
       <div class="add-photo-box">
         <div class="add-photo-inner">
@@ -866,15 +1105,15 @@
         </div>
       </div>
       <div class="add-photo-btns">
-        <button class="add-outline-btn">Take Photo</button>
-        <button class="add-outline-btn">Gallery</button>
+        <button type="button" class="add-outline-btn">Take photo</button>
+        <button type="button" class="add-outline-btn">Gallery</button>
       </div>
+      <button type="button" class="add-browse-btn">Browse files (emulator: drag into Downloads, then pick)</button>
+      <p class="add-microcopy">On the real app, the simulator only sees files inside the device—drag from Finder onto the emulator if needed.</p>
 
-      <!-- Name -->
       <div class="add-field-label">Name</div>
       <input class="add-text-input" type="text" placeholder="e.g. White linen blouse" />
 
-      <!-- Category -->
       <div class="add-field-label">Category</div>
       <div class="add-chip-row">
         <div class="add-chip active">Tops</div>
@@ -885,7 +1124,6 @@
         <div class="add-chip">Accessories</div>
       </div>
 
-      <!-- Size -->
       <div class="add-field-label">Size <span class="add-field-optional">(optional)</span></div>
       <div class="add-chip-row" style="margin-bottom:8px">
         <div class="add-chip">XS</div>
@@ -896,26 +1134,25 @@
       </div>
       <input class="add-text-input" type="text" placeholder="e.g. M, 10, 9.5, or custom" />
 
-      <!-- Color -->
       <div class="add-field-label">Color</div>
-      <div class="add-swatch-row">
-        <div class="add-swatch selected" style="background:#1a1a1a"></div>
-        <div class="add-swatch" style="background:#4a4a4a"></div>
-        <div class="add-swatch" style="background:#f5f5f5;border:1px solid #ddd"></div>
-        <div class="add-swatch" style="background:#c0392b"></div>
-        <div class="add-swatch" style="background:#e8a0a0"></div>
-        <div class="add-swatch" style="background:#e67e22"></div>
-        <div class="add-swatch" style="background:#f1c40f"></div>
-        <div class="add-swatch" style="background:#2ecc71"></div>
-        <div class="add-swatch" style="background:#3498db"></div>
-        <div class="add-swatch" style="background:#6b4aad"></div>
-        <div class="add-swatch" style="background:#d4c0e8"></div>
-        <div class="add-swatch" style="background:#c9a87c"></div>
-        <div class="add-swatch" style="background:#e8ccaa"></div>
-        <div class="add-swatch" style="background:#5d4037"></div>
+      <p class="color-wheel-hint">Drag the hue ring (or tap), then adjust saturation and brightness—same flow as the app’s color wheel.</p>
+      <div class="color-preview-row">
+        <span id="colorHexLabel">#B794F4</span>
+        <div id="colorPreviewSwatch" class="color-preview-swatch"></div>
       </div>
+      <div class="hue-donut-wrap" id="hueDonutWrap">
+        <div class="hue-donut" id="hueDonut"></div>
+        <div class="hue-marker" id="hueMarker"></div>
+      </div>
+      <div class="slider-label">Saturation</div>
+      <input type="range" class="mock-slider" id="satSlider" min="0" max="100" value="42" />
+      <div class="slider-label">Brightness</div>
+      <input type="range" class="mock-slider" id="valSlider" min="0" max="100" value="96" />
 
-      <!-- Season -->
+      <div class="add-field-label">Color name <span class="add-field-optional">(optional)</span></div>
+      <p class="color-wheel-hint" style="margin-top:4px">Choose a standard name from the list or type your own. Shared labels make search reliable. Leave blank and the app guesses from the wheel.</p>
+      <input class="add-text-input" type="text" id="addColorNameMock" list="mockCommonColorNames" autocomplete="off" placeholder="Type or pick a color…" />
+
       <div class="add-field-label">Season</div>
       <div class="add-chip-row">
         <div class="add-chip active">Spring</div>
@@ -924,13 +1161,12 @@
         <div class="add-chip">Winter</div>
       </div>
 
-      <!-- Save -->
-      <button class="add-save-btn">Save to Wardrobe</button>
+      <button type="button" class="add-save-btn">Save to Wardrobe</button>
 
     </div>
   </div>
 
-  <!-- ═══════════ SEARCH SCREEN ═══════════ -->
+  <!-- ═══════════ SEARCH ═══════════ -->
   <div class="screen" id="screen-search">
     <div class="status-bar">
       <span class="time">9:41</span>
@@ -938,17 +1174,20 @@
     </div>
 
     <div class="top-bar">
-      <button class="back-btn" onclick="showScreen('landing')">← Home</button>
+      <button type="button" class="back-btn" onclick="showScreen('landing')">← Home</button>
       <div class="top-bar-title">
         <div class="page-name">Search</div>
         <div class="page-sub">Filter &amp; sort</div>
       </div>
-      <div style="width:36px"></div>
+      <div style="width:64px" aria-hidden="true"></div>
     </div>
 
     <div class="search-body">
       <div class="search-input-wrap">
-        <input class="search-input" type="text" placeholder="Search pieces…" />
+        <input class="search-input" id="searchNameInput" type="search" placeholder="Search by name…" />
+      </div>
+      <div class="search-input-wrap" style="padding-top:0">
+        <input class="search-input" id="searchColorInput" type="search" list="mockCommonColorNames" autocomplete="off" placeholder="Filter by color (type or pick)…" />
       </div>
 
       <div class="filter-section">
@@ -959,10 +1198,12 @@
           <div class="chip">Bottoms</div>
           <div class="chip">Dresses</div>
           <div class="chip">Shoes</div>
+          <div class="chip">Outerwear</div>
+          <div class="chip">Accessories</div>
         </div>
       </div>
 
-      <div class="filter-section" style="padding-top:8px">
+      <div class="filter-section" style="padding-top:4px">
         <div class="filter-label">Season</div>
         <div class="chip-row">
           <div class="chip active">All</div>
@@ -974,70 +1215,285 @@
       </div>
 
       <div class="sort-row">
-        <div class="sort-chip active">Recently Added</div>
-        <div class="sort-chip">Most Worn</div>
+        <div class="sort-chip active">Recently added</div>
+        <div class="sort-chip">Most worn</div>
         <div class="sort-chip">A → Z</div>
       </div>
 
-      <div class="results-list">
-        <div class="result-row">
-          <div class="result-thumb p1" style="background:linear-gradient(135deg,#e8d5f5,#c9a8e8)">👚</div>
-          <div class="result-info">
-            <div class="result-name">Silk blouse</div>
-            <div class="result-tags">Tops · Lavender · Spring, Summer</div>
-          </div>
-          <div class="result-arrow">›</div>
-        </div>
-        <div class="result-row">
-          <div class="result-thumb p3" style="background:linear-gradient(135deg,#f5e6d0,#e8ccaa)">👗</div>
-          <div class="result-info">
-            <div class="result-name">Linen midi dress</div>
-            <div class="result-tags">Dresses · Sand · Summer</div>
-          </div>
-          <div class="result-arrow">›</div>
-        </div>
-        <div class="result-row">
-          <div class="result-thumb p4" style="background:linear-gradient(135deg,#d5ede8,#a8d5cc)">🧥</div>
-          <div class="result-info">
-            <div class="result-name">Wool coat</div>
-            <div class="result-tags">Outerwear · Sage · Autumn, Winter</div>
-          </div>
-          <div class="result-arrow">›</div>
-        </div>
-        <div class="result-row">
-          <div class="result-thumb p2" style="background:linear-gradient(135deg,#dde5ff,#b8c4f0)">👖</div>
-          <div class="result-info">
-            <div class="result-name">Wide-leg trousers</div>
-            <div class="result-tags">Bottoms · Slate · All seasons</div>
-          </div>
-          <div class="result-arrow">›</div>
-        </div>
+      <div class="results-list" id="searchResultsList">
+        <div class="result-row" data-name="White linen blouse" data-color="White"><div class="result-thumb"><img src="https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=104&h=104&q=80" alt="" loading="lazy" width="104" height="104" /></div><div class="result-info"><div class="result-name">White linen blouse</div><div class="result-tags">Tops · White · Spring, Summer</div></div><div class="result-arrow">›</div></div>
+        <div class="result-row" data-name="Navy cashmere crewneck" data-color="Navy"><div class="result-thumb"><img src="https://images.unsplash.com/photo-1434389677669-e08b4cac3105?auto=format&fit=crop&w=104&h=104&q=80" alt="" loading="lazy" width="104" height="104" /></div><div class="result-info"><div class="result-name">Navy cashmere crewneck</div><div class="result-tags">Tops · Navy · Winter</div></div><div class="result-arrow">›</div></div>
+        <div class="result-row" data-name="Stripe Oxford shirt" data-color="Tan"><div class="result-thumb"><img src="https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&w=104&h=104&q=80" alt="" loading="lazy" width="104" height="104" /></div><div class="result-info"><div class="result-name">Stripe Oxford shirt</div><div class="result-tags">Tops · Tan · All seasons</div></div><div class="result-arrow">›</div></div>
+        <div class="result-row" data-name="Wide-leg trousers" data-color="Slate"><div class="result-thumb"><img src="https://images.unsplash.com/photo-1473966968600-fa801b869a1a?auto=format&fit=crop&w=104&h=104&q=80" alt="" loading="lazy" width="104" height="104" /></div><div class="result-info"><div class="result-name">Wide-leg trousers</div><div class="result-tags">Bottoms · Slate · Spring</div></div><div class="result-arrow">›</div></div>
+        <div class="result-row" data-name="Dark slim jeans" data-color="Black"><div class="result-thumb"><img src="https://loremflickr.com/104/104/jeans,denim?lock=71" alt="" loading="lazy" width="104" height="104" /></div><div class="result-info"><div class="result-name">Dark slim jeans</div><div class="result-tags">Bottoms · Black · All seasons</div></div><div class="result-arrow">›</div></div>
+        <div class="result-row" data-name="Pleated midi skirt" data-color="Oat"><div class="result-thumb"><img src="https://loremflickr.com/104/104/skirt,clothing?lock=72" alt="" loading="lazy" width="104" height="104" /></div><div class="result-info"><div class="result-name">Pleated midi skirt</div><div class="result-tags">Bottoms · Oat · Summer</div></div><div class="result-arrow">›</div></div>
+        <div class="result-row" data-name="Linen midi dress" data-color="Sand"><div class="result-thumb"><img src="https://images.unsplash.com/photo-1595777457583-95e059d581b8?auto=format&fit=crop&w=104&h=104&q=80" alt="" loading="lazy" width="104" height="104" /></div><div class="result-info"><div class="result-name">Linen midi dress</div><div class="result-tags">Dresses · Sand · Summer</div></div><div class="result-arrow">›</div></div>
+        <div class="result-row" data-name="Shirt dress" data-color="Blue"><div class="result-thumb"><img src="https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?auto=format&fit=crop&w=104&h=104&q=80" alt="" loading="lazy" width="104" height="104" /></div><div class="result-info"><div class="result-name">Shirt dress</div><div class="result-tags">Dresses · Blue · Spring</div></div><div class="result-arrow">›</div></div>
+        <div class="result-row" data-name="Knit maxi dress" data-color="Brown"><div class="result-thumb"><img src="https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?auto=format&fit=crop&w=104&h=104&q=80" alt="" loading="lazy" width="104" height="104" /></div><div class="result-info"><div class="result-name">Knit maxi dress</div><div class="result-tags">Dresses · Brown · Autumn</div></div><div class="result-arrow">›</div></div>
+        <div class="result-row" data-name="Block heel mules" data-color="Pink"><div class="result-thumb"><img src="https://loremflickr.com/104/104/heels,womens-shoes?lock=73" alt="" loading="lazy" width="104" height="104" /></div><div class="result-info"><div class="result-name">Block heel mules</div><div class="result-tags">Shoes · Pink · Summer</div></div><div class="result-arrow">›</div></div>
+        <div class="result-row" data-name="White leather sneakers" data-color="White"><div class="result-thumb"><img src="https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=104&h=104&q=80" alt="" loading="lazy" width="104" height="104" /></div><div class="result-info"><div class="result-name">White leather sneakers</div><div class="result-tags">Shoes · White · All seasons</div></div><div class="result-arrow">›</div></div>
+        <div class="result-row" data-name="Leather loafers" data-color="Espresso"><div class="result-thumb"><img src="https://images.unsplash.com/photo-1533867617858-e7b97e060509?auto=format&fit=crop&w=104&h=104&q=80" alt="" loading="lazy" width="104" height="104" /></div><div class="result-info"><div class="result-name">Leather loafers</div><div class="result-tags">Shoes · Espresso · Autumn</div></div><div class="result-arrow">›</div></div>
+        <div class="result-row" data-name="Wool wrap coat" data-color="Cocoa"><div class="result-thumb"><img src="https://images.unsplash.com/photo-1539533018447-63fcce2678e3?auto=format&fit=crop&w=104&h=104&q=80" alt="" loading="lazy" width="104" height="104" /></div><div class="result-info"><div class="result-name">Wool wrap coat</div><div class="result-tags">Outerwear · Cocoa · Winter</div></div><div class="result-arrow">›</div></div>
+        <div class="result-row" data-name="Vintage denim jacket" data-color="Indigo"><div class="result-thumb"><img src="https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=104&h=104&q=80" alt="" loading="lazy" width="104" height="104" /></div><div class="result-info"><div class="result-name">Vintage denim jacket</div><div class="result-tags">Outerwear · Indigo · Spring</div></div><div class="result-arrow">›</div></div>
+        <div class="result-row" data-name="Classic trench" data-color="Tan"><div class="result-thumb"><img src="https://images.unsplash.com/photo-1591047139829-d91aecb6caea?auto=format&fit=crop&w=104&h=104&q=80" alt="" loading="lazy" width="104" height="104" /></div><div class="result-info"><div class="result-name">Classic trench</div><div class="result-tags">Outerwear · Tan · Autumn</div></div><div class="result-arrow">›</div></div>
+        <div class="result-row" data-name="Structured leather tote" data-color="Mahogany"><div class="result-thumb"><img src="https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=104&h=104&q=80" alt="" loading="lazy" width="104" height="104" /></div><div class="result-info"><div class="result-name">Structured leather tote</div><div class="result-tags">Accessories · Mahogany · All seasons</div></div><div class="result-arrow">›</div></div>
+        <div class="result-row" data-name="Printed silk scarf" data-color="Pink"><div class="result-thumb"><img src="https://images.unsplash.com/photo-1558769132-cb1aea458c5e?auto=format&fit=crop&w=104&h=104&q=80" alt="" loading="lazy" width="104" height="104" /></div><div class="result-info"><div class="result-name">Printed silk scarf</div><div class="result-tags">Accessories · Pink · Spring</div></div><div class="result-arrow">›</div></div>
+        <div class="result-row" data-name="Woven leather belt" data-color="Brown"><div class="result-thumb"><img src="https://loremflickr.com/104/104/belt,leather?lock=74" alt="" loading="lazy" width="104" height="104" /></div><div class="result-info"><div class="result-name">Woven leather belt</div><div class="result-tags">Accessories · Brown · All seasons</div></div><div class="result-arrow">›</div></div>
       </div>
     </div>
   </div>
 
-</div><!-- /phone -->
+  <!-- ═══════════ OUTFITS (placeholder) ═══════════ -->
+  <div class="screen" id="screen-outfits">
+    <div class="status-bar">
+      <span class="time">9:41</span>
+      <span class="icons">▲ WiFi 🔋</span>
+    </div>
+    <div class="top-bar">
+      <button type="button" class="back-btn" onclick="showScreen('landing')">← Home</button>
+      <div class="top-bar-title">
+        <div class="page-name">Outfits</div>
+      </div>
+      <div style="width:64px" aria-hidden="true"></div>
+    </div>
+    <div class="outfits-body">
+      <h2>Coming soon</h2>
+      <p>Saving and wearing outfits will land here next—your wardrobe pieces are ready when we add it.</p>
+    </div>
+  </div>
+
+</div>
+
+<datalist id="mockCommonColorNames">
+  <option value="Beige"></option>
+  <option value="Black"></option>
+  <option value="Blue"></option>
+  <option value="Brown"></option>
+  <option value="Burgundy"></option>
+  <option value="Camel"></option>
+  <option value="Charcoal"></option>
+  <option value="Cocoa"></option>
+  <option value="Copper"></option>
+  <option value="Cream"></option>
+  <option value="Denim"></option>
+  <option value="Espresso"></option>
+  <option value="Gold"></option>
+  <option value="Gray"></option>
+  <option value="Green"></option>
+  <option value="Grey"></option>
+  <option value="Indigo"></option>
+  <option value="Ivory"></option>
+  <option value="Khaki"></option>
+  <option value="Lavender"></option>
+  <option value="Mahogany"></option>
+  <option value="Maroon"></option>
+  <option value="Multicolor"></option>
+  <option value="Navy"></option>
+  <option value="Oat"></option>
+  <option value="Olive"></option>
+  <option value="Orange"></option>
+  <option value="Pink"></option>
+  <option value="Purple"></option>
+  <option value="Red"></option>
+  <option value="Rose"></option>
+  <option value="Sand"></option>
+  <option value="Silver"></option>
+  <option value="Slate"></option>
+  <option value="Tan"></option>
+  <option value="Taupe"></option>
+  <option value="Teal"></option>
+  <option value="White"></option>
+  <option value="Wine"></option>
+  <option value="Yellow"></option>
+</datalist>
 
 <div class="annotation-bar">
-  <strong>How to use:</strong> Tap the buttons to navigate between screens. Tell me anything you'd like to change — colors, layout, button placement, text, sizing — and I'll update it instantly.
+  <strong>This file tracks the Android app.</strong> Finalize layout and behavior here first; Kotlin in Android Studio follows once the mockup is agreed. Wardrobe: <strong>18 sample pieces</strong> (3 per category), <strong>Unsplash</strong> + <strong>Lorem Flickr</strong> (internet). “Wardrobe” subtitle = <strong>total count</strong>; chips filter the grid only. Search: <strong>name</strong> + <strong>color</strong> (<code>datalist</code> combobox). Add-piece: optional <strong>color name</strong> (same list) + hue ring + sliders.
 </div>
 
 <script>
   function showScreen(name) {
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    document.getElementById('screen-' + name).classList.add('active');
+    document.querySelectorAll('.screen').forEach(function (s) { s.classList.remove('active'); });
+    var el = document.getElementById('screen-' + name);
+    if (el) el.classList.add('active');
   }
 
   function toggleMenu() {
-    const dropdown = document.getElementById('menuDropdown');
-    dropdown.classList.toggle('open');
+    document.getElementById('menuDropdown').classList.toggle('open');
   }
 
-  document.addEventListener('click', function(e) {
+  document.addEventListener('click', function (e) {
     if (!e.target.closest('#menuBtn') && !e.target.closest('#menuDropdown')) {
       document.getElementById('menuDropdown').classList.remove('open');
     }
   });
+
+  /* ─── Wardrobe: total count + category filter (grid only; total unchanged) ─── */
+  function syncWardrobeTotalLabel() {
+    var cards = document.querySelectorAll('#wardrobeGrid .item-card');
+    var el = document.getElementById('wardrobeTotalLabel');
+    if (!el) return;
+    var n = cards.length;
+    el.textContent = n + ' item' + (n === 1 ? '' : 's');
+  }
+
+  function initWardrobeCategoryChips() {
+    var bar = document.querySelector('#screen-wardrobe .filter-bar');
+    var grid = document.getElementById('wardrobeGrid');
+    if (!bar || !grid) return;
+    var chips = bar.querySelectorAll('.chip');
+    var cards = grid.querySelectorAll('.item-card');
+    chips.forEach(function (chip) {
+      chip.addEventListener('click', function () {
+        var label = chip.textContent.trim().toLowerCase();
+        chips.forEach(function (c) { c.classList.remove('active'); });
+        chip.classList.add('active');
+        cards.forEach(function (card) {
+          var cat = card.getAttribute('data-category');
+          var show = (label === 'all' || !cat || cat === label);
+          card.style.display = show ? '' : 'none';
+        });
+      });
+    });
+  }
+
+  function applyMockSearchFilters() {
+    var list = document.getElementById('searchResultsList');
+    if (!list) return;
+    var nameInput = document.getElementById('searchNameInput');
+    var colorInput = document.getElementById('searchColorInput');
+    var nameQ = (nameInput && nameInput.value || '').trim().toLowerCase();
+    var colorQ = (colorInput && colorInput.value || '').trim().toLowerCase();
+    list.querySelectorAll('.result-row').forEach(function (row) {
+      var n = (row.getAttribute('data-name') || '').toLowerCase();
+      var c = (row.getAttribute('data-color') || '').toLowerCase();
+      var okN = !nameQ || n.indexOf(nameQ) !== -1;
+      var okC = !colorQ || c.indexOf(colorQ) !== -1;
+      row.style.display = okN && okC ? '' : 'none';
+    });
+  }
+
+  function initSearchMockFilters() {
+    var nameInput = document.getElementById('searchNameInput');
+    var colorInput = document.getElementById('searchColorInput');
+    if (nameInput) nameInput.addEventListener('input', applyMockSearchFilters);
+    if (colorInput) colorInput.addEventListener('input', applyMockSearchFilters);
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    syncWardrobeTotalLabel();
+    initWardrobeCategoryChips();
+    initSearchMockFilters();
+  });
+
+  /* ─── HSV color wheel (approximates Compose picker) ─── */
+  var mockHue = 285;
+  var mockSat = 0.42;
+  var mockVal = 0.96;
+
+  function hsvToRgb(h, s, v) {
+    h = ((h % 360) + 360) % 360;
+    s = Math.max(0, Math.min(1, s));
+    v = Math.max(0, Math.min(1, v));
+    var c = v * s;
+    var x = c * (1 - Math.abs((h / 60) % 2 - 1));
+    var m = v - c;
+    var rp = 0, gp = 0, bp = 0;
+    if (h < 60) { rp = c; gp = x; }
+    else if (h < 120) { rp = x; gp = c; }
+    else if (h < 180) { gp = c; bp = x; }
+    else if (h < 240) { gp = x; bp = c; }
+    else if (h < 300) { rp = x; bp = c; }
+    else { rp = c; bp = x; }
+    return {
+      r: Math.round((rp + m) * 255),
+      g: Math.round((gp + m) * 255),
+      b: Math.round((bp + m) * 255)
+    };
+  }
+
+  function rgbToHex(r, g, b) {
+    return '#' + [r, g, b].map(function (x) {
+      return ('0' + x.toString(16)).slice(-2);
+    }).join('').toUpperCase();
+  }
+
+  function refreshColorMock() {
+    var rgb = hsvToRgb(mockHue, mockSat, mockVal);
+    var hex = rgbToHex(rgb.r, rgb.g, rgb.b);
+    var sw = document.getElementById('colorPreviewSwatch');
+    var lab = document.getElementById('colorHexLabel');
+    if (sw) sw.style.background = hex;
+    if (lab) lab.textContent = hex;
+
+    var wrap = document.getElementById('hueDonutWrap');
+    var mk = document.getElementById('hueMarker');
+    if (wrap && mk) {
+      var cx = wrap.clientWidth / 2;
+      var cy = wrap.clientHeight / 2;
+      var outer = Math.min(wrap.clientWidth, wrap.clientHeight) / 2 * 0.92;
+      var inner = outer * 0.58;
+      var mid = (outer + inner) / 2;
+      var rad = (mockHue * Math.PI) / 180;
+      var hx = cx + Math.cos(rad) * mid;
+      var hy = cy + Math.sin(rad) * mid;
+      mk.style.left = hx + 'px';
+      mk.style.top = hy + 'px';
+    }
+  }
+
+  function setHueFromClientXY(clientX, clientY) {
+    var wrap = document.getElementById('hueDonutWrap');
+    if (!wrap) return;
+    var rect = wrap.getBoundingClientRect();
+    var cx = rect.width / 2;
+    var cy = rect.height / 2;
+    var x = clientX - rect.left - cx;
+    var y = clientY - rect.top - cy;
+    var outer = Math.min(rect.width, rect.height) / 2 * 0.92;
+    var inner = outer * 0.58;
+    var dist = Math.sqrt(x * x + y * y);
+    if (dist < inner || dist > outer) return;
+    var angle = Math.atan2(y, x) * 180 / Math.PI;
+    if (angle < 0) angle += 360;
+    mockHue = angle;
+    refreshColorMock();
+  }
+
+  (function initColorWheel() {
+    var sat = document.getElementById('satSlider');
+    var val = document.getElementById('valSlider');
+    var wrap = document.getElementById('hueDonutWrap');
+
+    if (sat) sat.addEventListener('input', function () {
+      mockSat = parseInt(sat.value, 10) / 100;
+      refreshColorMock();
+    });
+    if (val) val.addEventListener('input', function () {
+      mockVal = parseInt(val.value, 10) / 100;
+      refreshColorMock();
+    });
+
+    if (wrap) {
+      wrap.addEventListener('click', function (e) { setHueFromClientXY(e.clientX, e.clientY); });
+      var dragging = false;
+      wrap.addEventListener('mousedown', function (e) { dragging = true; setHueFromClientXY(e.clientX, e.clientY); e.preventDefault(); });
+      window.addEventListener('mouseup', function () { dragging = false; });
+      window.addEventListener('mousemove', function (e) {
+        if (dragging) setHueFromClientXY(e.clientX, e.clientY);
+      });
+      wrap.addEventListener('touchstart', function (e) {
+        if (e.touches[0]) setHueFromClientXY(e.touches[0].clientX, e.touches[0].clientY);
+      }, { passive: true });
+      wrap.addEventListener('touchmove', function (e) {
+        if (e.touches[0]) setHueFromClientXY(e.touches[0].clientX, e.touches[0].clientY);
+      }, { passive: true });
+    }
+
+    refreshColorMock();
+    window.addEventListener('load', function () { refreshColorMock(); });
+    window.addEventListener('resize', function () { refreshColorMock(); });
+  })();
 </script>
 </body>
 </html>
