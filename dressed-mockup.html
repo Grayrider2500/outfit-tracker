@@ -1434,7 +1434,8 @@
       var outer = Math.min(wrap.clientWidth, wrap.clientHeight) / 2 * 0.92;
       var inner = outer * 0.58;
       var mid = (outer + inner) / 2;
-      var rad = (mockHue * Math.PI) / 180;
+      /* conic-gradient: hue 0° at 12 o'clock, clockwise; offset from atan2 (0° at 3 o'clock). */
+      var rad = ((mockHue - 90) * Math.PI) / 180;
       var hx = cx + Math.cos(rad) * mid;
       var hy = cy + Math.sin(rad) * mid;
       mk.style.left = hx + 'px';
@@ -1455,8 +1456,7 @@
     var dist = Math.sqrt(x * x + y * y);
     if (dist < inner || dist > outer) return;
     var angle = Math.atan2(y, x) * 180 / Math.PI;
-    if (angle < 0) angle += 360;
-    mockHue = angle;
+    mockHue = (angle + 90 + 360) % 360;
     refreshColorMock();
   }
 
