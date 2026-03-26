@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Dressed – Layout Mockup</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #1a1a2e;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    min-height: 100vh;
+    font-family: 'Georgia', serif;
+    padding: 24px 16px 40px;
+  }
+
+  .label {
+    color: #a78bca;
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    font-family: 'Arial', sans-serif;
+  }
+
+  /* Phone shell */
+  .phone {
+    width: 390px;
+    height: 844px;
+    background: #f5f0fb;
+    border-radius: 48px;
+    box-shadow: 0 0 0 10px #2d1f42, 0 0 0 12px #3d2b5c, 0 30px 80px rgba(0,0,0,0.6);
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Status bar */
+  .status-bar {
+    background: transparent;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 10;
+  }
+
+  .status-bar .time {
+    font-size: 15px;
+    font-weight: 600;
+    font-family: 'Arial', sans-serif;
+  }
+
+  .status-bar .icons {
+    font-size: 13px;
+    font-family: 'Arial', sans-serif;
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+
+  /* Screens */
+  .screen {
+    display: none;
+    flex-direction: column;
+    flex: 1;
+    overflow: hidden;
+  }
+  .screen.active { display: flex; }
+
+  /* ─── LANDING ─── */
+  #screen-landing {
+    background: linear-gradient(160deg, #4a3370 0%, #6b4aad 45%, #8b62d4 100%);
+  }
+
+  #screen-landing .status-bar { color: #e8d5f5; }
+
+  .landing-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 40px 32px 56px;
+  }
+
+  .landing-top {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 32px;
+    margin-bottom: 55px;
+  }
+
+  .landing-footer {
+    margin-top: auto;
+  }
+
+  .landing-menu-btn {
+    position: absolute;
+    top: 52px;
+    right: 24px;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.22);
+    color: #f0e6ff;
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    letter-spacing: 0;
+    z-index: 20;
+    transition: background 0.2s;
+  }
+  .landing-menu-btn:hover { background: rgba(255,255,255,0.22); }
+
+  .landing-dropdown {
+    position: absolute;
+    top: 96px;
+    right: 20px;
+    background: #2d1f42;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 14px;
+    overflow: hidden;
+    z-index: 30;
+    display: none;
+    min-width: 200px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  }
+  .landing-dropdown.open { display: block; }
+
+  .dropdown-item {
+    padding: 15px 20px;
+    font-size: 14px;
+    font-family: 'Arial', sans-serif;
+    color: #e8d5f5;
+    cursor: pointer;
+    transition: background 0.15s;
+    letter-spacing: 0.02em;
+  }
+  .dropdown-item:hover { background: rgba(255,255,255,0.1); }
+
+  .dropdown-divider {
+    height: 1px;
+    background: rgba(255,255,255,0.1);
+  }
+
+  .brand-mark {
+    width: 180px;
+    height: 180px;
+    border-radius: 40px;
+    background: rgba(150,100,255,0.25);
+    border: 1px solid rgba(180,140,255,0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 81px;
+    margin-bottom: 28px;
+    backdrop-filter: blur(8px);
+  }
+
+  .brand-name {
+    font-size: 48px;
+    font-weight: 400;
+    color: #f0e6ff;
+    letter-spacing: 0.06em;
+    line-height: 1;
+    margin-bottom: 12px;
+  }
+
+  .brand-tagline {
+    font-size: 12px;
+    letter-spacing: 0.22em;
+    color: rgba(240,230,255,0.55);
+    text-transform: uppercase;
+    font-family: 'Arial', sans-serif;
+  }
+
+  .landing-middle {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+  }
+
+  .divider-line {
+    width: 40px;
+    height: 1px;
+    background: rgba(255,255,255,0.2);
+    margin: 8px auto 24px;
+  }
+
+  .nav-btn {
+    width: 100%;
+    padding: 18px 24px;
+    border-radius: 16px;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    letter-spacing: 0.08em;
+    font-family: 'Georgia', serif;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    text-align: left;
+  }
+
+  .nav-btn:active { transform: scale(0.97); }
+
+  .nav-btn.primary {
+    background: rgba(140,90,255,0.35);
+    color: #f0e6ff;
+    border: 1px solid rgba(180,140,255,0.45);
+    backdrop-filter: blur(8px);
+    margin-bottom: 12px;
+  }
+
+  .nav-btn.primary:hover {
+    background: rgba(140,90,255,0.48);
+  }
+
+  .nav-btn.secondary {
+    background: rgba(140,90,255,0.15);
+    color: rgba(240,230,255,0.85);
+    border: 1px solid rgba(180,140,255,0.25);
+  }
+
+  .nav-btn.secondary:hover {
+    background: rgba(140,90,255,0.25);
+  }
+
+  .btn-label { font-size: 16px; }
+  .btn-sub {
+    font-size: 11px;
+    font-family: 'Arial', sans-serif;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    opacity: 0.6;
+    margin-top: 3px;
+  }
+  .btn-arrow { font-size: 18px; opacity: 0.5; }
+
+  .landing-footer {
+    font-size: 11px;
+    color: rgba(240,230,255,0.3);
+    font-family: 'Arial', sans-serif;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  /* ─── WARDROBE ─── */
+  #screen-wardrobe {
+    background: #f5f0fb;
+  }
+
+  #screen-wardrobe .status-bar { color: #2d1f42; }
+
+  .top-bar {
+    background: #3d2b5c;
+    padding: 16px 20px 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+
+  .back-btn {
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: #e8d5f5;
+    border-radius: 10px;
+    padding: 8px 14px;
+    font-size: 13px;
+    font-family: 'Arial', sans-serif;
+    cursor: pointer;
+    letter-spacing: 0.04em;
+    transition: background 0.2s;
+    white-space: nowrap;
+  }
+  .back-btn:hover { background: rgba(255,255,255,0.2); }
+  .back-btn:active { transform: scale(0.96); }
+
+  .top-bar-title {
+    flex: 1;
+    text-align: center;
+  }
+
+  .top-bar-title .page-name {
+    font-size: 20px;
+    color: #f0e6ff;
+    font-weight: 400;
+    letter-spacing: 0.04em;
+  }
+
+  .top-bar-title .page-sub {
+    font-size: 10px;
+    color: rgba(240,230,255,0.5);
+    font-family: 'Arial', sans-serif;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  .top-bar-action {
+    background: #8b5cf6;
+    border: none;
+    color: white;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    font-size: 22px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+  }
+  .top-bar-action:hover { background: #7c3aed; }
+
+  /* Category filter bar */
+  .filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 7px;
+    padding: 12px 16px;
+    flex-shrink: 0;
+    background: #f5f0fb;
+    border-bottom: 1px solid rgba(61,43,92,0.08);
+  }
+
+  .chip {
+    padding: 6px 13px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-family: 'Arial', sans-serif;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+    cursor: pointer;
+    border: 1px solid rgba(61,43,92,0.2);
+    background: white;
+    color: #4a2d6b;
+    transition: all 0.15s;
+  }
+  .chip.active {
+    background: #4a2d6b;
+    color: #f0e6ff;
+    border-color: #4a2d6b;
+  }
+
+  /* Grid */
+  .wardrobe-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    padding: 16px;
+    overflow-y: auto;
+    flex: 1;
+  }
+  .wardrobe-grid::-webkit-scrollbar { width: 4px; }
+  .wardrobe-grid::-webkit-scrollbar-thumb { background: rgba(61,43,92,0.2); border-radius: 2px; }
+
+  .item-card {
+    background: white;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(61,43,92,0.08);
+  }
+
+  .item-photo {
+    aspect-ratio: 3/4;
+    background: #ede5f8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40px;
+  }
+
+  .item-photo.p1 { background: linear-gradient(135deg, #e8d5f5, #c9a8e8); }
+  .item-photo.p2 { background: linear-gradient(135deg, #dde5ff, #b8c4f0); }
+  .item-photo.p3 { background: linear-gradient(135deg, #f5e6d0, #e8ccaa); }
+  .item-photo.p4 { background: linear-gradient(135deg, #d5ede8, #a8d5cc); }
+  .item-photo.p5 { background: linear-gradient(135deg, #fde8e8, #f0b8b8); }
+  .item-photo.p6 { background: linear-gradient(135deg, #eee8f5, #d4c0e8); }
+
+  .item-info {
+    padding: 10px 12px 12px;
+  }
+  .item-name {
+    font-size: 13px;
+    color: #2d1f42;
+    font-weight: 400;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 4px;
+  }
+  .item-meta {
+    font-size: 11px;
+    color: #8b6aaa;
+    font-family: 'Arial', sans-serif;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .color-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* ─── ADD ITEM ─── */
+  #screen-add {
+    background: #f5f0fb;
+  }
+
+  .add-form {
+    flex: 1;
+    overflow-y: auto;
+    padding: 18px 20px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .add-form::-webkit-scrollbar { width: 4px; }
+  .add-form::-webkit-scrollbar-thumb { background: rgba(61,43,92,0.15); border-radius: 2px; }
+
+  .add-field-label {
+    font-size: 12px;
+    font-family: 'Arial', sans-serif;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #4a2d6b;
+    margin-top: 14px;
+    margin-bottom: 6px;
+  }
+
+  .add-field-optional {
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: 0;
+    color: #9b7bb8;
+    font-size: 11px;
+  }
+
+  .add-photo-box {
+    width: 100%;
+    height: 160px;
+    border-radius: 14px;
+    border: 1.5px dashed rgba(107,74,173,0.35);
+    background: rgba(150,100,255,0.06);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .add-photo-box:hover { background: rgba(150,100,255,0.1); }
+
+  .add-photo-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .add-photo-hint {
+    font-size: 13px;
+    color: #9b7bb8;
+    font-family: 'Arial', sans-serif;
+  }
+
+  .add-photo-btns {
+    display: flex;
+    gap: 10px;
+    margin-top: 2px;
+  }
+
+  .add-outline-btn {
+    flex: 1;
+    padding: 10px;
+    border-radius: 12px;
+    border: 1.5px solid rgba(107,74,173,0.35);
+    background: white;
+    color: #4a2d6b;
+    font-size: 13px;
+    font-family: 'Arial', sans-serif;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .add-outline-btn:hover { background: rgba(150,100,255,0.08); }
+
+  .add-text-input {
+    width: 100%;
+    padding: 11px 14px;
+    border-radius: 12px;
+    border: 1.5px solid rgba(107,74,173,0.25);
+    background: white;
+    font-size: 14px;
+    font-family: 'Georgia', serif;
+    color: #2d1f42;
+    outline: none;
+  }
+  .add-text-input:focus { border-color: #7c3aed; }
+  .add-text-input::placeholder { color: #b09ac0; }
+
+  .add-chip-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+  }
+
+  .add-chip {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-family: 'Arial', sans-serif;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    border: 1.5px solid rgba(107,74,173,0.25);
+    background: white;
+    color: #4a2d6b;
+    transition: all 0.15s;
+  }
+  .add-chip.active {
+    background: #6b4aad;
+    color: #f0e6ff;
+    border-color: #6b4aad;
+  }
+
+  .add-swatch-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .add-swatch {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: transform 0.15s;
+  }
+  .add-swatch:hover { transform: scale(1.1); }
+  .add-swatch.selected {
+    outline: 3px solid #7c3aed;
+    outline-offset: 2px;
+  }
+
+  .add-save-btn {
+    width: 100%;
+    padding: 16px;
+    margin-top: 20px;
+    border-radius: 14px;
+    border: none;
+    background: #6b4aad;
+    color: #f0e6ff;
+    font-size: 15px;
+    font-family: 'Georgia', serif;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .add-save-btn:hover { background: #7c3aed; }
+
+  /* ─── SEARCH ─── */
+  #screen-search {
+    background: #f5f0fb;
+  }
+
+  #screen-search .status-bar { color: #2d1f42; }
+
+  .search-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .search-input-wrap {
+    padding: 14px 16px;
+    background: #f5f0fb;
+    border-bottom: 1px solid rgba(61,43,92,0.08);
+    flex-shrink: 0;
+  }
+
+  .search-input {
+    width: 100%;
+    padding: 13px 18px;
+    border-radius: 14px;
+    border: 1.5px solid rgba(61,43,92,0.15);
+    background: white;
+    font-size: 15px;
+    font-family: 'Georgia', serif;
+    color: #2d1f42;
+    outline: none;
+  }
+  .search-input:focus { border-color: #7c3aed; }
+  .search-input::placeholder { color: #b09ac0; }
+
+  .filter-section {
+    padding: 16px 16px 8px;
+    flex-shrink: 0;
+  }
+
+  .filter-label {
+    font-size: 10px;
+    font-family: 'Arial', sans-serif;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #8b6aaa;
+    margin-bottom: 10px;
+  }
+
+  .chip-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .sort-row {
+    display: flex;
+    gap: 8px;
+    padding: 0 16px 14px;
+    flex-shrink: 0;
+    border-bottom: 1px solid rgba(61,43,92,0.08);
+  }
+
+  .sort-chip {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-family: 'Arial', sans-serif;
+    cursor: pointer;
+    border: 1px solid rgba(61,43,92,0.2);
+    background: white;
+    color: #4a2d6b;
+    letter-spacing: 0.04em;
+  }
+  .sort-chip.active {
+    background: #8b5cf6;
+    color: white;
+    border-color: #8b5cf6;
+  }
+
+  .results-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .result-row {
+    background: white;
+    border-radius: 14px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    box-shadow: 0 2px 8px rgba(61,43,92,0.07);
+  }
+
+  .result-thumb {
+    width: 52px;
+    height: 52px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    flex-shrink: 0;
+  }
+
+  .result-info { flex: 1; }
+  .result-name {
+    font-size: 14px;
+    color: #2d1f42;
+    margin-bottom: 3px;
+  }
+  .result-tags {
+    font-size: 11px;
+    color: #8b6aaa;
+    font-family: 'Arial', sans-serif;
+  }
+  .result-arrow { color: #c4b0d8; font-size: 16px; }
+
+  /* ─── ANNOTATION BAR ─── */
+  .annotation-bar {
+    width: 390px;
+    margin-top: 20px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 16px;
+    padding: 16px 20px;
+    color: #a78bca;
+    font-size: 13px;
+    font-family: 'Arial', sans-serif;
+    line-height: 1.6;
+  }
+  .annotation-bar strong { color: #c4a8e8; }
+</style>
+</head>
+<body>
+
+<div class="label">Dressed — Interactive Layout Mockup</div>
+
+<div class="phone">
+
+  <!-- ═══════════ LANDING SCREEN ═══════════ -->
+  <div class="screen active" id="screen-landing">
+    <div class="status-bar">
+      <span class="time" style="color:#e8d5f5">9:41</span>
+      <span class="icons" style="color:#e8d5f5">▲ WiFi 🔋</span>
+    </div>
+
+    <div class="landing-body">
+      <div class="landing-menu-btn" id="menuBtn" onclick="toggleMenu()">⋯</div>
+      <div class="landing-dropdown" id="menuDropdown">
+        <div class="dropdown-item" onclick="toggleMenu()">💾 &nbsp;Backup to file…</div>
+        <div class="dropdown-divider"></div>
+        <div class="dropdown-item" onclick="toggleMenu()">📂 &nbsp;Restore from file…</div>
+      </div>
+
+      <div class="landing-top">
+        <div class="brand-mark">👗</div>
+        <div class="brand-name">Dressed</div>
+        <div class="brand-tagline">Your personal wardrobe</div>
+      </div>
+
+      <div class="landing-middle">
+        <div class="divider-line"></div>
+
+        <button class="nav-btn primary" onclick="showScreen('wardrobe')">
+          <div>
+            <div class="btn-label">My Wardrobe</div>
+            <div class="btn-sub">Browse &amp; manage pieces</div>
+          </div>
+          <span class="btn-arrow">›</span>
+        </button>
+
+        <button class="nav-btn secondary" onclick="showScreen('search')">
+          <div>
+            <div class="btn-label">Search &amp; Filter</div>
+            <div class="btn-sub">Find by category, color, season</div>
+          </div>
+          <span class="btn-arrow">›</span>
+        </button>
+      </div>
+
+      <div class="landing-footer">Dressed · Personal</div>
+    </div>
+  </div>
+
+  <!-- ═══════════ WARDROBE SCREEN ═══════════ -->
+  <div class="screen" id="screen-wardrobe">
+    <div class="status-bar">
+      <span class="time">9:41</span>
+      <span class="icons">▲ WiFi 🔋</span>
+    </div>
+
+    <div class="top-bar">
+      <button class="back-btn" onclick="showScreen('landing')">← Home</button>
+      <div class="top-bar-title">
+        <div class="page-name">Wardrobe</div>
+        <div class="page-sub">12 pieces</div>
+      </div>
+      <button class="top-bar-action" onclick="showScreen('add')">+</button>
+    </div>
+
+    <div class="filter-bar">
+      <div class="chip active">All</div>
+      <div class="chip">Tops</div>
+      <div class="chip">Bottoms</div>
+      <div class="chip">Dresses</div>
+      <div class="chip">Shoes</div>
+      <div class="chip">Outerwear</div>
+      <div class="chip">Accessories</div>
+    </div>
+
+    <div class="wardrobe-grid">
+      <div class="item-card">
+        <div class="item-photo p1">👚</div>
+        <div class="item-info">
+          <div class="item-name">Silk blouse</div>
+          <div class="item-meta"><div class="color-dot" style="background:#e8d5f5"></div> Lavender · S</div>
+        </div>
+      </div>
+      <div class="item-card">
+        <div class="item-photo p2">👖</div>
+        <div class="item-info">
+          <div class="item-name">Wide-leg trousers</div>
+          <div class="item-meta"><div class="color-dot" style="background:#b8c4f0"></div> Slate · 28</div>
+        </div>
+      </div>
+      <div class="item-card">
+        <div class="item-photo p3">👗</div>
+        <div class="item-info">
+          <div class="item-name">Linen midi dress</div>
+          <div class="item-meta"><div class="color-dot" style="background:#e8ccaa"></div> Sand · M</div>
+        </div>
+      </div>
+      <div class="item-card">
+        <div class="item-photo p4">🧥</div>
+        <div class="item-info">
+          <div class="item-name">Wool coat</div>
+          <div class="item-meta"><div class="color-dot" style="background:#a8d5cc"></div> Sage · M</div>
+        </div>
+      </div>
+      <div class="item-card">
+        <div class="item-photo p5">👠</div>
+        <div class="item-info">
+          <div class="item-name">Block heel mules</div>
+          <div class="item-meta"><div class="color-dot" style="background:#f0b8b8"></div> Blush · 8</div>
+        </div>
+      </div>
+      <div class="item-card">
+        <div class="item-photo p6">👜</div>
+        <div class="item-info">
+          <div class="item-name">Structured bag</div>
+          <div class="item-meta"><div class="color-dot" style="background:#d4c0e8"></div> Plum · —</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ ADD ITEM SCREEN ═══════════ -->
+  <div class="screen" id="screen-add">
+    <div class="status-bar" style="color:#2d1f42">
+      <span class="time">9:41</span>
+      <span class="icons">▲ WiFi 🔋</span>
+    </div>
+
+    <div class="top-bar">
+      <button class="back-btn" onclick="showScreen('wardrobe')">Cancel</button>
+      <div class="top-bar-title">
+        <div class="page-name">Add a New Piece</div>
+      </div>
+      <div style="width:64px"></div>
+    </div>
+
+    <div class="add-form">
+
+      <!-- Photo -->
+      <div class="add-field-label">Photo</div>
+      <div class="add-photo-box">
+        <div class="add-photo-inner">
+          <div style="font-size:36px">📷</div>
+          <div class="add-photo-hint">Tap to browse for an image</div>
+        </div>
+      </div>
+      <div class="add-photo-btns">
+        <button class="add-outline-btn">Take Photo</button>
+        <button class="add-outline-btn">Gallery</button>
+      </div>
+
+      <!-- Name -->
+      <div class="add-field-label">Name</div>
+      <input class="add-text-input" type="text" placeholder="e.g. White linen blouse" />
+
+      <!-- Category -->
+      <div class="add-field-label">Category</div>
+      <div class="add-chip-row">
+        <div class="add-chip active">Tops</div>
+        <div class="add-chip">Bottoms</div>
+        <div class="add-chip">Dresses</div>
+        <div class="add-chip">Shoes</div>
+        <div class="add-chip">Outerwear</div>
+        <div class="add-chip">Accessories</div>
+      </div>
+
+      <!-- Size -->
+      <div class="add-field-label">Size <span class="add-field-optional">(optional)</span></div>
+      <div class="add-chip-row" style="margin-bottom:8px">
+        <div class="add-chip">XS</div>
+        <div class="add-chip">S</div>
+        <div class="add-chip active">M</div>
+        <div class="add-chip">L</div>
+        <div class="add-chip">XL</div>
+      </div>
+      <input class="add-text-input" type="text" placeholder="e.g. M, 10, 9.5, or custom" />
+
+      <!-- Color -->
+      <div class="add-field-label">Color</div>
+      <div class="add-swatch-row">
+        <div class="add-swatch selected" style="background:#1a1a1a"></div>
+        <div class="add-swatch" style="background:#4a4a4a"></div>
+        <div class="add-swatch" style="background:#f5f5f5;border:1px solid #ddd"></div>
+        <div class="add-swatch" style="background:#c0392b"></div>
+        <div class="add-swatch" style="background:#e8a0a0"></div>
+        <div class="add-swatch" style="background:#e67e22"></div>
+        <div class="add-swatch" style="background:#f1c40f"></div>
+        <div class="add-swatch" style="background:#2ecc71"></div>
+        <div class="add-swatch" style="background:#3498db"></div>
+        <div class="add-swatch" style="background:#6b4aad"></div>
+        <div class="add-swatch" style="background:#d4c0e8"></div>
+        <div class="add-swatch" style="background:#c9a87c"></div>
+        <div class="add-swatch" style="background:#e8ccaa"></div>
+        <div class="add-swatch" style="background:#5d4037"></div>
+      </div>
+
+      <!-- Season -->
+      <div class="add-field-label">Season</div>
+      <div class="add-chip-row">
+        <div class="add-chip active">Spring</div>
+        <div class="add-chip active">Summer</div>
+        <div class="add-chip">Autumn</div>
+        <div class="add-chip">Winter</div>
+      </div>
+
+      <!-- Save -->
+      <button class="add-save-btn">Save to Wardrobe</button>
+
+    </div>
+  </div>
+
+  <!-- ═══════════ SEARCH SCREEN ═══════════ -->
+  <div class="screen" id="screen-search">
+    <div class="status-bar">
+      <span class="time">9:41</span>
+      <span class="icons">▲ WiFi 🔋</span>
+    </div>
+
+    <div class="top-bar">
+      <button class="back-btn" onclick="showScreen('landing')">← Home</button>
+      <div class="top-bar-title">
+        <div class="page-name">Search</div>
+        <div class="page-sub">Filter &amp; sort</div>
+      </div>
+      <div style="width:36px"></div>
+    </div>
+
+    <div class="search-body">
+      <div class="search-input-wrap">
+        <input class="search-input" type="text" placeholder="Search pieces…" />
+      </div>
+
+      <div class="filter-section">
+        <div class="filter-label">Category</div>
+        <div class="chip-row">
+          <div class="chip active">All</div>
+          <div class="chip">Tops</div>
+          <div class="chip">Bottoms</div>
+          <div class="chip">Dresses</div>
+          <div class="chip">Shoes</div>
+        </div>
+      </div>
+
+      <div class="filter-section" style="padding-top:8px">
+        <div class="filter-label">Season</div>
+        <div class="chip-row">
+          <div class="chip active">All</div>
+          <div class="chip">Spring</div>
+          <div class="chip">Summer</div>
+          <div class="chip">Autumn</div>
+          <div class="chip">Winter</div>
+        </div>
+      </div>
+
+      <div class="sort-row">
+        <div class="sort-chip active">Recently Added</div>
+        <div class="sort-chip">Most Worn</div>
+        <div class="sort-chip">A → Z</div>
+      </div>
+
+      <div class="results-list">
+        <div class="result-row">
+          <div class="result-thumb p1" style="background:linear-gradient(135deg,#e8d5f5,#c9a8e8)">👚</div>
+          <div class="result-info">
+            <div class="result-name">Silk blouse</div>
+            <div class="result-tags">Tops · Lavender · Spring, Summer</div>
+          </div>
+          <div class="result-arrow">›</div>
+        </div>
+        <div class="result-row">
+          <div class="result-thumb p3" style="background:linear-gradient(135deg,#f5e6d0,#e8ccaa)">👗</div>
+          <div class="result-info">
+            <div class="result-name">Linen midi dress</div>
+            <div class="result-tags">Dresses · Sand · Summer</div>
+          </div>
+          <div class="result-arrow">›</div>
+        </div>
+        <div class="result-row">
+          <div class="result-thumb p4" style="background:linear-gradient(135deg,#d5ede8,#a8d5cc)">🧥</div>
+          <div class="result-info">
+            <div class="result-name">Wool coat</div>
+            <div class="result-tags">Outerwear · Sage · Autumn, Winter</div>
+          </div>
+          <div class="result-arrow">›</div>
+        </div>
+        <div class="result-row">
+          <div class="result-thumb p2" style="background:linear-gradient(135deg,#dde5ff,#b8c4f0)">👖</div>
+          <div class="result-info">
+            <div class="result-name">Wide-leg trousers</div>
+            <div class="result-tags">Bottoms · Slate · All seasons</div>
+          </div>
+          <div class="result-arrow">›</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /phone -->
+
+<div class="annotation-bar">
+  <strong>How to use:</strong> Tap the buttons to navigate between screens. Tell me anything you'd like to change — colors, layout, button placement, text, sizing — and I'll update it instantly.
+</div>
+
+<script>
+  function showScreen(name) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById('screen-' + name).classList.add('active');
+  }
+
+  function toggleMenu() {
+    const dropdown = document.getElementById('menuDropdown');
+    dropdown.classList.toggle('open');
+  }
+
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('#menuBtn') && !e.target.closest('#menuDropdown')) {
+      document.getElementById('menuDropdown').classList.remove('open');
+    }
+  });
+</script>
+</body>
+</html>
