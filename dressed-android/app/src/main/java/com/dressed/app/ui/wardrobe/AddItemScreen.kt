@@ -44,14 +44,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import android.net.Uri
 import coil.compose.AsyncImage
 import com.dressed.app.data.model.WardrobeCategories
-import com.dressed.app.data.model.WardrobeColors
 import com.dressed.app.data.model.WardrobeSeasons
 import com.dressed.app.data.model.WardrobeSizes
 import com.dressed.app.ui.WardrobeViewModel
@@ -69,8 +67,9 @@ fun AddItemScreen(
     var category by rememberSaveable { mutableStateOf("") }
     var sizeText by rememberSaveable { mutableStateOf("") }
 
-    val palette = remember { WardrobeColors.PALETTE }
-    var selectedSwatch by remember { mutableStateOf(palette.first()) }
+    var hue by rememberSaveable { mutableStateOf(285f) }
+    var saturation by rememberSaveable { mutableStateOf(0.42f) }
+    var brightness by rememberSaveable { mutableStateOf(0.96f) }
 
     val seasons = remember { mutableStateListOf<String>() }
 
@@ -122,12 +121,21 @@ fun AddItemScreen(
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Add a New Piece") },
+                title = {
+                    Text(
+                        "Add a New Piece",
+                        color = MaterialTheme.colorScheme.onPrimary,
+                    )
+                },
                 navigationIcon = {
-                    TextButton(onClick = onBack) { Text("Cancel") }
+                    TextButton(onClick = onBack) {
+                        Text("Cancel", color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.92f))
+                    }
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
                 ),
             )
         },
@@ -291,39 +299,14 @@ fun AddItemScreen(
 
             Text("Color", style = MaterialTheme.typography.labelLarge)
             Spacer(Modifier.height(8.dp))
-            FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                palette.forEach { swatch ->
-                    val selected = swatch == selectedSwatch
-                    Box(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(swatchComposeColor(swatch.hex))
-                            .then(
-                                if (selected) {
-                                    Modifier.border(
-                                        3.dp,
-                                        MaterialTheme.colorScheme.primary,
-                                        RoundedCornerShape(10.dp),
-                                    )
-                                } else {
-                                    Modifier.border(
-                                        1.dp,
-                                        MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
-                                        RoundedCornerShape(10.dp),
-                                    )
-                                },
-                            )
-                            .clickable {
-                                selectedSwatch = swatch
-                            },
-                    )
-                }
-            }
+            ColorWheelPicker(
+                hue = hue,
+                onHueChange = { hue = it },
+                saturation = saturation,
+                onSaturationChange = { saturation = it },
+                brightness = brightness,
+                onBrightnessChange = { brightness = it },
+            )
 
             Spacer(Modifier.height(16.dp))
 
@@ -360,12 +343,13 @@ fun AddItemScreen(
                         category.isBlank() -> errorHint = "Please select a category"
                         else -> {
                             errorHint = null
+                            val hex = hsvToHex(hue, saturation, brightness)
                             viewModel.addItem(
                                 name = n,
                                 category = category,
                                 sizeLabel = sizeText,
-                                colorHex = selectedSwatch.hex,
-                                colorName = selectedSwatch.name,
+                                colorHex = hex,
+                                colorName = labelForPickedColor(hex),
                                 seasons = seasons.toList(),
                                 photoUri = photoUri,
                                 onInserted = onSaved,
@@ -381,9 +365,6 @@ fun AddItemScreen(
         }
     }
 }
-
-private fun swatchComposeColor(hex: String): Color =
-    runCatching { Color(android.graphics.Color.parseColor(hex)) }.getOrElse { Color.Gray }
 
 private fun createCameraCaptureUri(context: Context): Uri {
     val dir = File(context.cacheDir, "camera").apply { mkdirs() }

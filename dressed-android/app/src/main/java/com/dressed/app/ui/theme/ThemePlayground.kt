@@ -78,9 +78,10 @@ fun ThemePlaygroundScreen(modifier: Modifier = Modifier) {
                 .horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            ColorDotSwatch("Plum", WardrobePlum)
-            ColorDotSwatch("Plum soft", WardrobePlumSoft)
-            ColorDotSwatch("Cream", WardrobeCream)
+            ColorDotSwatch("Screen", WardrobeScreenLavender)
+            ColorDotSwatch("Top bar", WardrobeTopBarPlum)
+            ColorDotSwatch("Violet", WardrobeViolet)
+            ColorDotSwatch("Bright", WardrobeVioletBright)
             ColorDotSwatch("Ink", WardrobeInk)
             ColorDotSwatch("Tan", WardrobeTan)
         }

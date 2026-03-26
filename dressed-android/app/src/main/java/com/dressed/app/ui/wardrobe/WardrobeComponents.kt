@@ -26,10 +26,26 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.dressed.app.data.local.WardrobeItemEntity
 import com.dressed.app.data.model.WardrobeCategories
+import com.dressed.app.data.model.WardrobeSeasons
 import java.io.File
 
 internal fun itemCountLabel(count: Int): String =
     "$count item" + if (count != 1) "s" else ""
+
+internal fun searchResultTagsLine(item: WardrobeItemEntity): String {
+    val category = WardrobeCategories.label(item.category)
+    val seasons = if (item.seasons.isEmpty()) {
+        "All seasons"
+    } else {
+        item.seasons.joinToString(", ") { key ->
+            when (key) {
+                "fall" -> "Autumn"
+                else -> WardrobeSeasons.ALL.firstOrNull { it.first == key }?.second ?: key
+            }
+        }
+    }
+    return "$category · ${item.colorName} · $seasons"
+}
 
 @Composable
 internal fun EmptyWardrobeState(
@@ -72,7 +88,7 @@ internal fun EmptyWardrobeState(
 internal fun WardrobeItemCard(item: WardrobeItemEntity, onClick: () -> Unit) {
     Card(
         onClick = onClick,
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(14.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
@@ -149,3 +165,63 @@ internal fun parseColorSafe(hex: String): Color =
     runCatching {
         Color(android.graphics.Color.parseColor(hex))
     }.getOrElse { Color.Gray }
+
+@Composable
+internal fun WardrobeSearchResultRow(item: WardrobeItemEntity, onClick: () -> Unit) {
+    Card(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+    ) {
+        Row(
+            Modifier.padding(12.dp, 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(52.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (item.photoPath != null) {
+                    AsyncImage(
+                        model = File(item.photoPath),
+                        contentDescription = item.name,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                } else {
+                    Text(
+                        text = WardrobeCategories.emoji(item.category),
+                        style = MaterialTheme.typography.headlineMedium,
+                    )
+                }
+            }
+            Column(Modifier.weight(1f)) {
+                Text(
+                    text = item.name,
+                    style = MaterialTheme.typography.titleSmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = searchResultTagsLine(item),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            Text(
+                text = "›",
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.55f),
+            )
+        }
+    }
+}

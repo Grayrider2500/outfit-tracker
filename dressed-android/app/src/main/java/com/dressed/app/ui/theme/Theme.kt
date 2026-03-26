@@ -11,35 +11,48 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 
 private val LightColors = lightColorScheme(
-    primary = WardrobePlum,
-    onPrimary = WardrobeCream,
-    primaryContainer = WardrobePlumSoft,
+    primary = WardrobeTopBarPlum,
+    onPrimary = WardrobeOnBarText,
+    primaryContainer = WardrobeSurfaceMuted,
     onPrimaryContainer = WardrobeInk,
-    secondary = WardrobeTan,
-    onSecondary = WardrobeInk,
-    background = WardrobeCream,
+    secondary = WardrobeViolet,
+    onSecondary = WardrobeOnBarText,
+    tertiary = WardrobeVioletBright,
+    onTertiary = WardrobeSurfaceCard,
+    secondaryContainer = WardrobeSurfaceMuted,
+    onSecondaryContainer = WardrobeDeepPurple,
+    background = WardrobeScreenLavender,
     onBackground = WardrobeInk,
-    surface = WardrobeCream,
+    surface = WardrobeSurfaceCard,
     onSurface = WardrobeInk,
+    surfaceVariant = WardrobeSurfaceMuted,
+    onSurfaceVariant = WardrobeTextMuted,
+    outline = WardrobeTopBarPlum.copy(alpha = 0.22f),
 )
 
 private val DarkColors = darkColorScheme(
-    primary = WardrobePlumSoft,
-    onPrimary = WardrobeInk,
-    primaryContainer = WardrobePlum,
-    onPrimaryContainer = WardrobeCream,
-    secondary = WardrobeTan,
-    onSecondary = WardrobeInk,
+    primary = WardrobeViolet,
+    onPrimary = WardrobeOnBarText,
+    primaryContainer = WardrobeTopBarPlum,
+    onPrimaryContainer = WardrobeOnBarText,
+    secondary = WardrobeVioletBright,
+    onSecondary = WardrobeOnBarText,
+    tertiary = WardrobeTan,
+    onTertiary = WardrobeInk,
     background = WardrobeInk,
-    onBackground = WardrobeCream,
-    surface = WardrobeInk,
-    onSurface = WardrobeCream,
+    onBackground = WardrobeScreenLavender,
+    surface = WardrobeDeepPurple,
+    onSurface = WardrobeScreenLavender,
+    surfaceVariant = WardrobeTopBarPlum,
+    onSurfaceVariant = WardrobeTextMuted.copy(alpha = 0.9f),
+    outline = WardrobeOnBarText.copy(alpha = 0.2f),
 )
 
 @Composable
 fun DressedTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
+    /** Off by default so the app matches the designed palette (see dressed-mockup.html). */
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     val colorScheme = when {

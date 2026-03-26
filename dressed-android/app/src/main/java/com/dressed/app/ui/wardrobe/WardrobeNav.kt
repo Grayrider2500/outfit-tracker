@@ -13,7 +13,10 @@ private const val ROUTE_ADD = "wardrobe_add"
 private const val ROUTE_DETAIL = "wardrobe_detail/{id}"
 
 @Composable
-fun WardrobeNav(viewModel: WardrobeViewModel) {
+fun WardrobeNav(
+    viewModel: WardrobeViewModel,
+    onNavigateHome: () -> Unit,
+) {
     val navController = rememberNavController()
 
     NavHost(
@@ -23,6 +26,7 @@ fun WardrobeNav(viewModel: WardrobeViewModel) {
         composable(ROUTE_LIST) {
             WardrobeListScreen(
                 viewModel = viewModel,
+                onNavigateHome = onNavigateHome,
                 onAddClick = { navController.navigate(ROUTE_ADD) },
                 onItemClick = { id ->
                     navController.navigate("wardrobe_detail/$id")

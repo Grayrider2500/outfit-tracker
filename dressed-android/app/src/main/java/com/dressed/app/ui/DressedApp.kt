@@ -1,61 +1,57 @@
 package com.dressed.app.ui
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.Checkroom
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import com.dressed.app.ui.home.LandingScreen
 import com.dressed.app.ui.outfits.OutfitsPlaceholderScreen
 import com.dressed.app.ui.wardrobe.WardrobeNav
 import com.dressed.app.ui.wardrobe.WardrobeSearchNav
 
+private const val ROUTE_LANDING = "landing"
+private const val ROUTE_WARDROBE = "wardrobe"
+private const val ROUTE_SEARCH = "search"
+private const val ROUTE_OUTFITS = "outfits"
+
 @Composable
 fun DressedApp(viewModel: WardrobeViewModel) {
-    var selectedTab by rememberSaveable { mutableIntStateOf(0) }
+    val rootNav = rememberNavController()
 
-    Scaffold(
-        bottomBar = {
-            NavigationBar {
-                NavigationBarItem(
-                    selected = selectedTab == 0,
-                    onClick = { selectedTab = 0 },
-                    icon = { Icon(Icons.Filled.Checkroom, contentDescription = null) },
-                    label = { Text("Wardrobe") },
-                )
-                NavigationBarItem(
-                    selected = selectedTab == 1,
-                    onClick = { selectedTab = 1 },
-                    icon = { Icon(Icons.Filled.Search, contentDescription = null) },
-                    label = { Text("Search") },
-                )
-                NavigationBarItem(
-                    selected = selectedTab == 2,
-                    onClick = { selectedTab = 2 },
-                    icon = { Icon(Icons.Filled.AutoAwesome, contentDescription = null) },
-                    label = { Text("Outfits") },
-                )
-            }
-        },
-    ) { padding ->
-        Box(Modifier.padding(padding)) {
-            when (selectedTab) {
-                0 -> WardrobeNav(viewModel = viewModel)
-                1 -> WardrobeSearchNav(viewModel = viewModel)
-                2 -> OutfitsPlaceholderScreen()
-                else -> WardrobeNav(viewModel = viewModel)
-            }
+    NavHost(
+        navController = rootNav,
+        startDestination = ROUTE_LANDING,
+    ) {
+        composable(ROUTE_LANDING) {
+            LandingScreen(
+                viewModel = viewModel,
+                onMyWardrobe = { rootNav.navigate(ROUTE_WARDROBE) },
+                onSearchFilter = { rootNav.navigate(ROUTE_SEARCH) },
+                onOutfits = { rootNav.navigate(ROUTE_OUTFITS) },
+            )
+        }
+        composable(ROUTE_WARDROBE) {
+            WardrobeNav(
+                viewModel = viewModel,
+                onNavigateHome = {
+                    rootNav.popBackStack(ROUTE_LANDING, inclusive = false)
+                },
+            )
+        }
+        composable(ROUTE_SEARCH) {
+            WardrobeSearchNav(
+                viewModel = viewModel,
+                onNavigateHome = {
+                    rootNav.popBackStack(ROUTE_LANDING, inclusive = false)
+                },
+            )
+        }
+        composable(ROUTE_OUTFITS) {
+            OutfitsPlaceholderScreen(
+                onNavigateHome = {
+                    rootNav.popBackStack(ROUTE_LANDING, inclusive = false)
+                },
+            )
         }
     }
 }

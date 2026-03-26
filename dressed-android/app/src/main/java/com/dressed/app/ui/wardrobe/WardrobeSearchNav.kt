@@ -9,11 +9,13 @@ import androidx.navigation.navArgument
 import com.dressed.app.ui.WardrobeViewModel
 
 private const val ROUTE_SEARCH = "search_home"
-private const val ROUTE_ADD = "search_add"
 private const val ROUTE_DETAIL = "search_detail/{id}"
 
 @Composable
-fun WardrobeSearchNav(viewModel: WardrobeViewModel) {
+fun WardrobeSearchNav(
+    viewModel: WardrobeViewModel,
+    onNavigateHome: () -> Unit,
+) {
     val navController = rememberNavController()
 
     NavHost(
@@ -23,15 +25,8 @@ fun WardrobeSearchNav(viewModel: WardrobeViewModel) {
         composable(ROUTE_SEARCH) {
             WardrobeSearchScreen(
                 viewModel = viewModel,
-                onAddClick = { navController.navigate(ROUTE_ADD) },
+                onNavigateHome = onNavigateHome,
                 onItemClick = { id -> navController.navigate("search_detail/$id") },
-            )
-        }
-        composable(ROUTE_ADD) {
-            AddItemScreen(
-                onBack = { navController.popBackStack() },
-                onSaved = { navController.popBackStack() },
-                viewModel = viewModel,
             )
         }
         composable(
