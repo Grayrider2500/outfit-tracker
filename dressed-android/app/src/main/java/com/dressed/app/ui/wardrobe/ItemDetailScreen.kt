@@ -260,8 +260,3 @@ private fun StatBlock(value: String, label: String) {
         )
     }
 }
-
-private fun parseColorSafe(hex: String): Color =
-    runCatching {
-        Color(android.graphics.Color.parseColor(hex))
-    }.getOrElse { Color.Gray }

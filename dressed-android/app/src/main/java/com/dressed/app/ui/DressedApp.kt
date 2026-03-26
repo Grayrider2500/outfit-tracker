@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Checkroom
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -18,6 +19,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.dressed.app.ui.outfits.OutfitsPlaceholderScreen
 import com.dressed.app.ui.wardrobe.WardrobeNav
+import com.dressed.app.ui.wardrobe.WardrobeSearchNav
 
 @Composable
 fun DressedApp(viewModel: WardrobeViewModel) {
@@ -35,6 +37,12 @@ fun DressedApp(viewModel: WardrobeViewModel) {
                 NavigationBarItem(
                     selected = selectedTab == 1,
                     onClick = { selectedTab = 1 },
+                    icon = { Icon(Icons.Filled.Search, contentDescription = null) },
+                    label = { Text("Search") },
+                )
+                NavigationBarItem(
+                    selected = selectedTab == 2,
+                    onClick = { selectedTab = 2 },
                     icon = { Icon(Icons.Filled.AutoAwesome, contentDescription = null) },
                     label = { Text("Outfits") },
                 )
@@ -44,7 +52,8 @@ fun DressedApp(viewModel: WardrobeViewModel) {
         Box(Modifier.padding(padding)) {
             when (selectedTab) {
                 0 -> WardrobeNav(viewModel = viewModel)
-                1 -> OutfitsPlaceholderScreen()
+                1 -> WardrobeSearchNav(viewModel = viewModel)
+                2 -> OutfitsPlaceholderScreen()
                 else -> WardrobeNav(viewModel = viewModel)
             }
         }

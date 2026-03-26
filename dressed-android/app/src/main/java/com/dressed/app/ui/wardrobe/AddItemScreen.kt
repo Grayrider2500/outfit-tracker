@@ -1,15 +1,18 @@
 package com.dressed.app.ui.wardrobe
 
+import android.content.Context
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.FileProvider
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -25,6 +28,7 @@ import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -42,6 +46,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import android.net.Uri
 import coil.compose.AsyncImage
@@ -50,8 +55,10 @@ import com.dressed.app.data.model.WardrobeColors
 import com.dressed.app.data.model.WardrobeSeasons
 import com.dressed.app.data.model.WardrobeSizes
 import com.dressed.app.ui.WardrobeViewModel
+import java.io.File
+import java.util.UUID
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun AddItemScreen(
     onBack: () -> Unit,
@@ -67,12 +74,50 @@ fun AddItemScreen(
 
     val seasons = remember { mutableStateListOf<String>() }
 
+    val context = LocalContext.current
+
     var photoUri by remember { mutableStateOf<Uri?>(null) }
+    var pendingCameraUri by remember { mutableStateOf<Uri?>(null) }
+
     val pickPhoto = rememberLauncherForActivityResult(
         ActivityResultContracts.PickVisualMedia(),
     ) { uri -> photoUri = uri }
 
+    /** Opens system file / document picker (Downloads, etc.) — use after dragging files from Mac onto the emulator. */
+    val openImageDocument = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument(),
+    ) { uri ->
+        if (uri != null) {
+            runCatching {
+                context.contentResolver.takePersistableUriPermission(
+                    uri,
+                    android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION,
+                )
+            }
+            photoUri = uri
+        }
+    }
+
+    val takePicture = rememberLauncherForActivityResult(
+        ActivityResultContracts.TakePicture(),
+    ) { success ->
+        if (success) {
+            pendingCameraUri?.let { photoUri = it }
+        }
+        pendingCameraUri = null
+    }
+
     var errorHint by remember { mutableStateOf<String?>(null) }
+
+    fun startCameraCapture() {
+        runCatching {
+            val uri = createCameraCaptureUri(context)
+            pendingCameraUri = uri
+            takePicture.launch(uri)
+        }.onFailure {
+            errorHint = "Could not open camera. Check emulator Camera (⋯ menu) or device permissions."
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -108,8 +153,8 @@ fun AddItemScreen(
                     )
                     .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
                     .clickable {
-                        pickPhoto.launch(
-                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+                        openImageDocument.launch(
+                            arrayOf("image/*", "image/jpeg", "image/png", "image/webp", "image/gif"),
                         )
                     },
                 contentAlignment = Alignment.Center,
@@ -125,13 +170,56 @@ fun AddItemScreen(
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("📷", style = MaterialTheme.typography.displaySmall)
                         Text(
-                            "Tap to choose a photo",
+                            "Tap to browse for an image file",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
             }
+            Spacer(Modifier.height(10.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                OutlinedButton(
+                    onClick = { startCameraCapture() },
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text("Take photo")
+                }
+                OutlinedButton(
+                    onClick = {
+                        pickPhoto.launch(
+                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+                        )
+                    },
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text("Gallery")
+                }
+            }
+            OutlinedButton(
+                onClick = {
+                    openImageDocument.launch(
+                        arrayOf("image/*", "image/jpeg", "image/png", "image/webp", "image/gif"),
+                    )
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
+            ) {
+                Text("Browse files (Mac → drag onto emulator, then open Downloads)")
+            }
+            Text(
+                "The simulator only sees files inside the virtual device. " +
+                    "Drag a photo from Finder onto the running emulator window first; " +
+                    "it usually appears in Downloads. Then use Browse or tap the preview. " +
+                    "Camera: ⋯ Extended controls → Camera → Webcam.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 10.dp),
+            )
 
             Spacer(Modifier.height(20.dp))
 
@@ -149,11 +237,10 @@ fun AddItemScreen(
 
             Text("Category", style = MaterialTheme.typography.labelLarge)
             Spacer(Modifier.height(8.dp))
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 WardrobeCategories.ADD_PICKER.forEach { (key, label) ->
                     FilterChip(
@@ -170,11 +257,10 @@ fun AddItemScreen(
             Text("Size (optional)", style = MaterialTheme.typography.labelLarge)
             Spacer(Modifier.height(6.dp))
             if (category.isNotBlank() && sizeSuggestions.isNotEmpty()) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     sizeSuggestions.forEach { label ->
                         FilterChip(
@@ -205,11 +291,10 @@ fun AddItemScreen(
 
             Text("Color", style = MaterialTheme.typography.labelLarge)
             Spacer(Modifier.height(8.dp))
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 palette.forEach { swatch ->
                     val selected = swatch == selectedSwatch
@@ -244,11 +329,10 @@ fun AddItemScreen(
 
             Text("Season", style = MaterialTheme.typography.labelLarge)
             Spacer(Modifier.height(8.dp))
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 WardrobeSeasons.ALL.forEach { (key, label) ->
                     val sel = seasons.contains(key)
@@ -300,3 +384,13 @@ fun AddItemScreen(
 
 private fun swatchComposeColor(hex: String): Color =
     runCatching { Color(android.graphics.Color.parseColor(hex)) }.getOrElse { Color.Gray }
+
+private fun createCameraCaptureUri(context: Context): Uri {
+    val dir = File(context.cacheDir, "camera").apply { mkdirs() }
+    val file = File.createTempFile("dressed_${UUID.randomUUID()}", ".jpg", dir)
+    return FileProvider.getUriForFile(
+        context,
+        "${context.packageName}.fileprovider",
+        file,
+    )
+}

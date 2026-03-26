@@ -16,7 +16,7 @@ interface WardrobeDao {
     suspend fun getAllSnapshot(): List<WardrobeItemEntity>
 
     @Query("DELETE FROM wardrobe_items")
-    suspend fun deleteAllItems()
+    suspend fun deleteAllItems(): Int
 
     @Query("SELECT * FROM wardrobe_items WHERE id = :id")
     fun observeById(id: String): Flow<WardrobeItemEntity?>
@@ -28,8 +28,8 @@ interface WardrobeDao {
     suspend fun insert(item: WardrobeItemEntity)
 
     @Query("UPDATE wardrobe_items SET wornCount = wornCount + 1 WHERE id = :id")
-    suspend fun incrementWearCount(id: String)
+    suspend fun incrementWearCount(id: String): Int
 
     @Query("DELETE FROM wardrobe_items WHERE id = :id")
-    suspend fun deleteById(id: String)
+    suspend fun deleteById(id: String): Int
 }
