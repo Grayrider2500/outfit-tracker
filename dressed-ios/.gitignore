@@ -1,0 +1,16 @@
+# Xcode (user-created project next to Sources — see README)
+Dressed iOS/
+
+# Xcode
+DerivedData/
+build/
+*.xcuserstate
+*.xcuserdatad
+xcuserdata/
+
+# Swift Package Manager
+.build/
+.swiftpm/
+
+# macOS
+.DS_Store
