@@ -7,6 +7,7 @@ Wardrobe and outfit tracking in two forms: an **Android app** (Compose) and a **
 | Path | Description |
 |------|-------------|
 | **`dressed-android/`** | Android app (Kotlin, Compose, Room). Primary development target. |
+| **`dressed-ios/`** | iOS app (SwiftUI, SwiftData) — scaffold + models; open in Xcode per `dressed-ios/README.md`. |
 | **`index.html`** | Web app: vanilla JS, `localStorage`, no build. |
 | **`dressed-mockup.html`** | Interactive layout reference (Android-aligned). |
 | **`CLAUDE.md`** | Map for AI assistants; points to `memory.md`, `restart.md`, `backlog.md`. |
@@ -28,6 +29,10 @@ Open the **`dressed-android`** folder in Android Studio and run the `app` config
 ```bash
 ./gradlew :app:installDebug
 ```
+
+## iOS app — run locally
+
+Create the Xcode project inside **`dressed-ios/`** (SwiftUI + SwiftData, iOS 17+) and add **`Sources/DressedKit/**`** to the app target. See **`dressed-ios/README.md`**.
 
 ## Tech summary
 
