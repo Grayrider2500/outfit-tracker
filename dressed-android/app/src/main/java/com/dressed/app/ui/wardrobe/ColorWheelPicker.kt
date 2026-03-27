@@ -30,7 +30,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
-import com.dressed.app.data.model.WardrobeColors
 import kotlin.math.PI
 import kotlin.math.atan2
 import kotlin.math.cos
@@ -49,38 +48,52 @@ fun hsvToComposeColor(h: Float, s: Float, v: Float): Color {
 }
 
 /**
- * Picks a friendly label: nearest wardrobe palette name if close in RGB, else "Custom shade".
+ * Returns the closest human-readable colour name for a hex string.
+ * Used to pre-populate the colour name field; the user can always override it.
  */
 fun labelForPickedColor(hex: String): String {
-    val picked = runCatching {
-        AndroidColor.parseColor(hex)
-    }.getOrElse { return "Custom shade" }
+    val argb = runCatching { AndroidColor.parseColor(hex) }.getOrElse { return "Custom" }
+    val r = AndroidColor.red(argb)
+    val g = AndroidColor.green(argb)
+    val b = AndroidColor.blue(argb)
 
-    var bestName = "Custom shade"
-    var bestDist = 120f
-    for (swatch in WardrobeColors.PALETTE) {
-        val c = runCatching { AndroidColor.parseColor(swatch.hex) }.getOrNull() ?: continue
-        val d = rgbDistance(picked, c)
-        if (d < bestDist) {
-            bestDist = d
-            bestName = swatch.name
-        }
-    }
-    return if (bestDist < 45f) bestName else "Custom shade"
+    data class NC(val name: String, val r: Int, val g: Int, val b: Int)
+
+    val palette = listOf(
+        NC("Black", 0, 0, 0), NC("Dark Gray", 64, 64, 64), NC("Gray", 128, 128, 128),
+        NC("Silver", 192, 192, 192), NC("Light Gray", 211, 211, 211), NC("White", 255, 255, 255),
+        NC("Ivory", 255, 255, 240), NC("Cream", 255, 253, 208), NC("Beige", 245, 245, 220),
+        NC("Champagne", 247, 231, 206), NC("Tan", 210, 180, 140), NC("Camel", 193, 154, 107),
+        NC("Gold", 212, 175, 55), NC("Yellow", 255, 215, 0), NC("Olive", 107, 142, 35),
+        NC("Brown", 139, 69, 19), NC("Rust", 183, 65, 14), NC("Orange", 255, 140, 0),
+        NC("Coral", 255, 127, 80), NC("Red", 220, 20, 60), NC("Burgundy", 128, 0, 32),
+        NC("Blush", 255, 182, 193), NC("Pink", 255, 105, 180), NC("Hot Pink", 255, 20, 147),
+        NC("Rose", 255, 0, 127), NC("Mauve", 153, 102, 153), NC("Lavender", 230, 230, 250),
+        NC("Violet", 138, 43, 226), NC("Purple", 128, 0, 128), NC("Plum", 142, 69, 133),
+        NC("Indigo", 75, 0, 130), NC("Navy", 0, 0, 128), NC("Blue", 30, 100, 200),
+        NC("Sky Blue", 135, 206, 235), NC("Cyan", 0, 188, 212), NC("Teal", 0, 128, 128),
+        NC("Mint", 152, 255, 152), NC("Sage", 143, 188, 143), NC("Green", 34, 139, 34),
+        NC("Slate", 112, 128, 144),
+    )
+
+    return palette.minByOrNull { nc ->
+        val dr = (nc.r - r).toLong()
+        val dg = (nc.g - g).toLong()
+        val db = (nc.b - b).toLong()
+        dr * dr + dg * dg + db * db
+    }?.name ?: "Custom"
 }
 
-private fun rgbDistance(a: Int, b: Int): Float {
-    val ar = (a shr 16) and 0xFF
-    val ag = (a shr 8) and 0xFF
-    val ab = a and 0xFF
-    val br = (b shr 16) and 0xFF
-    val bg = (b shr 8) and 0xFF
-    val bb = b and 0xFF
-    val dr = (ar - br).toFloat()
-    val dg = (ag - bg).toFloat()
-    val db = (ab - bb).toFloat()
-    return sqrt(dr * dr + dg * dg + db * db)
-}
+/** Full list of colour names shown as dropdown suggestions in the Add Item form. */
+internal val COLOR_NAME_SUGGESTIONS = listOf(
+    "Black", "Dark Gray", "Gray", "Silver", "Light Gray", "White",
+    "Ivory", "Cream", "Beige", "Champagne", "Tan", "Camel",
+    "Gold", "Yellow", "Olive", "Brown", "Rust", "Orange",
+    "Coral", "Red", "Burgundy", "Blush", "Pink", "Hot Pink",
+    "Rose", "Mauve", "Lavender", "Violet", "Purple", "Plum",
+    "Indigo", "Navy", "Blue", "Sky Blue", "Cyan", "Teal",
+    "Mint", "Sage", "Green", "Slate",
+)
 
 @Composable
 fun ColorWheelPicker(

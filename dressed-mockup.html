@@ -359,10 +359,12 @@
   .wardrobe-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
+    grid-auto-rows: max-content;
     gap: 14px;
     padding: 16px;
     overflow-y: auto;
     flex: 1;
+    align-content: start;
   }
   .wardrobe-grid::-webkit-scrollbar { width: 4px; }
   .wardrobe-grid::-webkit-scrollbar-thumb { background: rgba(61,43,92,0.2); border-radius: 2px; }
@@ -375,20 +377,24 @@
   }
 
   .item-photo {
-    aspect-ratio: 3/4;
     background: #ede5f8;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 40px;
     overflow: hidden;
+    line-height: 0;
   }
 
   .item-photo img {
     width: 100%;
-    height: 100%;
-    object-fit: cover;
+    height: auto;
     display: block;
+  }
+
+  .item-photo > span {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    aspect-ratio: 3 / 4;
+    width: 100%;
+    font-size: 40px;
   }
 
   .item-info {
@@ -841,6 +847,156 @@
     font-family: Georgia, serif;
   }
 
+  /* ─── OUTFITS (full design) ─── */
+  .outfits-style-bar {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    gap: 10px;
+    flex-shrink: 0;
+    background: #f5f0fb;
+    border-bottom: 1px solid rgba(61,43,92,0.08);
+  }
+  .outfits-style-label {
+    font-size: 10px;
+    font-family: 'Arial', sans-serif;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #9b7bb8;
+    white-space: nowrap;
+  }
+  .outfits-toggle-group {
+    display: flex;
+    flex: 1;
+  }
+  .outfits-toggle-btn {
+    flex: 1;
+    padding: 7px 10px;
+    border: 1.5px solid rgba(107,74,173,0.25);
+    background: white;
+    color: #4a2d6b;
+    font-size: 12px;
+    font-family: 'Arial', sans-serif;
+    cursor: pointer;
+    letter-spacing: 0.04em;
+    transition: all 0.15s;
+    text-align: center;
+  }
+  .outfits-toggle-btn:first-child { border-radius: 10px 0 0 10px; }
+  .outfits-toggle-btn:last-child  { border-radius: 0 10px 10px 0; border-left: none; }
+  .outfits-toggle-btn.active { background: #4a2d6b; color: #f0e6ff; border-color: #4a2d6b; }
+
+  .outfits-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    padding: 16px;
+    overflow-y: auto;
+    flex: 1;
+  }
+  .outfits-grid::-webkit-scrollbar { width: 4px; }
+  .outfits-grid::-webkit-scrollbar-thumb { background: rgba(61,43,92,0.2); border-radius: 2px; }
+
+  .outfit-card {
+    background: white;
+    border-radius: 14px;
+    box-shadow: 0 2px 10px rgba(61,43,92,0.08);
+    cursor: pointer;
+    transition: box-shadow 0.15s;
+    display: flex;
+    flex-direction: column;
+  }
+  .outfit-card:hover { box-shadow: 0 4px 18px rgba(61,43,92,0.14); }
+
+  /* ── Collage view (default) ── */
+  /* Collage: use a real image to drive height; inner grid overlays it */
+  .outfit-collage {
+    position: relative;
+    overflow: hidden;
+    border-radius: 14px 14px 0 0;
+    background: #ede5f8;
+    line-height: 0;
+  }
+  /* Invisible sizer image — sets the 3:4 height naturally */
+  .outfit-collage .sizer {
+    width: 100%;
+    height: auto;
+    display: block;
+    visibility: hidden;
+  }
+  .outfit-collage-inner {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 2px;
+  }
+  .outfit-collage .cell {
+    background: #ede5f8;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+  }
+  .outfit-collage .cell img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  /* ── Hero view (toggle on) ── */
+  .outfit-hero { display: none; flex-direction: column; }
+  .outfit-hero-main {
+    overflow: hidden;
+    background: #ede5f8;
+    border-radius: 14px 14px 0 0;
+    line-height: 0;
+  }
+  .outfit-hero-main img {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+  .outfit-hero-strip {
+    display: flex;
+    gap: 3px;
+    padding: 4px;
+    background: #ede5f8;
+  }
+  .outfit-hero-strip img {
+    flex: 1;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    border-radius: 4px;
+  }
+
+  /* Toggle logic */
+  .outfits-grid.hero-mode .outfit-collage { display: none; }
+  .outfits-grid.hero-mode .outfit-hero   { display: flex; }
+
+  .outfit-info { padding: 10px 12px 12px; }
+  .outfit-name {
+    font-size: 13px;
+    color: #2d1f42;
+    font-weight: 400;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 4px;
+  }
+  .outfit-meta {
+    font-size: 11px;
+    color: #8b6aaa;
+    font-family: 'Arial', sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .outfit-wear { opacity: 0.75; }
+
   .annotation-bar {
     width: 390px;
     max-width: 100%;
@@ -969,21 +1125,21 @@
       </div>
       <!-- 3 × Bottoms -->
       <div class="item-card" data-category="bottoms">
-        <div class="item-photo"><img src="https://images.unsplash.com/photo-1473966968600-fa801b869a1a?auto=format&fit=crop&w=420&h=560&q=80" alt="" loading="lazy" decoding="async" width="420" height="560" /></div>
+        <div class="item-photo"><img src="https://images.unsplash.com/photo-1594938298603-c8148c4b5f1d?auto=format&fit=crop&w=420&h=560&q=80" alt="" loading="lazy" decoding="async" width="420" height="560" /></div>
         <div class="item-info">
           <div class="item-name">Wide-leg trousers</div>
           <div class="item-meta"><div class="color-dot" style="background:#4a5a6e"></div> Bottoms · 28</div>
         </div>
       </div>
       <div class="item-card" data-category="bottoms">
-        <div class="item-photo"><img src="https://loremflickr.com/420/560/jeans,denim?lock=71" alt="" loading="lazy" decoding="async" width="420" height="560" /></div>
+        <div class="item-photo"><img src="https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=420&h=560&q=80" alt="" loading="lazy" decoding="async" width="420" height="560" /></div>
         <div class="item-info">
           <div class="item-name">Dark slim jeans</div>
           <div class="item-meta"><div class="color-dot" style="background:#1a1a22"></div> Bottoms · 30</div>
         </div>
       </div>
       <div class="item-card" data-category="bottoms">
-        <div class="item-photo"><img src="https://loremflickr.com/420/560/skirt,clothing?lock=72" alt="" loading="lazy" decoding="async" width="420" height="560" /></div>
+        <div class="item-photo"><img src="https://images.unsplash.com/photo-1583496661160-fb5974c6a7b1?auto=format&fit=crop&w=420&h=560&q=80" alt="" loading="lazy" decoding="async" width="420" height="560" /></div>
         <div class="item-info">
           <div class="item-name">Pleated midi skirt</div>
           <div class="item-meta"><div class="color-dot" style="background:#d4c4b0"></div> Bottoms · 6</div>
@@ -1013,7 +1169,7 @@
       </div>
       <!-- 3 × Shoes -->
       <div class="item-card" data-category="shoes">
-        <div class="item-photo"><img src="https://loremflickr.com/420/560/heels,womens-shoes?lock=73" alt="" loading="lazy" decoding="async" width="420" height="560" /></div>
+        <div class="item-photo"><img src="https://images.unsplash.com/photo-1543163521-1bf539c55dd2?auto=format&fit=crop&w=420&h=560&q=80" alt="" loading="lazy" decoding="async" width="420" height="560" /></div>
         <div class="item-info">
           <div class="item-name">Block heel mules</div>
           <div class="item-meta"><div class="color-dot" style="background:#c4788a"></div> Shoes · 8</div>
@@ -1071,7 +1227,7 @@
         </div>
       </div>
       <div class="item-card" data-category="accessories">
-        <div class="item-photo"><img src="https://loremflickr.com/420/560/belt,leather?lock=74" alt="" loading="lazy" decoding="async" width="420" height="560" /></div>
+        <div class="item-photo"><img src="https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=420&h=560&q=80" alt="" loading="lazy" decoding="async" width="420" height="560" /></div>
         <div class="item-info">
           <div class="item-name">Woven leather belt</div>
           <div class="item-meta"><div class="color-dot" style="background:#5d4037"></div> Accessories · —</div>
@@ -1224,13 +1380,13 @@
         <div class="result-row" data-name="White linen blouse" data-color="White"><div class="result-thumb"><img src="https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=104&h=104&q=80" alt="" loading="lazy" width="104" height="104" /></div><div class="result-info"><div class="result-name">White linen blouse</div><div class="result-tags">Tops · White · Spring, Summer</div></div><div class="result-arrow">›</div></div>
         <div class="result-row" data-name="Navy cashmere crewneck" data-color="Navy"><div class="result-thumb"><img src="https://images.unsplash.com/photo-1434389677669-e08b4cac3105?auto=format&fit=crop&w=104&h=104&q=80" alt="" loading="lazy" width="104" height="104" /></div><div class="result-info"><div class="result-name">Navy cashmere crewneck</div><div class="result-tags">Tops · Navy · Winter</div></div><div class="result-arrow">›</div></div>
         <div class="result-row" data-name="Stripe Oxford shirt" data-color="Tan"><div class="result-thumb"><img src="https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&w=104&h=104&q=80" alt="" loading="lazy" width="104" height="104" /></div><div class="result-info"><div class="result-name">Stripe Oxford shirt</div><div class="result-tags">Tops · Tan · All seasons</div></div><div class="result-arrow">›</div></div>
-        <div class="result-row" data-name="Wide-leg trousers" data-color="Slate"><div class="result-thumb"><img src="https://images.unsplash.com/photo-1473966968600-fa801b869a1a?auto=format&fit=crop&w=104&h=104&q=80" alt="" loading="lazy" width="104" height="104" /></div><div class="result-info"><div class="result-name">Wide-leg trousers</div><div class="result-tags">Bottoms · Slate · Spring</div></div><div class="result-arrow">›</div></div>
-        <div class="result-row" data-name="Dark slim jeans" data-color="Black"><div class="result-thumb"><img src="https://loremflickr.com/104/104/jeans,denim?lock=71" alt="" loading="lazy" width="104" height="104" /></div><div class="result-info"><div class="result-name">Dark slim jeans</div><div class="result-tags">Bottoms · Black · All seasons</div></div><div class="result-arrow">›</div></div>
-        <div class="result-row" data-name="Pleated midi skirt" data-color="Oat"><div class="result-thumb"><img src="https://loremflickr.com/104/104/skirt,clothing?lock=72" alt="" loading="lazy" width="104" height="104" /></div><div class="result-info"><div class="result-name">Pleated midi skirt</div><div class="result-tags">Bottoms · Oat · Summer</div></div><div class="result-arrow">›</div></div>
+        <div class="result-row" data-name="Wide-leg trousers" data-color="Slate"><div class="result-thumb"><img src="https://images.unsplash.com/photo-1594938298603-c8148c4b5f1d?auto=format&fit=crop&w=104&h=104&q=80" alt="" loading="lazy" width="104" height="104" /></div><div class="result-info"><div class="result-name">Wide-leg trousers</div><div class="result-tags">Bottoms · Slate · Spring</div></div><div class="result-arrow">›</div></div>
+        <div class="result-row" data-name="Dark slim jeans" data-color="Black"><div class="result-thumb"><img src="https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=104&h=104&q=80" alt="" loading="lazy" width="104" height="104" /></div><div class="result-info"><div class="result-name">Dark slim jeans</div><div class="result-tags">Bottoms · Black · All seasons</div></div><div class="result-arrow">›</div></div>
+        <div class="result-row" data-name="Pleated midi skirt" data-color="Oat"><div class="result-thumb"><img src="https://images.unsplash.com/photo-1583496661160-fb5974c6a7b1?auto=format&fit=crop&w=104&h=104&q=80" alt="" loading="lazy" width="104" height="104" /></div><div class="result-info"><div class="result-name">Pleated midi skirt</div><div class="result-tags">Bottoms · Oat · Summer</div></div><div class="result-arrow">›</div></div>
         <div class="result-row" data-name="Linen midi dress" data-color="Sand"><div class="result-thumb"><img src="https://images.unsplash.com/photo-1595777457583-95e059d581b8?auto=format&fit=crop&w=104&h=104&q=80" alt="" loading="lazy" width="104" height="104" /></div><div class="result-info"><div class="result-name">Linen midi dress</div><div class="result-tags">Dresses · Sand · Summer</div></div><div class="result-arrow">›</div></div>
         <div class="result-row" data-name="Shirt dress" data-color="Blue"><div class="result-thumb"><img src="https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?auto=format&fit=crop&w=104&h=104&q=80" alt="" loading="lazy" width="104" height="104" /></div><div class="result-info"><div class="result-name">Shirt dress</div><div class="result-tags">Dresses · Blue · Spring</div></div><div class="result-arrow">›</div></div>
         <div class="result-row" data-name="Knit maxi dress" data-color="Brown"><div class="result-thumb"><img src="https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?auto=format&fit=crop&w=104&h=104&q=80" alt="" loading="lazy" width="104" height="104" /></div><div class="result-info"><div class="result-name">Knit maxi dress</div><div class="result-tags">Dresses · Brown · Autumn</div></div><div class="result-arrow">›</div></div>
-        <div class="result-row" data-name="Block heel mules" data-color="Pink"><div class="result-thumb"><img src="https://loremflickr.com/104/104/heels,womens-shoes?lock=73" alt="" loading="lazy" width="104" height="104" /></div><div class="result-info"><div class="result-name">Block heel mules</div><div class="result-tags">Shoes · Pink · Summer</div></div><div class="result-arrow">›</div></div>
+        <div class="result-row" data-name="Block heel mules" data-color="Pink"><div class="result-thumb"><img src="https://images.unsplash.com/photo-1543163521-1bf539c55dd2?auto=format&fit=crop&w=104&h=104&q=80" alt="" loading="lazy" width="104" height="104" /></div><div class="result-info"><div class="result-name">Block heel mules</div><div class="result-tags">Shoes · Pink · Summer</div></div><div class="result-arrow">›</div></div>
         <div class="result-row" data-name="White leather sneakers" data-color="White"><div class="result-thumb"><img src="https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=104&h=104&q=80" alt="" loading="lazy" width="104" height="104" /></div><div class="result-info"><div class="result-name">White leather sneakers</div><div class="result-tags">Shoes · White · All seasons</div></div><div class="result-arrow">›</div></div>
         <div class="result-row" data-name="Leather loafers" data-color="Espresso"><div class="result-thumb"><img src="https://images.unsplash.com/photo-1533867617858-e7b97e060509?auto=format&fit=crop&w=104&h=104&q=80" alt="" loading="lazy" width="104" height="104" /></div><div class="result-info"><div class="result-name">Leather loafers</div><div class="result-tags">Shoes · Espresso · Autumn</div></div><div class="result-arrow">›</div></div>
         <div class="result-row" data-name="Wool wrap coat" data-color="Cocoa"><div class="result-thumb"><img src="https://images.unsplash.com/photo-1539533018447-63fcce2678e3?auto=format&fit=crop&w=104&h=104&q=80" alt="" loading="lazy" width="104" height="104" /></div><div class="result-info"><div class="result-name">Wool wrap coat</div><div class="result-tags">Outerwear · Cocoa · Winter</div></div><div class="result-arrow">›</div></div>
@@ -1238,12 +1394,12 @@
         <div class="result-row" data-name="Classic trench" data-color="Tan"><div class="result-thumb"><img src="https://images.unsplash.com/photo-1591047139829-d91aecb6caea?auto=format&fit=crop&w=104&h=104&q=80" alt="" loading="lazy" width="104" height="104" /></div><div class="result-info"><div class="result-name">Classic trench</div><div class="result-tags">Outerwear · Tan · Autumn</div></div><div class="result-arrow">›</div></div>
         <div class="result-row" data-name="Structured leather tote" data-color="Mahogany"><div class="result-thumb"><img src="https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=104&h=104&q=80" alt="" loading="lazy" width="104" height="104" /></div><div class="result-info"><div class="result-name">Structured leather tote</div><div class="result-tags">Accessories · Mahogany · All seasons</div></div><div class="result-arrow">›</div></div>
         <div class="result-row" data-name="Printed silk scarf" data-color="Pink"><div class="result-thumb"><img src="https://images.unsplash.com/photo-1558769132-cb1aea458c5e?auto=format&fit=crop&w=104&h=104&q=80" alt="" loading="lazy" width="104" height="104" /></div><div class="result-info"><div class="result-name">Printed silk scarf</div><div class="result-tags">Accessories · Pink · Spring</div></div><div class="result-arrow">›</div></div>
-        <div class="result-row" data-name="Woven leather belt" data-color="Brown"><div class="result-thumb"><img src="https://loremflickr.com/104/104/belt,leather?lock=74" alt="" loading="lazy" width="104" height="104" /></div><div class="result-info"><div class="result-name">Woven leather belt</div><div class="result-tags">Accessories · Brown · All seasons</div></div><div class="result-arrow">›</div></div>
+        <div class="result-row" data-name="Woven leather belt" data-color="Brown"><div class="result-thumb"><img src="https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=104&h=104&q=80" alt="" loading="lazy" width="104" height="104" /></div><div class="result-info"><div class="result-name">Woven leather belt</div><div class="result-tags">Accessories · Brown · All seasons</div></div><div class="result-arrow">›</div></div>
       </div>
     </div>
   </div>
 
-  <!-- ═══════════ OUTFITS (placeholder) ═══════════ -->
+  <!-- ═══════════ OUTFITS ═══════════ -->
   <div class="screen" id="screen-outfits">
     <div class="status-bar">
       <span class="time">9:41</span>
@@ -1253,12 +1409,168 @@
       <button type="button" class="back-btn" onclick="showScreen('landing')">← Home</button>
       <div class="top-bar-title">
         <div class="page-name">Outfits</div>
+        <div class="page-sub">6 looks saved</div>
       </div>
-      <div style="width:64px" aria-hidden="true"></div>
+      <button type="button" class="top-bar-action" aria-label="New outfit">+</button>
     </div>
-    <div class="outfits-body">
-      <h2>Coming soon</h2>
-      <p>Saving and wearing outfits will land here next—your wardrobe pieces are ready when we add it.</p>
+
+    <!-- Card style toggle -->
+    <div class="outfits-style-bar">
+      <span class="outfits-style-label">Card style</span>
+      <div class="outfits-toggle-group">
+        <button type="button" class="outfits-toggle-btn active" data-style="collage" onclick="setOutfitStyle('collage',this)">⊞ Collage</button>
+        <button type="button" class="outfits-toggle-btn" data-style="hero" onclick="setOutfitStyle('hero',this)">▣ Hero photo</button>
+      </div>
+    </div>
+
+    <div class="outfits-grid" id="outfitsGrid">
+
+      <!-- 1 · Spring Brunch (4 pieces) -->
+      <div class="outfit-card">
+        <div class="outfit-collage">
+          <img class="sizer" src="https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&w=200&h=200&q=75" alt="" aria-hidden="true" />
+          <div class="outfit-collage-inner">
+          <div class="cell"><img src="https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&w=200&h=200&q=75" loading="lazy" alt="" /></div>
+          <div class="cell"><img src="https://images.unsplash.com/photo-1594938298603-c8148c4b5f1d?auto=format&fit=crop&w=200&h=200&q=75" loading="lazy" alt="" /></div>
+          <div class="cell"><img src="https://images.unsplash.com/photo-1533867617858-e7b97e060509?auto=format&fit=crop&w=200&h=200&q=75" loading="lazy" alt="" /></div>
+          <div class="cell"><img src="https://images.unsplash.com/photo-1558769132-cb1aea458c5e?auto=format&fit=crop&w=200&h=200&q=75" loading="lazy" alt="" /></div>
+        </div>
+        </div>
+        <div class="outfit-hero">
+          <div class="outfit-hero-main"><img src="https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&w=350&h=466&q=80" loading="lazy" alt="" /></div>
+          <div class="outfit-hero-strip">
+            <img src="https://images.unsplash.com/photo-1594938298603-c8148c4b5f1d?auto=format&fit=crop&w=120&h=80&q=70" loading="lazy" alt="" />
+            <img src="https://images.unsplash.com/photo-1533867617858-e7b97e060509?auto=format&fit=crop&w=120&h=80&q=70" loading="lazy" alt="" />
+            <img src="https://images.unsplash.com/photo-1558769132-cb1aea458c5e?auto=format&fit=crop&w=120&h=80&q=70" loading="lazy" alt="" />
+          </div>
+        </div>
+        <div class="outfit-info">
+          <div class="outfit-name">Spring Brunch</div>
+          <div class="outfit-meta"><span>4 pieces</span><span class="outfit-wear">4 wears</span></div>
+        </div>
+      </div>
+
+      <!-- 2 · Weekend Casual (3 pieces) -->
+      <div class="outfit-card">
+        <div class="outfit-collage">
+          <img class="sizer" src="https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=200&h=200&q=75" alt="" aria-hidden="true" />
+          <div class="outfit-collage-inner">
+          <div class="cell"><img src="https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=200&h=200&q=75" loading="lazy" alt="" /></div>
+          <div class="cell"><img src="https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=200&h=200&q=80" loading="lazy" alt="" /></div>
+          <div class="cell"><img src="https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=200&h=200&q=75" loading="lazy" alt="" /></div>
+          <div class="cell" style="background:#ede5f8;"></div>
+        </div>
+        </div>
+        <div class="outfit-hero">
+          <div class="outfit-hero-main"><img src="https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=350&h=466&q=80" loading="lazy" alt="" /></div>
+          <div class="outfit-hero-strip">
+            <img src="https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=120&h=160&q=80" loading="lazy" alt="" />
+            <img src="https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=120&h=80&q=70" loading="lazy" alt="" />
+          </div>
+        </div>
+        <div class="outfit-info">
+          <div class="outfit-name">Weekend Casual</div>
+          <div class="outfit-meta"><span>3 pieces</span><span class="outfit-wear">6 wears</span></div>
+        </div>
+      </div>
+
+      <!-- 3 · Office Chic (4 pieces) -->
+      <div class="outfit-card">
+        <div class="outfit-collage">
+          <img class="sizer" src="https://images.unsplash.com/photo-1434389677669-e08b4cac3105?auto=format&fit=crop&w=200&h=200&q=75" alt="" aria-hidden="true" />
+          <div class="outfit-collage-inner">
+          <div class="cell"><img src="https://images.unsplash.com/photo-1434389677669-e08b4cac3105?auto=format&fit=crop&w=200&h=200&q=75" loading="lazy" alt="" /></div>
+          <div class="cell"><img src="https://images.unsplash.com/photo-1583496661160-fb5974c6a7b1?auto=format&fit=crop&w=200&h=200&q=80" loading="lazy" alt="" /></div>
+          <div class="cell"><img src="https://images.unsplash.com/photo-1533867617858-e7b97e060509?auto=format&fit=crop&w=200&h=200&q=75" loading="lazy" alt="" /></div>
+          <div class="cell"><img src="https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=200&h=200&q=75" loading="lazy" alt="" /></div>
+        </div>
+        </div>
+        <div class="outfit-hero">
+          <div class="outfit-hero-main"><img src="https://images.unsplash.com/photo-1434389677669-e08b4cac3105?auto=format&fit=crop&w=350&h=466&q=80" loading="lazy" alt="" /></div>
+          <div class="outfit-hero-strip">
+            <img src="https://images.unsplash.com/photo-1583496661160-fb5974c6a7b1?auto=format&fit=crop&w=120&h=160&q=80" loading="lazy" alt="" />
+            <img src="https://images.unsplash.com/photo-1533867617858-e7b97e060509?auto=format&fit=crop&w=120&h=80&q=70" loading="lazy" alt="" />
+            <img src="https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=120&h=80&q=70" loading="lazy" alt="" />
+          </div>
+        </div>
+        <div class="outfit-info">
+          <div class="outfit-name">Office Chic</div>
+          <div class="outfit-meta"><span>4 pieces</span><span class="outfit-wear">2 wears</span></div>
+        </div>
+      </div>
+
+      <!-- 4 · Date Night (3 pieces) -->
+      <div class="outfit-card">
+        <div class="outfit-collage">
+          <img class="sizer" src="https://images.unsplash.com/photo-1595777457583-95e059d581b8?auto=format&fit=crop&w=200&h=200&q=75" alt="" aria-hidden="true" />
+          <div class="outfit-collage-inner">
+          <div class="cell"><img src="https://images.unsplash.com/photo-1595777457583-95e059d581b8?auto=format&fit=crop&w=200&h=200&q=75" loading="lazy" alt="" /></div>
+          <div class="cell"><img src="https://images.unsplash.com/photo-1543163521-1bf539c55dd2?auto=format&fit=crop&w=200&h=200&q=80" loading="lazy" alt="" /></div>
+          <div class="cell"><img src="https://images.unsplash.com/photo-1558769132-cb1aea458c5e?auto=format&fit=crop&w=200&h=200&q=75" loading="lazy" alt="" /></div>
+          <div class="cell" style="background:#ede5f8;"></div>
+        </div>
+        </div>
+        <div class="outfit-hero">
+          <div class="outfit-hero-main"><img src="https://images.unsplash.com/photo-1595777457583-95e059d581b8?auto=format&fit=crop&w=350&h=466&q=80" loading="lazy" alt="" /></div>
+          <div class="outfit-hero-strip">
+            <img src="https://images.unsplash.com/photo-1543163521-1bf539c55dd2?auto=format&fit=crop&w=120&h=160&q=80" loading="lazy" alt="" />
+            <img src="https://images.unsplash.com/photo-1558769132-cb1aea458c5e?auto=format&fit=crop&w=120&h=80&q=70" loading="lazy" alt="" />
+          </div>
+        </div>
+        <div class="outfit-info">
+          <div class="outfit-name">Date Night</div>
+          <div class="outfit-meta"><span>3 pieces</span><span class="outfit-wear">3 wears</span></div>
+        </div>
+      </div>
+
+      <!-- 5 · Winter Walk (3 pieces) -->
+      <div class="outfit-card">
+        <div class="outfit-collage">
+          <img class="sizer" src="https://images.unsplash.com/photo-1539533018447-63fcce2678e3?auto=format&fit=crop&w=200&h=200&q=75" alt="" aria-hidden="true" />
+          <div class="outfit-collage-inner">
+          <div class="cell"><img src="https://images.unsplash.com/photo-1539533018447-63fcce2678e3?auto=format&fit=crop&w=200&h=200&q=75" loading="lazy" alt="" /></div>
+          <div class="cell"><img src="https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=200&h=200&q=80" loading="lazy" alt="" /></div>
+          <div class="cell"><img src="https://images.unsplash.com/photo-1533867617858-e7b97e060509?auto=format&fit=crop&w=200&h=200&q=75" loading="lazy" alt="" /></div>
+          <div class="cell" style="background:#ede5f8;"></div>
+        </div>
+        </div>
+        <div class="outfit-hero">
+          <div class="outfit-hero-main"><img src="https://images.unsplash.com/photo-1539533018447-63fcce2678e3?auto=format&fit=crop&w=350&h=466&q=80" loading="lazy" alt="" /></div>
+          <div class="outfit-hero-strip">
+            <img src="https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=120&h=160&q=80" loading="lazy" alt="" />
+            <img src="https://images.unsplash.com/photo-1533867617858-e7b97e060509?auto=format&fit=crop&w=120&h=80&q=70" loading="lazy" alt="" />
+          </div>
+        </div>
+        <div class="outfit-info">
+          <div class="outfit-name">Winter Walk</div>
+          <div class="outfit-meta"><span>3 pieces</span><span class="outfit-wear">1 wear</span></div>
+        </div>
+      </div>
+
+      <!-- 6 · Easy Sunday (3 pieces) -->
+      <div class="outfit-card">
+        <div class="outfit-collage">
+          <img class="sizer" src="https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?auto=format&fit=crop&w=200&h=200&q=75" alt="" aria-hidden="true" />
+          <div class="outfit-collage-inner">
+          <div class="cell"><img src="https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?auto=format&fit=crop&w=200&h=200&q=75" loading="lazy" alt="" /></div>
+          <div class="cell"><img src="https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=200&h=200&q=75" loading="lazy" alt="" /></div>
+          <div class="cell"><img src="https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=200&h=200&q=80" loading="lazy" alt="" /></div>
+          <div class="cell" style="background:#ede5f8;"></div>
+        </div>
+        </div>
+        <div class="outfit-hero">
+          <div class="outfit-hero-main"><img src="https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?auto=format&fit=crop&w=350&h=466&q=80" loading="lazy" alt="" /></div>
+          <div class="outfit-hero-strip">
+            <img src="https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=120&h=80&q=70" loading="lazy" alt="" />
+            <img src="https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=120&h=160&q=80" loading="lazy" alt="" />
+          </div>
+        </div>
+        <div class="outfit-info">
+          <div class="outfit-name">Easy Sunday</div>
+          <div class="outfit-meta"><span>3 pieces</span><span class="outfit-wear">5 wears</span></div>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -1378,6 +1690,15 @@
     var colorInput = document.getElementById('searchColorInput');
     if (nameInput) nameInput.addEventListener('input', applyMockSearchFilters);
     if (colorInput) colorInput.addEventListener('input', applyMockSearchFilters);
+  }
+
+  function setOutfitStyle(style, btn) {
+    var grid = document.getElementById('outfitsGrid');
+    if (!grid) return;
+    document.querySelectorAll('.outfits-toggle-btn').forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    if (style === 'hero') { grid.classList.add('hero-mode'); }
+    else { grid.classList.remove('hero-mode'); }
   }
 
   document.addEventListener('DOMContentLoaded', function () {

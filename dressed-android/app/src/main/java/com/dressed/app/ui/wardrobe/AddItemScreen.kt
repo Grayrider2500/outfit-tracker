@@ -25,9 +25,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -35,6 +39,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -70,6 +75,13 @@ fun AddItemScreen(
     var hue by rememberSaveable { mutableStateOf(285f) }
     var saturation by rememberSaveable { mutableStateOf(0.42f) }
     var brightness by rememberSaveable { mutableStateOf(0.96f) }
+    var colorName by rememberSaveable { mutableStateOf("") }
+    var colorNameExpanded by remember { mutableStateOf(false) }
+
+    // Auto-fill the colour name whenever the wheel changes.
+    LaunchedEffect(hue, saturation, brightness) {
+        colorName = labelForPickedColor(hsvToHex(hue, saturation, brightness))
+    }
 
     val seasons = remember { mutableStateListOf<String>() }
 
@@ -310,6 +322,55 @@ fun AddItemScreen(
 
             Spacer(Modifier.height(16.dp))
 
+            Text("Color Name", style = MaterialTheme.typography.labelLarge)
+            Spacer(Modifier.height(6.dp))
+
+            // Always show the full preset list. If the user is typing something custom,
+            // float matching names to the top so presets remain visible throughout.
+            val colorSuggestions = remember(colorName) {
+                val q = colorName.trim().lowercase()
+                if (q.isEmpty()) {
+                    COLOR_NAME_SUGGESTIONS
+                } else {
+                    val top = COLOR_NAME_SUGGESTIONS.filter {
+                        it.lowercase().startsWith(q) || it.lowercase().contains(q)
+                    }
+                    top + COLOR_NAME_SUGGESTIONS.filterNot { it in top }
+                }
+            }
+
+            ExposedDropdownMenuBox(
+                expanded = colorNameExpanded && colorSuggestions.isNotEmpty(),
+                onExpandedChange = { colorNameExpanded = it },
+            ) {
+                OutlinedTextField(
+                    value = colorName,
+                    onValueChange = { colorName = it; colorNameExpanded = true },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .menuAnchor(MenuAnchorType.PrimaryEditable, enabled = true),
+                    placeholder = { Text("e.g. Lavender, Navy, Cream…") },
+                    singleLine = true,
+                    trailingIcon = {
+                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = colorNameExpanded && colorSuggestions.isNotEmpty())
+                    },
+                )
+                ExposedDropdownMenu(
+                    expanded = colorNameExpanded && colorSuggestions.isNotEmpty(),
+                    onDismissRequest = { colorNameExpanded = false },
+                ) {
+                    colorSuggestions.forEach { suggestion ->
+                        DropdownMenuItem(
+                            text = { Text(suggestion) },
+                            onClick = { colorName = suggestion; colorNameExpanded = false },
+                            contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding,
+                        )
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
+
             Text("Season", style = MaterialTheme.typography.labelLarge)
             Spacer(Modifier.height(8.dp))
             FlowRow(
@@ -349,7 +410,7 @@ fun AddItemScreen(
                                 category = category,
                                 sizeLabel = sizeText,
                                 colorHex = hex,
-                                colorName = labelForPickedColor(hex),
+                                colorName = colorName.trim().ifBlank { labelForPickedColor(hex) },
                                 seasons = seasons.toList(),
                                 photoUri = photoUri,
                                 onInserted = onSaved,
