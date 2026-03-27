@@ -8,4 +8,10 @@ enum PhotoStorage {
         try data.write(to: url, options: [.atomic])
         return url.path
     }
+
+    static func readJPEGData(at path: String) -> Data? {
+        let url = URL(fileURLWithPath: path)
+        guard FileManager.default.fileExists(atPath: path) else { return nil }
+        return try? Data(contentsOf: url)
+    }
 }

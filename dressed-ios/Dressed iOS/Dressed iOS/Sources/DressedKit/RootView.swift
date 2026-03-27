@@ -19,9 +19,7 @@ struct RootView: View {
             .navigationDestination(for: MainRoute.self) { route in
                 switch route {
                 case .wardrobe:
-                    WardrobeListView(onNavigateHome: {
-                        if !path.isEmpty { path.removeLast() }
-                    })
+                    WardrobeListView(onNavigateHome: { path.removeLast() })
                 case .search:
                     SearchPlaceholderView()
                 case .outfits:

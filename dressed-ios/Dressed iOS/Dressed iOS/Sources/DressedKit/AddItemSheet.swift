@@ -14,13 +14,12 @@ struct AddItemSheet: View {
     @State private var name = ""
     @State private var category = ""
     @State private var sizeText = ""
-    @State private var hueDegrees = 285.0
-    @State private var saturation = 0.42
-    @State private var brightness = 0.96
+    @State private var selectedColor = Color(.sRGB, red: 0.55, green: 0.38, blue: 0.83)
     @State private var colorName = ""
     @State private var seasons: Set<String> = []
     @State private var photoPickerItem: PhotosPickerItem?
     @State private var photoData: Data?
+    @State private var showCamera = false
     @State private var errorHint: String?
 
     private let navPurple = Color(red: 0.42, green: 0.29, blue: 0.68)
@@ -64,30 +63,14 @@ struct AddItemSheet: View {
                 TextField("e.g. M, 10, 9.5, or custom", text: $sizeText)
                     .textFieldStyle(.roundedBorder)
 
-                fieldLabel("Color")
-                Text("Adjust hue, saturation, and brightness — same idea as the Android color wheel.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                HStack {
-                    Text(WardrobeColorMath.hsvToHex(hueDegrees: hueDegrees, saturation: saturation, brightness: brightness))
-                        .font(.system(.body, design: .monospaced))
-                    Spacer()
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(Color(UIColor(hue: CGFloat(hueDegrees / 360), saturation: CGFloat(saturation), brightness: CGFloat(brightness), alpha: 1)))
-                        .frame(width: 52, height: 36)
-                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.black.opacity(0.1)))
-                }
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Hue").font(.caption).foregroundStyle(.secondary)
-                    Slider(value: $hueDegrees, in: 0 ... 360, step: 1)
-                }
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Saturation").font(.caption).foregroundStyle(.secondary)
-                    Slider(value: $saturation, in: 0 ... 1, step: 0.01)
-                }
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Brightness").font(.caption).foregroundStyle(.secondary)
-                    Slider(value: $brightness, in: 0 ... 1, step: 0.01)
+                ColorPicker(selection: $selectedColor, supportsOpacity: false) {
+                    HStack {
+                        fieldLabel("Color")
+                        Spacer()
+                        Text(WardrobeColorMath.hexFromColor(selectedColor))
+                            .font(.system(.caption, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                    }
                 }
 
                 fieldLabel("Color name")
@@ -128,17 +111,17 @@ struct AddItemSheet: View {
             }
             .padding(20)
         }
-        .onAppear { syncColorNameFromWheel() }
-        .onChange(of: hueDegrees) { _, _ in syncColorNameFromWheel() }
-        .onChange(of: saturation) { _, _ in syncColorNameFromWheel() }
-        .onChange(of: brightness) { _, _ in syncColorNameFromWheel() }
+        .onAppear { syncColorName() }
+        .onChange(of: selectedColor) { _, _ in syncColorName() }
         .onChange(of: photoPickerItem) { _, new in
             Task {
                 photoData = try? await new?.loadTransferable(type: Data.self)
             }
         }
         .navigationTitle("Add a New Piece")
+        #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
+        #endif
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button("Cancel") { dismiss() }
@@ -162,34 +145,60 @@ struct AddItemSheet: View {
     private var photoSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             fieldLabel("Photo")
-            PhotosPicker(selection: $photoPickerItem, matching: .images) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 12)
-                        .strokeBorder(Color.secondary.opacity(0.3))
-                        .background(RoundedRectangle(cornerRadius: 12).fill(Color(.secondarySystemGroupedBackground)))
-                    Group {
-                        if let photoData, let ui = UIImage(data: photoData) {
-                            Image(uiImage: ui)
-                                .resizable()
-                                .scaledToFill()
-                        } else {
-                            VStack(spacing: 8) {
-                                Image(systemName: "photo")
-                                    .font(.largeTitle)
-                                    .foregroundStyle(.secondary)
-                                Text("Tap to choose a photo")
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
-                            }
+
+            // Preview area
+            ZStack {
+                RoundedRectangle(cornerRadius: 12)
+                    .strokeBorder(Color.secondary.opacity(0.3))
+                    .background(RoundedRectangle(cornerRadius: 12).fill(Color(.secondarySystemGroupedBackground)))
+                Group {
+                    if let photoData, let ui = UIImage(data: photoData) {
+                        Image(uiImage: ui)
+                            .resizable()
+                            .scaledToFill()
+                    } else {
+                        VStack(spacing: 8) {
+                            Image(systemName: "photo")
+                                .font(.largeTitle)
+                                .foregroundStyle(.secondary)
+                            Text("Add a photo below")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
                         }
                     }
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 200)
-                    .clipped()
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+                .frame(maxWidth: .infinity)
+                .frame(height: 200)
+                .clipped()
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+            }
+
+            // Gallery + Camera buttons
+            HStack(spacing: 12) {
+                PhotosPicker(selection: $photoPickerItem, matching: .images) {
+                    Label("Gallery", systemImage: "photo.on.rectangle")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .tint(navPurple)
+
+                if UIImagePickerController.isSourceTypeAvailable(.camera) {
+                    Button {
+                        showCamera = true
+                    } label: {
+                        Label("Camera", systemImage: "camera")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(navPurple)
                 }
             }
-            .buttonStyle(.plain)
+        }
+        .fullScreenCover(isPresented: $showCamera) {
+            CameraPicker { image in
+                photoData = image.jpegData(compressionQuality: 0.85)
+            }
+            .ignoresSafeArea()
         }
     }
 
@@ -211,8 +220,8 @@ struct AddItemSheet: View {
         .buttonStyle(.plain)
     }
 
-    private func syncColorNameFromWheel() {
-        let hex = WardrobeColorMath.hsvToHex(hueDegrees: hueDegrees, saturation: saturation, brightness: brightness)
+    private func syncColorName() {
+        let hex = WardrobeColorMath.hexFromColor(selectedColor)
         colorName = WardrobeColorMath.labelForPickedColor(hex: hex)
     }
 
@@ -227,7 +236,7 @@ struct AddItemSheet: View {
             return
         }
         errorHint = nil
-        let hex = WardrobeColorMath.hsvToHex(hueDegrees: hueDegrees, saturation: saturation, brightness: brightness)
+        let hex = WardrobeColorMath.hexFromColor(selectedColor)
         let resolvedName = colorName.trimmingCharacters(in: .whitespacesAndNewlines)
         let finalColorName = resolvedName.isEmpty ? WardrobeColorMath.labelForPickedColor(hex: hex) : resolvedName
         let seasonOrder = ["spring", "summer", "fall", "winter"]
@@ -251,6 +260,40 @@ struct AddItemSheet: View {
         try? modelContext.save()
         onSaved()
         dismiss()
+    }
+}
+
+// MARK: - Camera picker (wraps UIImagePickerController)
+
+private struct CameraPicker: UIViewControllerRepresentable {
+    var onImageCaptured: (UIImage) -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    func makeUIViewController(context: Context) -> UIImagePickerController {
+        let picker = UIImagePickerController()
+        picker.sourceType = .camera
+        picker.delegate = context.coordinator
+        return picker
+    }
+
+    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
+
+    func makeCoordinator() -> Coordinator { Coordinator(self) }
+
+    class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+        let parent: CameraPicker
+        init(_ parent: CameraPicker) { self.parent = parent }
+
+        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
+            if let image = info[.originalImage] as? UIImage {
+                parent.onImageCaptured(image)
+            }
+            parent.dismiss()
+        }
+
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+            parent.dismiss()
+        }
     }
 }
 

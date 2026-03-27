@@ -51,7 +51,9 @@ struct WardrobeListView: View {
         }
         .background(Color(.systemGroupedBackground))
         .navigationTitle("")
+        #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
+        #endif
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Button("← Home") {
@@ -163,7 +165,8 @@ private struct WardrobeItemCard: View {
                         .font(.system(size: 44))
                 }
             }
-            .aspectRatio(3 / 4, contentMode: .fit)
+            // Floating-point ratio required — `3 / 4` is integer 0 in Swift and collapses the image.
+            .aspectRatio(3.0 / 4.0, contentMode: .fit)
             .clipped()
 
             VStack(alignment: .leading, spacing: 4) {

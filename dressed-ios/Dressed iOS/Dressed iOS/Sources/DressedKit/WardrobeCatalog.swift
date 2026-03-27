@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 import UIKit
 
 /// Category keys aligned with Android `WardrobeCategories`.
@@ -78,13 +79,9 @@ enum WardrobeCatalog {
 }
 
 enum WardrobeColorMath {
-    static func hsvToHex(hueDegrees: Double, saturation: Double, value: Double) -> String {
-        let ui = UIColor(
-            hue: CGFloat(hueDegrees / 360.0),
-            saturation: CGFloat(saturation),
-            brightness: CGFloat(value),
-            alpha: 1,
-        )
+    /// Extract a hex string like `#8B62D4` from a SwiftUI `Color`.
+    static func hexFromColor(_ color: Color) -> String {
+        let ui = UIColor(color)
         var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
         ui.getRed(&r, green: &g, blue: &b, alpha: &a)
         return String(
@@ -92,15 +89,6 @@ enum WardrobeColorMath {
             Int(round(r * 255)),
             Int(round(g * 255)),
             Int(round(b * 255)),
-        )
-    }
-
-    static func swiftUIColor(hueDegrees: Double, saturation: Double, value: Double) -> UIColor {
-        UIColor(
-            hue: CGFloat(hueDegrees / 360.0),
-            saturation: CGFloat(saturation),
-            brightness: CGFloat(value),
-            alpha: 1,
         )
     }
 
@@ -140,10 +128,10 @@ enum WardrobeColorMath {
             NC(name: "Green", r: 34, g: 139, b: 34), NC(name: "Slate", r: 112, g: 128, b: 144),
         ]
 
-        return palette.min { a, b in
-            let da = distSq(a.r, a.g, a.b, r, g, b)
-            let db = distSq(b.r, b.g, b.b, r, g, b)
-            return da < db
+        return palette.min { lhs, rhs in
+            let dl = distSq(lhs.r, lhs.g, lhs.b, r, g, b)
+            let dr = distSq(rhs.r, rhs.g, rhs.b, r, g, b)
+            return dl < dr
         }?.name ?? "Custom"
     }
 

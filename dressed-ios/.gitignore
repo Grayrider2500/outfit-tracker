@@ -1,12 +1,11 @@
-# Xcode (user-created project next to Sources — see README)
-Dressed iOS/
-
-# Xcode
+# Xcode build artifacts and user data
 DerivedData/
 build/
 *.xcuserstate
 *.xcuserdatad
 xcuserdata/
+*.xcodeproj/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
 
 # Swift Package Manager
 .build/
