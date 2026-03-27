@@ -5,4 +5,5 @@ plugins {
     // Must match Kotlin patch line (KSP 2.3.x targets Kotlin 2.3 and breaks Room with 2.2.x).
     id("org.jetbrains.kotlin.plugin.serialization") version "2.2.10" apply false
     id("com.google.devtools.ksp") version "2.3.2" apply false
+    id("com.google.gms.google-services") version "4.4.4" apply false
 }
