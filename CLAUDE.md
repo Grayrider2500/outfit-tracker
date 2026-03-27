@@ -1,45 +1,63 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code when working with this repository.
+Guidance for **Claude Code** and other AI assistants working in this repository.
 
-## Project Overview
+## Start here — repo map
 
-A personal wardrobe and outfit tracking web app called **Dressed**. Single HTML file (`index.html`), no dependencies, no server required. Mobile-first design optimized for 430px width.
+| Path | What it is |
+|------|------------|
+| **`dressed-android/`** | **Primary product:** Android app (Jetpack Compose, Room, Material 3). Entry: `app/src/main/java/com/dressed/app/`. |
+| **`index.html`** | **Web prototype:** single-file wardrobe + outfits UI, `localStorage`, no build. |
+| **`dressed-mockup.html`** | **Design reference** aligned with the Android app (layout / flows for review). |
+| **`memory.md`** | Long-lived **Android** facts: architecture, DB version, migrations, decisions. |
+| **`restart.md`** | **Session checkpoint:** where work stopped, last session summary, immediate next steps. |
+| **`backlog.md`** | Prioritized **todo** list for the Android app. |
 
-## Architecture
+**At the beginning of a session, read:** `restart.md` → `memory.md` → `backlog.md` (then open code as needed).
 
-- Single-file app — all HTML, CSS, and JavaScript in `index.html`
-- No build step, no external dependencies
-- `localStorage` for all data persistence
-- Mobile-first design (430px optimized)
-- Google Fonts: Cormorant Garamond + DM Sans
+This file lives at the **repository root** so tools that load `CLAUDE.md` automatically will find it.
 
-## Features
+---
 
-- **Wardrobe** — Add clothing pieces with photos, category, color, and season tags
-- **Outfits** — Build outfits from wardrobe pieces and save them as looks
-- **Wear tracking** — Mark items and outfits as worn; tracks total wear count
-- **Filter by category** — Tops, Bottoms, Dresses, Shoes, Outerwear, Accessories
+## Android app (`dressed-android/`)
 
-## GitHub Workflow
+- **Package:** `com.dressed.app`
+- **MainActivity** wires `DressedApp(viewModel, outfitsViewModel)`.
+- **Navigation:** `ui/DressedApp.kt` — root routes: `landing`, `wardrobe`, `search`, `outfits`.
+- **Nested navigation:** `WardrobeNav`, `WardrobeSearchNav`, `OutfitsNav` in `ui/wardrobe/` and `ui/outfits/`.
+- **DB:** `data/local/DressedDatabase.kt` (see `memory.md` for version and migrations).
+- **Build:** open `dressed-android` in Android Studio, or `./gradlew :app:compileDebugKotlin`.
 
-- Repo: **https://github.com/Grayrider2500/outfit-tracker**
-- Live URL: **https://grayrider2500.github.io/outfit-tracker/**
-- After completing any meaningful changes, commit and push to GitHub
-- Use clear, descriptive commit messages
+---
 
-## Conventions
+## Web prototype (`index.html`)
 
-- No external dependencies — everything must work fully offline
-- All data stays in the browser, nothing sent to a server
-- `font-size: 16px` on all form inputs (prevents iOS auto-zoom)
+- No build step; open in a browser or use GitHub Pages root URL.
+- Vanilla HTML/CSS/JS; data in `localStorage`.
+- `font-size: 16px` on form inputs (avoids iOS zoom).
 
-## Session Memory
+---
 
-After completing any meaningful work session, update the following files:
+## Design mockup (`dressed-mockup.html`)
 
-- **memory.md** — key facts, decisions made, and anything important to remember long-term
-- **restart.md** — exactly where you stopped, what you were doing, and what the next step is
-- **backlog.md** — everything still left to do, in priority order
+- Static HTML/CSS/JS; optional live previews use network images (see file footer).
+- **Client / stakeholder URL (when Pages enabled):**  
+  `https://grayrider2500.github.io/outfit-tracker/dressed-mockup.html`
 
-If these files don't exist yet, create them. At the start of each new session, read all three files before doing anything else so you resume with full context.
+---
+
+## GitHub
+
+- **Repo:** https://github.com/Grayrider2500/outfit-tracker  
+- **Pages:** https://grayrider2500.github.io/outfit-tracker/  
+- Commit and push after meaningful changes; use clear commit messages.
+
+---
+
+## After a work session
+
+Update as appropriate:
+
+1. **`memory.md`** — durable Android/architecture facts and decisions.  
+2. **`restart.md`** — where you stopped and what to do next.  
+3. **`backlog.md`** — remaining work, priority order.

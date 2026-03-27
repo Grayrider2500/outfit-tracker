@@ -1,5 +1,7 @@
 # Dressed — Restart
 
+**Assistants:** see **`CLAUDE.md`** at the repo root for where everything lives; use this file as the latest session checkpoint.
+
 ## Where We Stopped (2026-03-27)
 
 All core work is complete and pushed to GitHub. App is installing and running on a real Samsung SM-S727VL device (Android 6.0 / API 23).
@@ -27,6 +29,6 @@ All core work is complete and pushed to GitHub. App is installing and running on
 - Photo preview tap now opens Gallery picker instead of file picker
 
 ## Next Steps
+
 - Test Outfits flow end-to-end on real device (create outfit → see collage card)
 - Outfit detail screen: show full collage, Mark as Worn button, delete option
-- Update LandingScreen — "Outfits" button still says "coming soon" in subtitle, remove that

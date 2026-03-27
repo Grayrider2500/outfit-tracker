@@ -200,7 +200,7 @@ fun LandingScreen(
                 Spacer(Modifier.height(12.dp))
                 HubNavButton(
                     mainLabel = "Outfits",
-                    subLabel = "Put looks together (coming soon)",
+                    subLabel = "Build and save your looks",
                     onClick = onOutfits,
                     emphasized = false,
                     icon = Icons.Filled.AutoAwesome,

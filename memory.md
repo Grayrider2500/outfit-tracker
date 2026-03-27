@@ -1,5 +1,7 @@
 # Dressed — Session Memory
 
+**Assistants:** read **`CLAUDE.md`** (repo root) first for the full map, then this file for Android technical memory.
+
 ## Project
 Android wardrobe + outfit tracking app built with Jetpack Compose / Material3 / Room.
 Package: `com.dressed.app`

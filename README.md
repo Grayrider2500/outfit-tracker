@@ -1,28 +1,39 @@
 # Outfit Tracker — *Dressed*
 
-A personal wardrobe and outfit tracking web app. Single HTML file, no dependencies, no server required.
+Wardrobe and outfit tracking in two forms: an **Android app** (Compose) and a **single-file web** prototype, plus an HTML **mockup** for design review.
 
-## Live App
+## Repository layout
 
-**https://grayrider2500.github.io/outfit-tracker/**
+| Path | Description |
+|------|-------------|
+| **`dressed-android/`** | Android app (Kotlin, Compose, Room). Primary development target. |
+| **`index.html`** | Web app: vanilla JS, `localStorage`, no build. |
+| **`dressed-mockup.html`** | Interactive layout reference (Android-aligned). |
+| **`CLAUDE.md`** | Map for AI assistants; points to `memory.md`, `restart.md`, `backlog.md`. |
+| **`memory.md` / `restart.md` / `backlog.md`** | Session notes and prioritized tasks (Android-focused). |
 
-## What It Does
+## Live site (GitHub Pages)
 
-- **Wardrobe** — Add clothing pieces with photos, category, color, and season tags
-- **Outfits** — Build outfits from wardrobe pieces and save them as looks
-- **Wear tracking** — Mark items and outfits as worn; tracks total wear count
-- **Filter by category** — Tops, Bottoms, Dresses, Shoes, Outerwear, Accessories
-- **Local storage** — All data stays in the browser, nothing is sent anywhere
+- **Web app (root):** https://grayrider2500.github.io/outfit-tracker/  
+- **Android mockup:** https://grayrider2500.github.io/outfit-tracker/dressed-mockup.html  
 
-## Running It
+## Web app — run locally
 
-Just open `index.html` in any browser — no build step, no install, no server needed.
+Open `index.html` in a browser. No install or server required.
 
-Or use the live GitHub Pages link above.
+## Android app — run locally
 
-## Tech
+Open the **`dressed-android`** folder in Android Studio and run the `app` configuration, or from that directory:
 
-- Vanilla HTML, CSS, JavaScript
-- `localStorage` for persistence
-- Mobile-first design (optimized for 430px width)
-- Google Fonts: Cormorant Garamond + DM Sans
+```bash
+./gradlew :app:installDebug
+```
+
+## Tech summary
+
+- **Android:** Jetpack Compose, Material 3, Room, Coil, Navigation-Compose.  
+- **Web:** HTML/CSS/JS, Google Fonts (Cormorant Garamond + DM Sans), mobile-first (~430px).  
+
+## AI / pair-programming
+
+For **Claude Code** or similar: start with **`CLAUDE.md`** at the repo root, then **`restart.md`** and **`memory.md`**.
