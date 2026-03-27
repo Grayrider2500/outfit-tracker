@@ -5,7 +5,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.dressed.app.ui.home.LandingScreen
-import com.dressed.app.ui.outfits.OutfitsPlaceholderScreen
+import com.dressed.app.ui.outfits.OutfitsNav
+import com.dressed.app.ui.outfits.OutfitsViewModel
 import com.dressed.app.ui.wardrobe.WardrobeNav
 import com.dressed.app.ui.wardrobe.WardrobeSearchNav
 
@@ -15,7 +16,7 @@ private const val ROUTE_SEARCH = "search"
 private const val ROUTE_OUTFITS = "outfits"
 
 @Composable
-fun DressedApp(viewModel: WardrobeViewModel) {
+fun DressedApp(viewModel: WardrobeViewModel, outfitsViewModel: OutfitsViewModel) {
     val rootNav = rememberNavController()
 
     NavHost(
@@ -47,7 +48,9 @@ fun DressedApp(viewModel: WardrobeViewModel) {
             )
         }
         composable(ROUTE_OUTFITS) {
-            OutfitsPlaceholderScreen(
+            OutfitsNav(
+                wardrobeViewModel = viewModel,
+                outfitsViewModel = outfitsViewModel,
                 onNavigateHome = {
                     rootNav.popBackStack(ROUTE_LANDING, inclusive = false)
                 },

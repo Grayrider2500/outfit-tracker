@@ -9,6 +9,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.dressed.app.ui.DressedApp
 import com.dressed.app.ui.WardrobeViewModel
+import com.dressed.app.ui.outfits.OutfitsViewModel
 import com.dressed.app.ui.theme.DressedTheme
 
 class MainActivity : ComponentActivity() {
@@ -17,9 +18,10 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         val app = application as DressedApplication
         setContent {
-            val viewModel: WardrobeViewModel = viewModel(factory = WardrobeViewModel.factory(app))
+            val wardrobeViewModel: WardrobeViewModel = viewModel(factory = WardrobeViewModel.factory(app))
+            val outfitsViewModel: OutfitsViewModel = viewModel(factory = OutfitsViewModel.factory(app))
             DressedTheme {
-                DressedApp(viewModel = viewModel)
+                DressedApp(viewModel = wardrobeViewModel, outfitsViewModel = outfitsViewModel)
             }
         }
     }

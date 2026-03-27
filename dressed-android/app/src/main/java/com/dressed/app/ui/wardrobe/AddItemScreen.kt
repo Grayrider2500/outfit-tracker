@@ -94,21 +94,6 @@ fun AddItemScreen(
         ActivityResultContracts.PickVisualMedia(),
     ) { uri -> photoUri = uri }
 
-    /** Opens system file / document picker (Downloads, etc.) — use after dragging files from Mac onto the emulator. */
-    val openImageDocument = rememberLauncherForActivityResult(
-        ActivityResultContracts.OpenDocument(),
-    ) { uri ->
-        if (uri != null) {
-            runCatching {
-                context.contentResolver.takePersistableUriPermission(
-                    uri,
-                    android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION,
-                )
-            }
-            photoUri = uri
-        }
-    }
-
     val takePicture = rememberLauncherForActivityResult(
         ActivityResultContracts.TakePicture(),
     ) { success ->
@@ -126,7 +111,7 @@ fun AddItemScreen(
             pendingCameraUri = uri
             takePicture.launch(uri)
         }.onFailure {
-            errorHint = "Could not open camera. Check emulator Camera (⋯ menu) or device permissions."
+            errorHint = "Could not open camera. Check that the app has camera permission."
         }
     }
 
@@ -173,8 +158,8 @@ fun AddItemScreen(
                     )
                     .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
                     .clickable {
-                        openImageDocument.launch(
-                            arrayOf("image/*", "image/jpeg", "image/png", "image/webp", "image/gif"),
+                        pickPhoto.launch(
+                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
                         )
                     },
                 contentAlignment = Alignment.Center,
@@ -219,28 +204,6 @@ fun AddItemScreen(
                     Text("Gallery")
                 }
             }
-            OutlinedButton(
-                onClick = {
-                    openImageDocument.launch(
-                        arrayOf("image/*", "image/jpeg", "image/png", "image/webp", "image/gif"),
-                    )
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp),
-            ) {
-                Text("Browse files (Mac → drag onto emulator, then open Downloads)")
-            }
-            Text(
-                "The simulator only sees files inside the virtual device. " +
-                    "Drag a photo from Finder onto the running emulator window first; " +
-                    "it usually appears in Downloads. Then use Browse or tap the preview. " +
-                    "Camera: ⋯ Extended controls → Camera → Webcam.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 10.dp),
-            )
-
             Spacer(Modifier.height(20.dp))
 
             Text("Name", style = MaterialTheme.typography.labelLarge)
