@@ -31,6 +31,13 @@ enum WardrobeCatalog {
         ("winter", "Winter"),
     ]
 
+    /// Season chips on Search (All + seasons; fall shown as Autumn — matches Android).
+    static var searchSeasonFilters: [(key: String, label: String)] {
+        [(allKey, "All")] + seasons.map { key, label in
+            (key, key == "fall" ? "Autumn" : label)
+        }
+    }
+
     static func label(forCategoryKey key: String) -> String {
         filters.first { $0.key == key }?.label ?? key
     }

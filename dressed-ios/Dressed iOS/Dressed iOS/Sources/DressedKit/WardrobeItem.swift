@@ -49,4 +49,47 @@ extension WardrobeItem {
     static func joinSeasons(_ values: [String]) -> String {
         values.map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }.joined(separator: ",")
     }
+
+    /// Category · color · seasons line (list card + search row; matches Android `searchResultTagsLine`).
+    var wardrobeSubtitleLine: String {
+        let cat = WardrobeCatalog.label(forCategoryKey: category)
+        let seasons: String = {
+            let list = seasonsList
+            if list.isEmpty { return "All seasons" }
+            return list.map { key -> String in
+                if key == "fall" { return "Autumn" }
+                return WardrobeCatalog.seasons.first { $0.key == key }?.label ?? key
+            }
+            .joined(separator: ", ")
+        }()
+        return "\(cat) · \(colorName) · \(seasons)"
+    }
+}
+
+enum WardrobeSortMode: String, CaseIterable {
+    case recent
+    case worn
+    case nameAZ
+
+    var label: String {
+        switch self {
+        case .recent: return "Recently added"
+        case .worn: return "Most worn"
+        case .nameAZ: return "A → Z"
+        }
+    }
+}
+
+extension [WardrobeItem] {
+    /// Mirrors Android `sortedForDisplay` for the three chips on Search / list.
+    func sortedForDisplay(_ mode: WardrobeSortMode) -> [WardrobeItem] {
+        switch mode {
+        case .recent:
+            sorted { $0.addedAtEpochMs > $1.addedAtEpochMs }
+        case .worn:
+            sorted { $0.wornCount > $1.wornCount }
+        case .nameAZ:
+            sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+        }
+    }
 }

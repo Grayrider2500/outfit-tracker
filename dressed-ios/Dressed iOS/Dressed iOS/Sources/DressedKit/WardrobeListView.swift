@@ -20,7 +20,7 @@ struct WardrobeListView: View {
     }
 
     private var displayed: [WardrobeItem] {
-        afterCategory.sorted { $0.addedAtEpochMs > $1.addedAtEpochMs }
+        afterCategory.sortedForDisplay(.recent)
     }
 
     private let columns = [
@@ -173,7 +173,7 @@ private struct WardrobeItemCard: View {
                 Text(item.name)
                     .font(.subheadline.weight(.semibold))
                     .lineLimit(2)
-                Text(tagsLine)
+                Text(item.wardrobeSubtitleLine)
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                     .lineLimit(2)
@@ -183,20 +183,6 @@ private struct WardrobeItemCard: View {
         .background(Color(.systemBackground))
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .shadow(color: .black.opacity(0.06), radius: 2, x: 0, y: 1)
-    }
-
-    private var tagsLine: String {
-        let cat = WardrobeCatalog.label(forCategoryKey: item.category)
-        let seasons: String = {
-            let list = item.seasonsList
-            if list.isEmpty { return "All seasons" }
-            return list.map { key -> String in
-                if key == "fall" { return "Autumn" }
-                return WardrobeCatalog.seasons.first { $0.key == key }?.label ?? key
-            }
-            .joined(separator: ", ")
-        }()
-        return "\(cat) · \(item.colorName) · \(seasons)"
     }
 }
 
