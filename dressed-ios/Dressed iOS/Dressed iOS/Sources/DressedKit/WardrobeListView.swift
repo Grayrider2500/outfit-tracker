@@ -5,6 +5,7 @@ import UIKit
 /// Wardrobe grid + category chips + total count (matches Android `WardrobeListScreen`).
 struct WardrobeListView: View {
     var onNavigateHome: () -> Void
+    var onSelectItem: (String) -> Void
 
     @Query(sort: \WardrobeItem.addedAtEpochMs, order: .reverse) private var allItems: [WardrobeItem]
 
@@ -41,7 +42,12 @@ struct WardrobeListView: View {
                         .padding(.vertical, 12)
                     LazyVGrid(columns: columns, spacing: 14) {
                         ForEach(displayed, id: \.id) { item in
-                            WardrobeItemCard(item: item)
+                            Button {
+                                onSelectItem(item.id)
+                            } label: {
+                                WardrobeItemCard(item: item)
+                            }
+                            .buttonStyle(.plain)
                         }
                     }
                     .padding(.horizontal, 16)
@@ -188,6 +194,6 @@ private struct WardrobeItemCard: View {
 
 #Preview {
     NavigationStack {
-        WardrobeListView(onNavigateHome: {})
+        WardrobeListView(onNavigateHome: {}, onSelectItem: { _ in })
     }
 }

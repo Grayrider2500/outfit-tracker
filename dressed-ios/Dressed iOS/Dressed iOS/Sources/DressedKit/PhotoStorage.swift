@@ -14,4 +14,9 @@ enum PhotoStorage {
         guard FileManager.default.fileExists(atPath: path) else { return nil }
         return try? Data(contentsOf: url)
     }
+
+    static func deleteFileIfExists(at path: String?) {
+        guard let path, !path.isEmpty, FileManager.default.fileExists(atPath: path) else { return }
+        try? FileManager.default.removeItem(atPath: path)
+    }
 }
