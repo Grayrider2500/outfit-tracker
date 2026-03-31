@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.dressed.app.DressedApplication
+import com.dressed.app.data.OutfitRepository
 import com.dressed.app.data.WardrobeRepository
 import com.dressed.app.data.backup.WardrobeBackupCodec
 import com.dressed.app.data.local.ImageStorage
@@ -21,6 +22,7 @@ import kotlin.text.Charsets
 class WardrobeViewModel(
     application: Application,
     private val repository: WardrobeRepository,
+    private val outfitRepository: OutfitRepository,
 ) : AndroidViewModel(application) {
 
     val items: Flow<List<WardrobeItemEntity>> = repository.observeAll()
@@ -69,7 +71,8 @@ class WardrobeViewModel(
             val err = withContext(Dispatchers.IO) {
                 runCatching {
                     val items = repository.getAllSnapshot()
-                    val json = WardrobeBackupCodec.toJson(items)
+                    val outfits = outfitRepository.getAllSnapshot()
+                    val json = WardrobeBackupCodec.toJson(items, outfits)
                     val out = getApplication<Application>().contentResolver.openOutputStream(uri)
                         ?: error("Could not open file for writing")
                     out.use { it.write(json.toByteArray(Charsets.UTF_8)) }
@@ -86,8 +89,8 @@ class WardrobeViewModel(
                     val text = getApplication<Application>().contentResolver.openInputStream(uri)?.use { input ->
                         input.readBytes().toString(Charsets.UTF_8)
                     } ?: error("Could not read file")
-                    val items = WardrobeBackupCodec.fromJson(getApplication(), text).getOrThrow()
-                    repository.replaceAllWardrobe(items)
+                    val (items, outfits) = WardrobeBackupCodec.fromJson(getApplication(), text).getOrThrow()
+                    repository.replaceAllWardrobe(items, outfits)
                 }.exceptionOrNull()?.message
             }
             onDone(err)
@@ -100,7 +103,7 @@ class WardrobeViewModel(
                 @Suppress("UNCHECKED_CAST")
                 override fun <T : ViewModel> create(modelClass: Class<T>): T {
                     require(modelClass == WardrobeViewModel::class.java)
-                    return WardrobeViewModel(app, app.wardrobeRepository) as T
+                    return WardrobeViewModel(app, app.wardrobeRepository, app.outfitRepository) as T
                 }
             }
     }

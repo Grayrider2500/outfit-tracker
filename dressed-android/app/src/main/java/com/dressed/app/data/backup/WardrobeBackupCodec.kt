@@ -2,6 +2,7 @@ package com.dressed.app.data.backup
 
 import android.content.Context
 import android.util.Base64
+import com.dressed.app.data.local.OutfitEntity
 import com.dressed.app.data.local.WardrobeItemEntity
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
@@ -18,9 +19,19 @@ private val jsonFormat = Json {
 
 @Serializable
 internal data class WardrobeBackupFileDto(
-    val version: Int = 1,
+    val version: Int = 2,
     val exportedAtEpochMs: Long,
     val items: List<WardrobeBackupItemDto>,
+    val outfits: List<WardrobeBackupOutfitDto>? = null,
+)
+
+@Serializable
+internal data class WardrobeBackupOutfitDto(
+    val id: String,
+    val name: String,
+    val itemIds: List<String> = emptyList(),
+    val wornCount: Int = 0,
+    val createdAtEpochMs: Long,
 )
 
 @Serializable
@@ -39,21 +50,44 @@ internal data class WardrobeBackupItemDto(
 
 object WardrobeBackupCodec {
 
-    fun toJson(items: List<WardrobeItemEntity>): String {
+    fun toJson(items: List<WardrobeItemEntity>, outfits: List<OutfitEntity>): String {
         val dtos = items.map { it.toDto() }
+        val outfitDtos = outfits.map {
+            WardrobeBackupOutfitDto(
+                id = it.id,
+                name = it.name,
+                itemIds = it.itemIds,
+                wornCount = it.wornCount,
+                createdAtEpochMs = it.createdAtEpochMs,
+            )
+        }
         val file = WardrobeBackupFileDto(
-            version = 1,
+            version = 2,
             exportedAtEpochMs = System.currentTimeMillis(),
             items = dtos,
+            outfits = outfitDtos,
         )
         return jsonFormat.encodeToString(file)
     }
 
-    fun fromJson(context: Context, json: String): Result<List<WardrobeItemEntity>> =
+    fun fromJson(
+        context: Context,
+        json: String,
+    ): Result<Pair<List<WardrobeItemEntity>, List<OutfitEntity>>> =
         runCatching {
             val file = jsonFormat.decodeFromString<WardrobeBackupFileDto>(json)
-            require(file.version == 1) { "Unsupported backup version ${file.version}" }
-            file.items.map { it.toEntity(context) }
+            require(file.version in 1..2) { "Unsupported backup version ${file.version}" }
+            val items = file.items.map { it.toEntity(context) }
+            val outfits = (file.outfits ?: emptyList()).map {
+                OutfitEntity(
+                    id = it.id,
+                    name = it.name,
+                    itemIds = it.itemIds,
+                    wornCount = it.wornCount,
+                    createdAtEpochMs = it.createdAtEpochMs,
+                )
+            }
+            items to outfits
         }
 
     private fun WardrobeItemEntity.toDto(): WardrobeBackupItemDto =

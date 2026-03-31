@@ -10,6 +10,8 @@ class OutfitRepository(private val dao: OutfitDao) {
 
     fun observeById(id: String): Flow<OutfitEntity?> = dao.observeById(id)
 
+    suspend fun getAllSnapshot(): List<OutfitEntity> = dao.getAllSnapshot()
+
     suspend fun insert(outfit: OutfitEntity) = dao.insert(outfit)
 
     suspend fun incrementWearCount(id: String) = dao.incrementWearCount(id)

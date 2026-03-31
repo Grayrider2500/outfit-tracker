@@ -26,7 +26,11 @@ class DressedApplication : Application() {
         )
             .addMigrations(DressedDatabase.MIGRATION_1_2, DressedDatabase.MIGRATION_2_3)
             .build()
-        wardrobeRepository = WardrobeRepository(database, database.wardrobeDao())
+        wardrobeRepository = WardrobeRepository(
+            database,
+            database.wardrobeDao(),
+            database.outfitDao(),
+        )
         outfitRepository = OutfitRepository(database.outfitDao())
     }
 }
