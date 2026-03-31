@@ -64,3 +64,9 @@ Live URL: https://grayrider2500.github.io/outfit-tracker/
 - Categories: tops, bottoms, dresses, shoes, outerwear, accessories (+ ALL filter)
 - Seasons: spring, summer, fall, winter
 - `WardrobeCategories.emoji(category)` and `.label(category)` for display
+
+## iOS (SwiftUI sources under `dressed-ios/Dressed iOS/.../Sources/DressedKit/`)
+SwiftUI + SwiftData scaffold inside the **Dressed iOS** Xcode project (see `restart.md` for setup history).
+
+- **Wardrobe grid photos**: `WardrobeItemCard` in `WardrobeListView.swift` needs a **floating-point** aspect ratio (e.g. `.aspectRatio(3.0 / 4.0, contentMode: .fit)`). Literal `3 / 4` is integer division → **0** and hides the image strip.
+- **Where photos are set**: `AddItemSheet` (PhotosPicker / camera) → `PhotoStorage.saveJPEGData` → `WardrobeItem.photoPath`. The list screen only displays thumbnails, not a full pick-a-photo hero.

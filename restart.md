@@ -2,9 +2,17 @@
 
 **Assistants:** see **`CLAUDE.md`** at the repo root for where everything lives; use this file as the latest session checkpoint.
 
-## Where We Stopped (2026-03-27)
+## Where We Stopped (2026-03-27, continued)
 
-iOS app scaffolded, building, and committed. Android app unchanged from previous session.
+iOS wardrobe grid thumbnails fixed. Android app unchanged this thread.
+
+### Fix just applied (iOS)
+- **`WardrobeListView` / `WardrobeItemCard`**: `.aspectRatio(3 / 4, …)` used integer division in Swift (**0**), which collapsed the photo/emoji area so the list looked like it had no images. Replaced with **`3.0 / 4.0`**. See `memory.md` iOS section.
+- **Expectations**: There is no “pick photo” block on the wardrobe *list*; photos are chosen in **+** → `AddItemSheet`. The grid shows thumbnails (or category emoji) per card once the ratio fix is in the build.
+
+### If picking this up later
+- Rebuild the iOS target and confirm cards show emoji or photo.
+- If a photo still missing: verify `photoPath` and that the file exists under Documents (`PhotoStorage`).
 
 ## What Was Done This Session (iOS)
 
@@ -14,7 +22,7 @@ iOS app scaffolded, building, and committed. Android app unchanged from previous
 - Removed nested `.git` from Xcode project directory
 
 ### Wardrobe list + Add item
-- `WardrobeListView` — 2-column grid, category filter chips, item count, empty state, item cards with photo/emoji
+- `WardrobeListView` — 2-column grid, category filter chips, item count, empty state, item cards with photo/emoji (**card aspect ratio must be `3.0 / 4.0`, not `3 / 4`**)
 - `AddItemSheet` — PhotosPicker + Camera, system ColorPicker (replaced manual HSV sliders), category/size chips, season toggles, validation
 - `WardrobeCatalog` / `WardrobeColorMath` — category keys, emoji, size suggestions, color name presets, hex extraction from SwiftUI Color
 - `PhotoStorage` — JPEG save to Documents, read helper for backup export
