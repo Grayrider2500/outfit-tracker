@@ -3,7 +3,9 @@ package com.dressed.app.data.local
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Matrix
 import android.net.Uri
+import androidx.exifinterface.media.ExifInterface
 import java.io.File
 import java.io.FileOutputStream
 import java.util.UUID
@@ -29,9 +31,13 @@ object ImageStorage {
         var bitmap: Bitmap? = null
         return try {
             val decoded = decodeSampledBitmap(context, uri, MAX_LONG_EDGE_PX) ?: return null
-            bitmap = scaleToMaxLongEdge(decoded, MAX_LONG_EDGE_PX)
-            if (bitmap !== decoded) {
+            val oriented = applyExifOrientation(context, uri, decoded)
+            if (oriented !== decoded) {
                 decoded.recycle()
+            }
+            bitmap = scaleToMaxLongEdge(oriented, MAX_LONG_EDGE_PX)
+            if (bitmap !== oriented) {
+                oriented.recycle()
             }
             val bmp = bitmap
             val dest = File(photosDir(context), "${UUID.randomUUID()}.jpg")
@@ -49,6 +55,64 @@ object ImageStorage {
         } finally {
             bitmap?.recycle()
         }
+    }
+
+    /**
+     * Applies JPEG EXIF orientation so pixel data matches intended display (similar to iOS normalizedUpOrientation).
+     * Returns [bitmap] when no transform is needed; otherwise a new bitmap (caller recycles [bitmap] if distinct).
+     */
+    private fun applyExifOrientation(context: Context, uri: Uri, bitmap: Bitmap): Bitmap {
+        val orientation =
+            context.contentResolver.openInputStream(uri)?.use { input ->
+                ExifInterface(input).getAttributeInt(
+                    ExifInterface.TAG_ORIENTATION,
+                    ExifInterface.ORIENTATION_UNDEFINED,
+                )
+            } ?: ExifInterface.ORIENTATION_UNDEFINED
+
+        if (orientation == ExifInterface.ORIENTATION_UNDEFINED ||
+            orientation == ExifInterface.ORIENTATION_NORMAL) {
+            return bitmap
+        }
+
+        val matrix = Matrix()
+        when (orientation) {
+            ExifInterface.ORIENTATION_ROTATE_90 -> matrix.postRotate(90f)
+            ExifInterface.ORIENTATION_ROTATE_180 -> matrix.postRotate(180f)
+            ExifInterface.ORIENTATION_ROTATE_270 -> matrix.postRotate(270f)
+            ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> matrix.postScale(
+                -1f,
+                1f,
+                bitmap.width / 2f,
+                bitmap.height / 2f,
+            )
+            ExifInterface.ORIENTATION_FLIP_VERTICAL -> matrix.postScale(
+                1f,
+                -1f,
+                bitmap.width / 2f,
+                bitmap.height / 2f,
+            )
+            ExifInterface.ORIENTATION_TRANSPOSE -> {
+                matrix.postRotate(90f)
+                matrix.postScale(
+                    -1f,
+                    1f,
+                    bitmap.height / 2f,
+                    bitmap.width / 2f,
+                )
+            }
+            ExifInterface.ORIENTATION_TRANSVERSE -> {
+                matrix.postRotate(270f)
+                matrix.postScale(
+                    -1f,
+                    1f,
+                    bitmap.height / 2f,
+                    bitmap.width / 2f,
+                )
+            }
+            else -> return bitmap
+        }
+        return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
     }
 
     private fun decodeSampledBitmap(context: Context, uri: Uri, maxLongEdge: Int): Bitmap? {
