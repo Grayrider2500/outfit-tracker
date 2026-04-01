@@ -30,6 +30,16 @@ Open the **`dressed-android`** folder in Android Studio and run the `app` config
 ./gradlew :app:installDebug
 ```
 
+### Firebase configuration (Android)
+
+The real **`google-services.json` file must never be committed**. It contains your Firebase project identifiers and API key material; anyone with the repo must add their own file locally.
+
+**Setup:**
+
+1. In [Firebase Console](https://console.firebase.google.com/), open your project and add an **Android** app with package name **`com.crossmountproducts.dressed`** (must match `applicationId` in `dressed-android/app/build.gradle.kts`).
+2. Download **`google-services.json`** from the Console and save it as **`dressed-android/app/google-services.json`**, **or** copy the repo root file **`google-services-sample.json`** to that path, remove the entire **`__comment`** object from the copy, and replace all **`YOUR_*`** / placeholder values with values from your Firebase project.
+3. For iOS Firebase (if used), add **`GoogleService-Info.plist`** to your Xcode target locally; that filename is gitignored and must not be committed.
+
 ## iOS app — run locally
 
 Create the Xcode project inside **`dressed-ios/`** (SwiftUI + SwiftData, iOS 17+) and add **`Sources/DressedKit/**`** to the app target. See **`dressed-ios/README.md`**.

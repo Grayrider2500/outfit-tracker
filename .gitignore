@@ -2,5 +2,6 @@
 *.iml
 .DS_Store
 
-# Firebase Android — contains API keys; add locally from Firebase Console / internal store
-dressed-android/app/google-services.json
+# Firebase / Google client configs (secrets) — never commit; add locally
+google-services.json
+GoogleService-Info.plist
