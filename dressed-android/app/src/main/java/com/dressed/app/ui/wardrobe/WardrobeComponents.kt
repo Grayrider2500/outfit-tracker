@@ -29,6 +29,12 @@ import com.dressed.app.data.model.WardrobeCategories
 import com.dressed.app.data.model.WardrobeSeasons
 import java.io.File
 
+/** Local file suitable for Coil, or null if path missing / not a readable file. */
+internal fun coilPhotoFileOrNull(path: String?): File? =
+    path?.trim()?.takeIf { it.isNotEmpty() }
+        ?.let { File(it) }
+        ?.takeIf { it.isFile && it.canRead() }
+
 internal fun itemCountLabel(count: Int): String =
     "$count item" + if (count != 1) "s" else ""
 
@@ -99,9 +105,10 @@ internal fun WardrobeItemCard(item: WardrobeItemEntity, onClick: () -> Unit) {
                     .aspectRatio(3f / 4f)
                     .clip(RoundedCornerShape(bottomStart = 0.dp, bottomEnd = 0.dp)),
             ) {
-                if (item.photoPath != null) {
+                val photoFile = coilPhotoFileOrNull(item.photoPath)
+                if (photoFile != null) {
                     AsyncImage(
-                        model = File(item.photoPath),
+                        model = photoFile,
                         contentDescription = item.name,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize(),
@@ -187,9 +194,10 @@ internal fun WardrobeSearchResultRow(item: WardrobeItemEntity, onClick: () -> Un
                     .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f)),
                 contentAlignment = Alignment.Center,
             ) {
-                if (item.photoPath != null) {
+                val photoFile = coilPhotoFileOrNull(item.photoPath)
+                if (photoFile != null) {
                     AsyncImage(
-                        model = File(item.photoPath),
+                        model = photoFile,
                         contentDescription = item.name,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize(),

@@ -244,7 +244,7 @@ struct AddItemSheet: View {
 
         var path: String?
         if let photoData {
-            path = try? PhotoStorage.saveJPEGData(photoData)
+            path = try? PhotoStorage.saveOptimizedPickedPhotoJPEG(from: photoData)
         }
 
         let item = WardrobeItem(

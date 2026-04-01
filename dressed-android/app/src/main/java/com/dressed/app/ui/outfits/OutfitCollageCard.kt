@@ -25,7 +25,7 @@ import coil.compose.AsyncImage
 import com.dressed.app.data.local.OutfitEntity
 import com.dressed.app.data.local.WardrobeItemEntity
 import com.dressed.app.data.model.WardrobeCategories
-import java.io.File
+import com.dressed.app.ui.wardrobe.coilPhotoFileOrNull
 
 @Composable
 internal fun OutfitCollageCard(
@@ -149,9 +149,10 @@ private fun CollageCell(
     ) {
         if (item == null) return@Box
 
-        if (item.photoPath != null) {
+        val photoFile = coilPhotoFileOrNull(item.photoPath)
+        if (photoFile != null) {
             AsyncImage(
-                model = File(item.photoPath),
+                model = photoFile,
                 contentDescription = item.name,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),

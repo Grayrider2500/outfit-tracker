@@ -49,7 +49,6 @@ import coil.compose.AsyncImage
 import com.dressed.app.data.local.WardrobeItemEntity
 import com.dressed.app.data.model.WardrobeCategories
 import com.dressed.app.ui.WardrobeViewModel
-import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -149,9 +148,10 @@ fun ItemDetailScreen(
                     .clip(RoundedCornerShape(12.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
             ) {
-                if (current.photoPath != null) {
+                val photoFile = coilPhotoFileOrNull(current.photoPath)
+                if (photoFile != null) {
                     AsyncImage(
-                        model = File(current.photoPath),
+                        model = photoFile,
                         contentDescription = current.name,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize(),

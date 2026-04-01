@@ -1,3 +1,6 @@
 .idea/
 *.iml
 .DS_Store
+
+# Firebase Android — contains API keys; add locally from Firebase Console / internal store
+dressed-android/app/google-services.json

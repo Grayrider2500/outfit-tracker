@@ -19,6 +19,8 @@ class OutfitsViewModel(
 
     val outfits: Flow<List<OutfitEntity>> = repository.observeAll()
 
+    fun observeOutfit(id: String): Flow<OutfitEntity?> = repository.observeById(id)
+
     fun addOutfit(
         name: String,
         itemIds: List<String>,

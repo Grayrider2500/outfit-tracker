@@ -27,13 +27,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.dressed.app.ui.WardrobeViewModel
 
 private const val ROUTE_OUTFITS_LIST = "outfits_list"
 private const val ROUTE_CREATE_OUTFIT = "outfits_create"
+private const val ROUTE_OUTFIT_DETAIL = "outfits_detail/{id}"
 
 @Composable
 fun OutfitsNav(
@@ -53,6 +56,7 @@ fun OutfitsNav(
                 outfitsViewModel = outfitsViewModel,
                 onNavigateHome = onNavigateHome,
                 onCreateOutfit = { navController.navigate(ROUTE_CREATE_OUTFIT) },
+                onOutfitClick = { id -> navController.navigate("outfits_detail/$id") },
             )
         }
         composable(ROUTE_CREATE_OUTFIT) {
@@ -61,6 +65,18 @@ fun OutfitsNav(
                 outfitsViewModel = outfitsViewModel,
                 onBack = { navController.popBackStack() },
                 onSaved = { navController.popBackStack() },
+            )
+        }
+        composable(
+            route = ROUTE_OUTFIT_DETAIL,
+            arguments = listOf(navArgument("id") { type = NavType.StringType }),
+        ) { entry ->
+            val id = entry.arguments?.getString("id").orEmpty()
+            OutfitDetailScreen(
+                outfitId = id,
+                wardrobeViewModel = wardrobeViewModel,
+                outfitsViewModel = outfitsViewModel,
+                onBack = { navController.popBackStack() },
             )
         }
     }
@@ -73,6 +89,7 @@ private fun OutfitsListScreen(
     outfitsViewModel: OutfitsViewModel,
     onNavigateHome: () -> Unit,
     onCreateOutfit: () -> Unit,
+    onOutfitClick: (String) -> Unit,
 ) {
     val outfits by outfitsViewModel.outfits.collectAsStateWithLifecycle(initialValue = emptyList())
     val wardrobeItems by wardrobeViewModel.items.collectAsStateWithLifecycle(initialValue = emptyList())
@@ -143,7 +160,7 @@ private fun OutfitsListScreen(
                     OutfitCollageCard(
                         outfit = outfit,
                         items = items,
-                        onClick = { /* outfit detail — future */ },
+                        onClick = { onOutfitClick(outfit.id) },
                     )
                 }
             }
