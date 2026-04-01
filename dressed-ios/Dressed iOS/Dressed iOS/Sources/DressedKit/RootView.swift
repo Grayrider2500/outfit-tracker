@@ -6,6 +6,7 @@ enum MainRoute: Hashable {
     case outfits
     /// Pushed on top of Search or Wardrobe; one `NavigationStack` only (nested stacks break on some simulators).
     case itemDetail(String)
+    case outfitDetail(String)
 }
 
 struct RootView: View {
@@ -35,11 +36,16 @@ struct RootView: View {
                         },
                     )
                 case .outfits:
-                    OutfitsPlaceholderView()
+                    OutfitsListView(
+                        onNavigateHome: { path.removeLast() },
+                        onSelectOutfit: { path.append(MainRoute.outfitDetail($0)) }
+                    )
                 case .itemDetail(let id):
                     WardrobeItemDetailView(itemId: id) {
                         path.removeLast()
                     }
+                case .outfitDetail(let outfitId):
+                    OutfitDetailView(outfitId: outfitId)
                 }
             }
         }
