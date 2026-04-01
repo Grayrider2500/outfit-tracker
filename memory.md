@@ -14,12 +14,14 @@ Live URL: https://grayrider2500.github.io/outfit-tracker/
 - Single `WardrobeViewModel` for all wardrobe operations
 - `OutfitsViewModel` for all outfit operations
 - NavHost in `DressedApp.kt` with nested NavHosts inside `WardrobeNav` and `OutfitsNav`
-- Coil (`AsyncImage`) for local file images; photos stored as absolute paths via `ImageStorage`
+- Coil (`AsyncImage`) for local file images; photos stored as absolute paths via `ImageStorage` (new URIs copied as downscaled JPEGs, long edge ≤ 1600px, quality ~87%)
+- **`coilPhotoFileOrNull`** in `ui/wardrobe/WardrobeComponents.kt` — use for `AsyncImage` when loading `photoPath` so missing/unreadable files fall back to emoji
 - `Converters.kt` handles `List<String>` → comma-joined string for Room (used for both seasons and itemIds)
 
 ## Build Config
 - `minSdk = 23` (Android 6.0) — lowered from 26 to support Samsung SM-S727VL test device
-- `targetSdk = 35`, `compileSdk = 35`
+- `targetSdk = 36`, `compileSdk = 36`
+- **Firebase:** `com.google.gms.google-services` is applied; **`dressed-android/app/google-services.json` is gitignored** — add locally from Firebase Console (or CI) so builds succeed; never commit real keys to a public repo.
 
 ## Database
 - `DressedDatabase` — current version **3**
@@ -36,7 +38,7 @@ Live URL: https://grayrider2500.github.io/outfit-tracker/
 - `landing` → LandingScreen
 - `wardrobe` → WardrobeNav (nested: wardrobe_list, wardrobe_add, wardrobe_detail/{id})
 - `search` → WardrobeSearchNav
-- `outfits` → OutfitsNav (nested: outfits_list, outfits_create)
+- `outfits` → OutfitsNav (nested: `outfits_list`, `outfits_create`, `outfits_detail/{id}`)
 
 ## App Icon
 - Generated PNG icons at all mipmap densities (mdpi→xxxhdpi) using Python/cairosvg
@@ -56,8 +58,7 @@ Live URL: https://grayrider2500.github.io/outfit-tracker/
 - Outfit card style: **Collage** (2×2 grid of item photos, square aspect ratio)
 - Empty collage cells show muted surfaceVariant background
 - Single-item outfits show the photo full-size (no 2×2 split)
-- Outfit detail screen deferred to future iteration
-- Mark-as-worn on outfit detail screen deferred to future iteration
+- **Outfit detail:** read-only screen shipped (`OutfitDetailScreen`); **Mark as worn**, **delete outfit**, and **edit outfit** still on backlog
 - The HTML mockup (`dressed-mockup.html`) serves as the web/design reference
 
 ## WardrobeCategories / Seasons
@@ -69,4 +70,4 @@ Live URL: https://grayrider2500.github.io/outfit-tracker/
 SwiftUI + SwiftData scaffold inside the **Dressed iOS** Xcode project (see `restart.md` for setup history).
 
 - **Wardrobe grid photos**: `WardrobeItemCard` in `WardrobeListView.swift` needs a **floating-point** aspect ratio (e.g. `.aspectRatio(3.0 / 4.0, contentMode: .fit)`). Literal `3 / 4` is integer division → **0** and hides the image strip.
-- **Where photos are set**: `AddItemSheet` (PhotosPicker / camera) → `PhotoStorage.saveJPEGData` → `WardrobeItem.photoPath`. The list screen only displays thumbnails, not a full pick-a-photo hero.
+- **Where photos are set**: `AddItemSheet` (PhotosPicker / camera) → **`PhotoStorage.saveOptimizedPickedPhotoJPEG`** (or `saveJPEGData` for non-picker paths) → `WardrobeItem.photoPath`. The list screen only displays thumbnails, not a full pick-a-photo hero.

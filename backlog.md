@@ -4,11 +4,10 @@
 
 ## High Priority
 
-1. **Outfit Detail Screen** (`OutfitDetailScreen.kt`)
-   - Show full collage + outfit name
+1. **Outfit Detail — actions** (read-only detail + navigation from list **done**)
    - "Mark as Worn" button (calls `outfitsViewModel.markWorn(id)`)
-   - Delete outfit option (with confirmation dialog)
-   - Wire click in `OutfitCollageCard` → navigate to detail
+   - Delete outfit (with confirmation dialog)
+   - (Optional polish) edit in place vs. separate screen
 
 2. **Edit Outfit** — ability to rename or change which pieces are in an outfit
 
