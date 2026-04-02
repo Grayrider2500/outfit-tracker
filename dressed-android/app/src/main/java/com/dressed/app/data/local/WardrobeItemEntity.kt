@@ -15,5 +15,7 @@ data class WardrobeItemEntity(
     val seasons: List<String>,
     val photoPath: String?,
     val wornCount: Int,
+    /** Set when the user marks the item worn (`Wear today` / Mark worn); used for picker rotation and reasons. */
+    val lastWornAtEpochMs: Long? = null,
     val addedAtEpochMs: Long,
 )

@@ -20,6 +20,7 @@ struct WardrobeItemDTO: Codable {
     var colorName: String
     var seasons: [String]
     var wornCount: Int
+    var lastWornAtEpochMs: Int64?
     var addedAtEpochMs: Int64
     /// Legacy v1–v2 JSON backups.
     var photoBase64: String?
@@ -197,6 +198,7 @@ enum DressedBackup {
             colorName: item.colorName,
             seasons: item.seasonsList,
             wornCount: item.wornCount,
+            lastWornAtEpochMs: item.lastWornAtEpochMs,
             addedAtEpochMs: item.addedAtEpochMs,
             photoBase64: nil,
             photoEntry: entry
@@ -259,6 +261,7 @@ enum DressedBackup {
                     seasonsJoined: WardrobeItem.joinSeasons(dto.seasons),
                     photoPath: photoPath,
                     wornCount: dto.wornCount,
+                    lastWornAtEpochMs: dto.lastWornAtEpochMs,
                     addedAtEpochMs: dto.addedAtEpochMs
                 )
                 modelContext.insert(item)
@@ -304,6 +307,7 @@ enum DressedBackup {
                 seasonsJoined: WardrobeItem.joinSeasons(dto.seasons),
                 photoPath: photoPath,
                 wornCount: dto.wornCount,
+                lastWornAtEpochMs: dto.lastWornAtEpochMs,
                 addedAtEpochMs: dto.addedAtEpochMs
             )
             modelContext.insert(item)

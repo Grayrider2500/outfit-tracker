@@ -218,6 +218,7 @@ struct PickerView: View {
         pageIndex = 0
         let seed = Int64.random(in: 1 ... Int64.max)
         DispatchQueue.global(qos: .userInitiated).async {
+            let nowMs = Int64(Date().timeIntervalSince1970 * 1000)
             let result = WardrobePickerEngine.suggest(
                 allItems: allItems,
                 occasionId: occasionId,
@@ -225,6 +226,7 @@ struct PickerView: View {
                 moodTagIds: moodIds,
                 seed: seed,
                 maxOutfits: 3,
+                nowEpochMs: nowMs,
             )
             DispatchQueue.main.async {
                 suggestions = result
@@ -255,8 +257,10 @@ struct PickerView: View {
 
     private func wearToday(suggestion: WardrobePickerEngine.PickerSuggestion) {
         let idSet = Set(suggestion.itemIds)
+        let nowMs = Int64(Date().timeIntervalSince1970 * 1000)
         for item in allItems where idSet.contains(item.id) {
             item.wornCount += 1
+            item.lastWornAtEpochMs = nowMs
         }
         do {
             try modelContext.save()
@@ -282,6 +286,11 @@ private struct SuggestionOutfitCollageCard: View {
                 Text(suggestion.title)
                     .font(.subheadline.weight(.semibold))
                     .lineLimit(2)
+                Text(suggestion.reason)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(4)
+                    .fixedSize(horizontal: false, vertical: true)
                 HStack(spacing: 4) {
                     let n = suggestion.items.count
                     Text("\(n) piece" + (n == 1 ? "" : "s"))

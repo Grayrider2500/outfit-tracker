@@ -23,7 +23,8 @@ class WardrobeRepository(
 
     suspend fun insert(item: WardrobeItemEntity) = dao.insert(item)
 
-    suspend fun incrementWearCount(id: String) = dao.incrementWearCount(id)
+    suspend fun incrementWearCount(id: String) =
+        dao.incrementWearCount(id, System.currentTimeMillis())
 
     suspend fun deleteById(id: String) = dao.deleteById(id)
 

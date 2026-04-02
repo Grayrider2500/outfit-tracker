@@ -50,6 +50,7 @@ class WardrobeViewModel(
                 seasons = seasons,
                 photoPath = path,
                 wornCount = 0,
+                lastWornAtEpochMs = null,
                 addedAtEpochMs = System.currentTimeMillis(),
             )
             repository.insert(entity)

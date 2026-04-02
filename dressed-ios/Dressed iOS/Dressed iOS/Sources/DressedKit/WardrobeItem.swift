@@ -14,6 +14,8 @@ final class WardrobeItem {
     var seasonsJoined: String
     var photoPath: String?
     var wornCount: Int
+    /// Mirrors Android `lastWornAtEpochMs`; set when marking an item worn.
+    var lastWornAtEpochMs: Int64?
     var addedAtEpochMs: Int64
 
     init(
@@ -26,6 +28,7 @@ final class WardrobeItem {
         seasonsJoined: String = "",
         photoPath: String? = nil,
         wornCount: Int = 0,
+        lastWornAtEpochMs: Int64? = nil,
         addedAtEpochMs: Int64 = Int64(Date().timeIntervalSince1970 * 1000),
     ) {
         self.id = id
@@ -37,6 +40,7 @@ final class WardrobeItem {
         self.seasonsJoined = seasonsJoined
         self.photoPath = photoPath
         self.wornCount = wornCount
+        self.lastWornAtEpochMs = lastWornAtEpochMs
         self.addedAtEpochMs = addedAtEpochMs
     }
 }

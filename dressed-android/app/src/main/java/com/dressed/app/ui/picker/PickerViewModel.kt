@@ -37,6 +37,7 @@ class PickerViewModel(
             try {
                 val items = wardrobeRepository.getAllSnapshot()
                 val seed = System.nanoTime()
+                val now = System.currentTimeMillis()
                 _suggestions.value = WardrobePickerEngine.suggest(
                     allItems = items,
                     occasionId = occasionId,
@@ -44,6 +45,7 @@ class PickerViewModel(
                     moodTagIds = moodTagIds,
                     seed = seed,
                     maxOutfits = 3,
+                    nowEpochMs = now,
                 )
             } finally {
                 _busy.value = false

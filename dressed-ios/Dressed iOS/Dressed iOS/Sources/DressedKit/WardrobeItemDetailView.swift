@@ -135,6 +135,7 @@ struct WardrobeItemDetailView: View {
 
     private func markWorn(_ item: WardrobeItem) {
         item.wornCount += 1
+        item.lastWornAtEpochMs = Int64(Date().timeIntervalSince1970 * 1000)
         try? modelContext.save()
     }
 

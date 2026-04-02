@@ -27,8 +27,10 @@ interface WardrobeDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(item: WardrobeItemEntity)
 
-    @Query("UPDATE wardrobe_items SET wornCount = wornCount + 1 WHERE id = :id")
-    suspend fun incrementWearCount(id: String): Int
+    @Query(
+        "UPDATE wardrobe_items SET wornCount = wornCount + 1, lastWornAtEpochMs = :nowMs WHERE id = :id",
+    )
+    suspend fun incrementWearCount(id: String, nowMs: Long): Int
 
     @Query("DELETE FROM wardrobe_items WHERE id = :id")
     suspend fun deleteById(id: String): Int

@@ -200,7 +200,7 @@ fun PickerScreen(
                     SuggestionOutfitCollageCard(
                         title = sug.title,
                         items = sug.items,
-                        subtitle = "${sug.items.size} pieces · score ${"%.0f".format(sug.score)}",
+                        subtitle = "${sug.reason}\n${sug.items.size} pieces · score ${"%.0f".format(sug.score)}",
                     )
                 }
 

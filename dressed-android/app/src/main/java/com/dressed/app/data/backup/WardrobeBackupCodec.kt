@@ -65,6 +65,7 @@ internal data class WardrobeBackupItemDto(
     val colorName: String,
     val seasons: List<String> = emptyList(),
     val wornCount: Int = 0,
+    val lastWornAtEpochMs: Long? = null,
     val addedAtEpochMs: Long,
     /** v1–v2 JSON backups only. */
     val photoBase64: String? = null,
@@ -238,6 +239,7 @@ object WardrobeBackupCodec {
             colorName = colorName,
             seasons = seasons,
             wornCount = wornCount,
+            lastWornAtEpochMs = lastWornAtEpochMs,
             addedAtEpochMs = addedAtEpochMs,
             photoBase64 = encodePhotoBase64(photoPath),
             photoEntry = null,
@@ -257,6 +259,7 @@ object WardrobeBackupCodec {
             colorName = colorName,
             seasons = seasons,
             wornCount = wornCount,
+            lastWornAtEpochMs = lastWornAtEpochMs,
             addedAtEpochMs = addedAtEpochMs,
             photoBase64 = null,
             photoEntry = entry,
@@ -307,6 +310,7 @@ object WardrobeBackupCodec {
             seasons = seasons,
             photoPath = photoPath,
             wornCount = wornCount,
+            lastWornAtEpochMs = lastWornAtEpochMs,
             addedAtEpochMs = addedAtEpochMs,
         )
 
