@@ -14,6 +14,7 @@ struct LandingView: View {
     var onMyWardrobe: () -> Void
     var onSearch: () -> Void
     var onOutfits: () -> Void
+    var onSuggestOutfits: () -> Void
 
     @Query(sort: \WardrobeItem.addedAtEpochMs) private var allItems: [WardrobeItem]
     @Query(sort: \Outfit.createdAtEpochMs) private var allOutfits: [Outfit]
@@ -70,6 +71,7 @@ struct LandingView: View {
                 VStack(spacing: 14) {
                     hubButton(title: "My Wardrobe", icon: "tshirt.fill", subtitle: "Browse & manage pieces", action: onMyWardrobe)
                     hubButton(title: "Search & Filter", icon: "magnifyingglass", subtitle: "Find by name, category & season", action: onSearch)
+                    hubButton(title: "Suggest outfits", icon: "sparkles", subtitle: "Occasion, weather & mood picks", action: onSuggestOutfits)
                     hubButton(title: "Outfits", icon: "rectangle.stack.fill", subtitle: "Put looks together", action: onOutfits)
                 }
                 .padding(.top, 32)
@@ -326,5 +328,5 @@ private struct ShareSheet: UIViewControllerRepresentable {
 }
 
 #Preview {
-    LandingView(onMyWardrobe: {}, onSearch: {}, onOutfits: {})
+    LandingView(onMyWardrobe: {}, onSearch: {}, onOutfits: {}, onSuggestOutfits: {})
 }

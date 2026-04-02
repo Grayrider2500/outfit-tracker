@@ -4,6 +4,7 @@ enum MainRoute: Hashable {
     case wardrobe
     case search
     case outfits
+    case picker
     /// Pushed on top of Search or Wardrobe; one `NavigationStack` only (nested stacks break on some simulators).
     case itemDetail(String)
     case outfitDetail(String)
@@ -18,6 +19,7 @@ struct RootView: View {
                 onMyWardrobe: { path.append(MainRoute.wardrobe) },
                 onSearch: { path.append(MainRoute.search) },
                 onOutfits: { path.append(MainRoute.outfits) },
+                onSuggestOutfits: { path.append(MainRoute.picker) },
             )
             .navigationDestination(for: MainRoute.self) { route in
                 switch route {
@@ -40,6 +42,8 @@ struct RootView: View {
                         onNavigateHome: { path.removeLast() },
                         onSelectOutfit: { path.append(MainRoute.outfitDetail($0)) }
                     )
+                case .picker:
+                    PickerView(onNavigateHome: { path.removeLast() })
                 case .itemDetail(let id):
                     WardrobeItemDetailView(itemId: id) {
                         path.removeLast()

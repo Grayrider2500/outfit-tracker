@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -130,6 +131,84 @@ internal fun OutfitCollageCard(
                             color = MaterialTheme.colorScheme.primary,
                         )
                     }
+                }
+            }
+        }
+    }
+}
+
+/** Picker / suggestion card (no [OutfitEntity] yet). Reuses the same collage layout as [OutfitCollageCard]. */
+@Composable
+internal fun SuggestionOutfitCollageCard(
+    title: String,
+    items: List<WardrobeItemEntity>,
+    subtitle: String?,
+) {
+    val collageItems = items.take(4)
+    ElevatedCard(
+        shape = RoundedCornerShape(14.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+        colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface),
+    ) {
+        Column {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(1f)
+                    .clip(RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp)),
+            ) {
+                when {
+                    collageItems.isEmpty() -> EmptyCollageCell(modifier = Modifier.fillMaxSize())
+                    collageItems.size == 1 -> CollageCell(collageItems[0], Modifier.fillMaxSize())
+                    else -> {
+                        Column(modifier = Modifier.fillMaxSize()) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f),
+                            ) {
+                                CollageCell(
+                                    collageItems[0],
+                                    Modifier.weight(1f).fillMaxSize(),
+                                )
+                                CollageCell(
+                                    collageItems.getOrNull(1),
+                                    Modifier.weight(1f).fillMaxSize(),
+                                )
+                            }
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f),
+                            ) {
+                                CollageCell(
+                                    collageItems.getOrNull(2),
+                                    Modifier.weight(1f).fillMaxSize(),
+                                )
+                                CollageCell(
+                                    collageItems.getOrNull(3),
+                                    Modifier.weight(1f).fillMaxSize(),
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+            Column(modifier = Modifier.padding(10.dp, 10.dp)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleSmall,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                if (!subtitle.isNullOrBlank()) {
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 4.dp),
+                    )
                 }
             }
         }

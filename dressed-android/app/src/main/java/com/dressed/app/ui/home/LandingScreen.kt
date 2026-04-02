@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Checkroom
+import androidx.compose.material.icons.filled.Explore
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.FolderOpen
@@ -65,6 +66,7 @@ fun LandingScreen(
     onMyWardrobe: () -> Unit,
     onSearchFilter: () -> Unit,
     onOutfits: () -> Unit,
+    onSuggestOutfits: () -> Unit,
 ) {
     val gradient = Brush.linearGradient(
         colors = listOf(
@@ -210,6 +212,14 @@ fun LandingScreen(
                     onClick = onOutfits,
                     emphasized = false,
                     icon = Icons.Filled.AutoAwesome,
+                )
+                Spacer(Modifier.height(12.dp))
+                HubNavButton(
+                    mainLabel = "Suggest outfits",
+                    subLabel = "Picker — smart looks from your closet",
+                    onClick = onSuggestOutfits,
+                    emphasized = false,
+                    icon = Icons.Filled.Explore,
                 )
 
                 Spacer(modifier = Modifier.weight(1f))

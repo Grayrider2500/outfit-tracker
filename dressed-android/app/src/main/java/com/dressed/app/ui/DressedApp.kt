@@ -7,6 +7,8 @@ import androidx.navigation.compose.rememberNavController
 import com.dressed.app.ui.home.LandingScreen
 import com.dressed.app.ui.outfits.OutfitsNav
 import com.dressed.app.ui.outfits.OutfitsViewModel
+import com.dressed.app.ui.picker.PickerScreen
+import com.dressed.app.ui.picker.PickerViewModel
 import com.dressed.app.ui.wardrobe.WardrobeNav
 import com.dressed.app.ui.wardrobe.WardrobeSearchNav
 
@@ -14,9 +16,14 @@ private const val ROUTE_LANDING = "landing"
 private const val ROUTE_WARDROBE = "wardrobe"
 private const val ROUTE_SEARCH = "search"
 private const val ROUTE_OUTFITS = "outfits"
+private const val ROUTE_PICKER = "picker"
 
 @Composable
-fun DressedApp(viewModel: WardrobeViewModel, outfitsViewModel: OutfitsViewModel) {
+fun DressedApp(
+    viewModel: WardrobeViewModel,
+    outfitsViewModel: OutfitsViewModel,
+    pickerViewModel: PickerViewModel,
+) {
     val rootNav = rememberNavController()
 
     NavHost(
@@ -29,6 +36,7 @@ fun DressedApp(viewModel: WardrobeViewModel, outfitsViewModel: OutfitsViewModel)
                 onMyWardrobe = { rootNav.navigate(ROUTE_WARDROBE) },
                 onSearchFilter = { rootNav.navigate(ROUTE_SEARCH) },
                 onOutfits = { rootNav.navigate(ROUTE_OUTFITS) },
+                onSuggestOutfits = { rootNav.navigate(ROUTE_PICKER) },
             )
         }
         composable(ROUTE_WARDROBE) {
@@ -51,6 +59,14 @@ fun DressedApp(viewModel: WardrobeViewModel, outfitsViewModel: OutfitsViewModel)
             OutfitsNav(
                 wardrobeViewModel = viewModel,
                 outfitsViewModel = outfitsViewModel,
+                onNavigateHome = {
+                    rootNav.popBackStack(ROUTE_LANDING, inclusive = false)
+                },
+            )
+        }
+        composable(ROUTE_PICKER) {
+            PickerScreen(
+                viewModel = pickerViewModel,
                 onNavigateHome = {
                     rootNav.popBackStack(ROUTE_LANDING, inclusive = false)
                 },

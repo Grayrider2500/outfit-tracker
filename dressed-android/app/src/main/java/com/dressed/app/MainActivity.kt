@@ -10,6 +10,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.dressed.app.ui.DressedApp
 import com.dressed.app.ui.WardrobeViewModel
 import com.dressed.app.ui.outfits.OutfitsViewModel
+import com.dressed.app.ui.picker.PickerViewModel
 import com.dressed.app.ui.theme.DressedTheme
 
 class MainActivity : ComponentActivity() {
@@ -20,8 +21,13 @@ class MainActivity : ComponentActivity() {
         setContent {
             val wardrobeViewModel: WardrobeViewModel = viewModel(factory = WardrobeViewModel.factory(app))
             val outfitsViewModel: OutfitsViewModel = viewModel(factory = OutfitsViewModel.factory(app))
+            val pickerViewModel: PickerViewModel = viewModel(factory = PickerViewModel.factory(app))
             DressedTheme {
-                DressedApp(viewModel = wardrobeViewModel, outfitsViewModel = outfitsViewModel)
+                DressedApp(
+                    viewModel = wardrobeViewModel,
+                    outfitsViewModel = outfitsViewModel,
+                    pickerViewModel = pickerViewModel,
+                )
             }
         }
     }
