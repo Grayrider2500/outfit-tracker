@@ -35,6 +35,8 @@ enum WardrobePickerEngine {
     }
 
     private static let xorMask: Int64 = 0x51F4A94F51F4A94F
+    /// Bit pattern 0xC6BC279689FAD6A5 (hex overflows signed Int64 literal).
+    private static let xorMaskEnrich: Int64 = -4_128_403_253_811_843_803
     private static let dayMs: Int64 = 86_400_000
 
     static func currentSeasonKey(month1Based: Int) -> String {
@@ -61,6 +63,39 @@ enum WardrobePickerEngine {
         return out
     }
 
+    private static func blendPickerSeed(
+        seed: Int64,
+        occasionId: String,
+        weatherTagIds: Set<String>,
+        moodTagIds: Set<String>,
+        nowEpochMs: Int64,
+    ) -> Int64 {
+        var h = UInt64(bitPattern: seed)
+        h ^= UInt64(bitPattern: Int64(occasionId.hashValue)) &* 0x9E3779B97F4A7C15
+        let wx = weatherTagIds.sorted().joined(separator: ",")
+        h ^= UInt64(UInt32(truncatingIfNeeded: wx.hashValue)) &<< 9
+        h ^= UInt64(truncatingIfNeeded: wx.hashValue) &<< 17
+        let mx = moodTagIds.sorted().joined(separator: ",")
+        h ^= UInt64(bitPattern: Int64(mx.hashValue)) &<< 13
+        let now = UInt64(bitPattern: nowEpochMs)
+        h ^= now
+        h ^= reverseBitsUInt64(now)
+        h ^= now >> 33
+        var out = Int64(bitPattern: h)
+        if out == 0 { out = -7_046_029_254_386_353_131 } // 0x9E3779B97F4A7C15
+        return out
+    }
+
+    private static func reverseBitsUInt64(_ x: UInt64) -> UInt64 {
+        var x = x
+        var r: UInt64 = 0
+        for _ in 0 ..< 64 {
+            r = (r << 1) | (x & 1)
+            x >>= 1
+        }
+        return r
+    }
+
     static func suggest(
         allItems: [WardrobeItem],
         occasionId: String,
@@ -82,6 +117,13 @@ enum WardrobePickerEngine {
         }
         guard pool.count >= 2 else { return [] }
 
+        let blended = blendPickerSeed(
+            seed: seed,
+            occasionId: occasionId,
+            weatherTagIds: weatherTagIds,
+            moodTagIds: moodTagIds,
+            nowEpochMs: nowEpochMs,
+        )
         var byCat: [String: [WardrobeItem]] = [:]
         for item in pool {
             byCat[item.category, default: []].append(item)
@@ -94,8 +136,9 @@ enum WardrobePickerEngine {
         let outer = byCat[WardrobeCatalog.outerwear] ?? []
         let acc = byCat[WardrobeCatalog.accessories] ?? []
 
-        var gen = SeededGenerator(seed: seed)
-        var gen2 = SeededGenerator(seed: seed ^ xorMask)
+        var gen = SeededGenerator(seed: blended)
+        var gen2 = SeededGenerator(seed: blended ^ xorMask)
+        var genEnrich = SeededGenerator(seed: blended ^ xorMaskEnrich)
 
         func stratified(_ items: [WardrobeItem], _ n: Int) -> [WardrobeItem] {
             if items.count <= n { return items.shuffled(using: &gen) }
@@ -122,10 +165,27 @@ enum WardrobePickerEngine {
 
         var candidates: [(pieces: [WardrobeItem], score: Double)] = []
 
-        func addCandidate(_ pieces: [WardrobeItem]) {
-            guard !pieces.isEmpty, sizesCoherent(pieces) else { return }
+        func addCandidate(_ raw: [WardrobeItem]) {
+            var pieces = raw.uniqueStableById()
+            guard !pieces.isEmpty else { return }
+            if pieces.count < 2 {
+                guard let expanded = expandIncompleteOutfit(pieces, shoes: shoes, outer: outer, acc: acc, gen: &gen) else { return }
+                pieces = expanded
+            }
+            guard pieces.count >= 2, pieces.count <= 5, sizesCoherent(pieces) else { return }
+            var mutable = pieces
+            enrichToTargetPieceCount(
+                &mutable,
+                shoes: shoes,
+                outer: outer,
+                acc: acc,
+                gen: &genEnrich,
+                minTarget: 3,
+                maxPieces: 5,
+            )
+            guard mutable.count >= 2, mutable.count <= 5, sizesCoherent(mutable) else { return }
             let sc = scoreOutfit(
-                pieces,
+                mutable,
                 occasion: occasion,
                 tagTerms: tagTerms,
                 seasonKey: season,
@@ -133,7 +193,7 @@ enum WardrobePickerEngine {
                 moodTagIds: moodTagIds,
                 nowEpochMs: nowEpochMs,
             )
-            candidates.append((pieces, sc))
+            candidates.append((mutable, sc))
         }
 
         for d in rngDresses {
@@ -156,7 +216,7 @@ enum WardrobePickerEngine {
                             if let sh { list.append(sh) }
                             if let ow { list.append(ow) }
                             if let ac { list.append(ac) }
-                            addCandidate(Array(list.prefix(4)))
+                            addCandidate(Array(list.prefix(5)))
                         }
                     }
                 }
@@ -165,17 +225,27 @@ enum WardrobePickerEngine {
 
         guard !candidates.isEmpty else { return [] }
 
-        let sorted = candidates.sorted { $0.score > $1.score }
+        var bestByKey: [String: (pieces: [WardrobeItem], score: Double)] = [:]
+        for c in candidates {
+            let k = c.pieces.map(\.id).sorted().joined(separator: ",")
+            if let p = bestByKey[k] {
+                if c.score > p.score { bestByKey[k] = c }
+            } else {
+                bestByKey[k] = c
+            }
+        }
+        let sorted = bestByKey.values.sorted { $0.score > $1.score }
         var picked: [(pieces: [WardrobeItem], score: Double)] = []
-        let similarityCap = 0.48
+        let similarityCap = 0.36
         for pair in sorted {
-            if picked.count >= maxOutfits * 10 { break }
+            if picked.count >= maxOutfits * 12 { break }
             let ids = Set(pair.pieces.map(\.id))
             let tooSimilar = picked.contains { prev in
-                jaccard(ids, Set(prev.pieces.map(\.id))) > similarityCap
+                let o = Set(prev.pieces.map(\.id))
+                return jaccard(ids, o) > similarityCap || sameTopBottomSilhouette(pair.pieces, prev.pieces)
             }
             if !tooSimilar { picked.append(pair) }
-            if picked.count >= maxOutfits * 5 { break }
+            if picked.count >= maxOutfits * 8 { break }
         }
 
         let topPick = picked.isEmpty ? Array(sorted.prefix(maxOutfits * 3)) : picked
@@ -199,18 +269,101 @@ enum WardrobePickerEngine {
             )
         }
 
-        if mapped.isEmpty, let first = sorted.first {
-            let ordered = first.pieces.sorted { displayOrder($0.category) < displayOrder($1.category) }
+        if mapped.isEmpty {
+            var fallback: (pieces: [WardrobeItem], score: Double)?
+            if let row = sorted.first(where: { $0.pieces.count >= 2 }) {
+                fallback = row
+            } else if let row = sorted.first,
+                      let expanded = expandIncompleteOutfit(row.pieces, shoes: shoes, outer: outer, acc: acc, gen: &genEnrich),
+                      expanded.count >= 2, expanded.count <= 5, sizesCoherent(expanded) {
+                let sc = scoreOutfit(
+                    expanded,
+                    occasion: occasion,
+                    tagTerms: tagTerms,
+                    seasonKey: season,
+                    weatherTagIds: weatherTagIds,
+                    moodTagIds: moodTagIds,
+                    nowEpochMs: nowEpochMs,
+                )
+                fallback = (expanded, sc)
+            }
+            guard let fb = fallback else { return [] }
+            let ordered = fb.pieces.sorted { displayOrder($0.category) < displayOrder($1.category) }
             return [
                 PickerSuggestion(
                     title: "\(occasion.label) · Look 1",
                     items: ordered,
-                    score: first.score,
+                    score: fb.score,
                     reason: buildReason(ordered, weatherTagIds: weatherTagIds, moodTagIds: moodTagIds, nowEpochMs: nowEpochMs),
                 ),
             ]
         }
         return mapped
+    }
+
+    private static func enrichToTargetPieceCount(
+        _ pieces: inout [WardrobeItem],
+        shoes: [WardrobeItem],
+        outer: [WardrobeItem],
+        acc: [WardrobeItem],
+        gen: inout SeededGenerator,
+        minTarget: Int,
+        maxPieces: Int,
+    ) {
+        var used = Set(pieces.map(\.id))
+        while pieces.count < minTarget, pieces.count < maxPieces {
+            let extras = (shoes + outer + acc).filter { !used.contains($0.id) }.shuffled(using: &gen)
+            var added = false
+            for pick in extras {
+                pieces.append(pick)
+                used.insert(pick.id)
+                if sizesCoherent(pieces) {
+                    added = true
+                    break
+                }
+                pieces.removeLast()
+                used.remove(pick.id)
+            }
+            if !added { break }
+        }
+    }
+
+    private static func sameTopBottomSilhouette(_ a: [WardrobeItem], _ b: [WardrobeItem]) -> Bool {
+        let ta = Set(a.filter { $0.category == WardrobeCatalog.tops }.map(\.id))
+        let ba = Set(a.filter { $0.category == WardrobeCatalog.bottoms }.map(\.id))
+        let tb = Set(b.filter { $0.category == WardrobeCatalog.tops }.map(\.id))
+        let bb = Set(b.filter { $0.category == WardrobeCatalog.bottoms }.map(\.id))
+        if ta.isEmpty || ba.isEmpty || tb.isEmpty || bb.isEmpty { return false }
+        return ta == tb && ba == bb
+    }
+
+    private static func expandIncompleteOutfit(
+        _ pieces: [WardrobeItem],
+        shoes: [WardrobeItem],
+        outer: [WardrobeItem],
+        acc: [WardrobeItem],
+        gen: inout SeededGenerator,
+    ) -> [WardrobeItem]? {
+        guard !pieces.isEmpty else { return nil }
+        var out = pieces.uniqueStableById()
+        var used = Set(out.map(\.id))
+        while out.count < 2 {
+            let extras = (shoes + outer + acc).filter { !used.contains($0.id) }.shuffled(using: &gen)
+            var added = false
+            for pick in extras {
+                out.append(pick)
+                used.insert(pick.id)
+                if sizesCoherent(out) {
+                    added = true
+                    break
+                }
+                out.removeLast()
+                used.remove(pick.id)
+            }
+            if !added { break }
+        }
+        guard out.count >= 2 else { return nil }
+        return Array(out.prefix(5))
     }
 
     private static func rotationKey(_ item: WardrobeItem, _ now: Int64) -> Int64 {
@@ -442,5 +595,16 @@ enum WardrobePickerEngine {
             state = state &* 6_364_136_223_846_793_005 &+ 1
             return state
         }
+    }
+}
+
+private extension Array where Element == WardrobeItem {
+    func uniqueStableById() -> [WardrobeItem] {
+        var seen = Set<String>()
+        var r: [WardrobeItem] = []
+        for p in self {
+            if seen.insert(p.id).inserted { r.append(p) }
+        }
+        return r
     }
 }

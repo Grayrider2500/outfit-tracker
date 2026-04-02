@@ -55,6 +55,29 @@ object WardrobePickerEngine {
     private const val DAY_MS = 86400000L
     /** Secondary RNG stream; must fit signed `Long` (Fibonacci-hash style). */
     private const val XOR_MASK = 0x51F4A94F51F4A94FL
+    /** Bit pattern 0xC6BC279689FAD6A5 (ULong literal would overflow signed `const Long`). */
+    private const val XOR_MASK_ENRICH = -4128403253811843803L
+
+    /** Mix user entropy so occasion/tags/time change shuffle and “Surprise me” rerolls actually diverge. */
+    private fun blendPickerSeed(
+        seed: Long,
+        occasionId: String,
+        weatherTagIds: Set<String>,
+        moodTagIds: Set<String>,
+        nowEpochMs: Long,
+    ): Long {
+        var h = seed
+        h = h xor (occasionId.hashCode().toLong() * -7046029254386353131L)
+        val w = weatherTagIds.sorted().joinToString(",")
+        h = h xor ((w.hashCode().toLong() and 0xFFFF_FFFFL) shl 9)
+        h = h xor ((w.hashCode().toLong() shr 23) and 0xFFFF_FFFFL)
+        val m = moodTagIds.sorted().joinToString(",")
+        h = h xor ((m.hashCode().toLong()) shl 13)
+        h = h xor nowEpochMs
+        h = h xor java.lang.Long.reverse(nowEpochMs) xor (nowEpochMs ushr 33)
+        if (h == 0L) h = -7046029254386353131L // 0x9E3779B97F4A7C15
+        return h
+    }
 
     /** Northern-hemisphere season from local month (simple heuristic). */
     fun currentSeasonKey(month1Based: Int): String = when (month1Based) {
@@ -103,6 +126,7 @@ object WardrobePickerEngine {
         }
         if (pool.size < 2) return emptyList()
 
+        val blendedSeed = blendPickerSeed(seed, occasionId, weatherTagIds, moodTagIds, nowEpochMs)
         val byCat = pool.groupBy { it.category }
         val tops = byCat[WardrobeCategories.TOPS].orEmpty()
         val bottoms = byCat[WardrobeCategories.BOTTOMS].orEmpty()
@@ -111,8 +135,9 @@ object WardrobePickerEngine {
         val outer = byCat[WardrobeCategories.OUTERWEAR].orEmpty()
         val acc = byCat[WardrobeCategories.ACCESSORIES].orEmpty()
 
-        val rnd = Random(seed)
-        val rnd2 = Random(seed xor XOR_MASK)
+        val rnd = Random(blendedSeed)
+        val rnd2 = Random(blendedSeed xor XOR_MASK)
+        val rndEnrich = Random(blendedSeed xor XOR_MASK_ENRICH)
 
         fun stratified(items: List<WardrobeItemEntity>, n: Int): List<WardrobeItemEntity> {
             if (items.size <= n) return items.shuffled(rnd)
@@ -133,11 +158,19 @@ object WardrobePickerEngine {
 
         val candidates = mutableListOf<Pair<List<WardrobeItemEntity>, Double>>()
 
-        fun addCandidate(pieces: List<WardrobeItemEntity>) {
+        fun addCandidate(raw: List<WardrobeItemEntity>) {
+            var pieces = raw.distinctBy { it.id }.toMutableList()
             if (pieces.isEmpty()) return
+            if (pieces.size < 2) {
+                val expanded = expandIncompleteOutfit(pieces, rngShoes, rngOuter, rngAcc, rnd) ?: return
+                pieces = expanded.distinctBy { it.id }.toMutableList()
+            }
+            if (pieces.size < 2 || pieces.size > 5) return
             if (!sizesCoherent(pieces)) return
+            enrichToTargetPieceCount(pieces, rngShoes, rngOuter, rngAcc, rndEnrich, minTarget = 3, maxPieces = 5)
+            if (pieces.size < 2 || pieces.size > 5 || !sizesCoherent(pieces)) return
             val sc = scoreOutfit(pieces, occasion, tagTerms, season, weatherTagIds, moodTagIds, nowEpochMs)
-            candidates.add(pieces to sc)
+            candidates.add(pieces.toList() to sc)
         }
 
         for (d in rngDresses) {
@@ -164,7 +197,7 @@ object WardrobePickerEngine {
                                 sh?.let { add(it) }
                                 ow?.let { add(it) }
                                 ac?.let { add(it) }
-                            }.take(4)
+                            }.take(5)
                             addCandidate(list)
                         }
                     }
@@ -174,17 +207,24 @@ object WardrobePickerEngine {
 
         if (candidates.isEmpty()) return emptyList()
 
-        val sorted = candidates.sortedByDescending { it.second }
+        // One row per unique item set (keep best score) so duplicate loops don’t flood the shortlist.
+        val sorted = candidates
+            .groupBy { it.first.map { e -> e.id }.sorted().joinToString(",") }
+            .values
+            .map { rows -> rows.maxBy { it.second } }
+            .sortedByDescending { it.second }
         val picked = mutableListOf<Pair<List<WardrobeItemEntity>, Double>>()
-        val similarityCap = 0.48
+        val similarityCap = 0.36
         for ((pair, sc) in sorted) {
-            if (picked.size >= maxOutfits * 10) break
+            if (picked.size >= maxOutfits * 12) break
             val ids = pair.map { it.id }.toSet()
             val tooSimilar = picked.any { prev ->
-                jaccard(ids, prev.first.map { it.id }.toSet()) > similarityCap
+                val o = prev.first.map { it.id }.toSet()
+                jaccard(ids, o) > similarityCap ||
+                    sameTopBottomSilhouette(pair, prev.first)
             }
             if (!tooSimilar) picked.add(pair to sc)
-            if (picked.size >= maxOutfits * 5) break
+            if (picked.size >= maxOutfits * 8) break
         }
 
         val topPick = if (picked.isNotEmpty()) picked else sorted.take(maxOutfits * 3)
@@ -203,16 +243,92 @@ object WardrobePickerEngine {
             }
 
         return final.ifEmpty {
-            sorted.take(1).mapIndexed { idx, (pieces, sc) ->
-                val ordered = pieces.sortedBy { displayOrder(it.category) }
+            val fallbackRow = sorted.firstOrNull { it.first.size >= 2 }
+                ?: sorted.firstOrNull()?.let { (pieces, sc) ->
+                    val expanded = expandIncompleteOutfit(pieces, rngShoes, rngOuter, rngAcc, rndEnrich)
+                    if (expanded != null && expanded.size in 2..5 && sizesCoherent(expanded)) {
+                        expanded to scoreOutfit(expanded, occasion, tagTerms, season, weatherTagIds, moodTagIds, nowEpochMs)
+                    } else null
+                }
+            if (fallbackRow == null) return@ifEmpty emptyList()
+            val (pieces, sc) = fallbackRow
+            val ordered = pieces.sortedBy { displayOrder(it.category) }
+            listOf(
                 PickerSuggestion(
-                    title = "${occasion.label} · Look ${idx + 1}",
+                    title = "${occasion.label} · Look 1",
                     items = ordered,
                     score = sc,
                     reason = buildReason(ordered, weatherTagIds, moodTagIds, nowEpochMs),
-                )
-            }
+                ),
+            )
         }
+    }
+
+    /** Dress-only and similar incomplete combos get extra pieces so every outfit has 2–5 items when pool allows. */
+    private fun expandIncompleteOutfit(
+        pieces: List<WardrobeItemEntity>,
+        shoes: List<WardrobeItemEntity>,
+        outer: List<WardrobeItemEntity>,
+        acc: List<WardrobeItemEntity>,
+        rnd: Random,
+    ): List<WardrobeItemEntity>? {
+        if (pieces.isEmpty()) return null
+        val out = pieces.distinctBy { it.id }.toMutableList()
+        val used = out.map { it.id }.toMutableSet()
+        while (out.size < 2) {
+            val extras = (shoes + outer + acc).filter { it.id !in used }.shuffled(rnd)
+            var added = false
+            for (pick in extras) {
+                out.add(pick)
+                used.add(pick.id)
+                if (sizesCoherent(out)) {
+                    added = true
+                    break
+                }
+                out.removeAt(out.lastIndex)
+                used.remove(pick.id)
+            }
+            if (!added) break
+        }
+        return if (out.size >= 2) out.take(5) else null
+    }
+
+    /** Adds shoes / outer / accessories until at least [minTarget] pieces (when pool allows), max [maxPieces]. */
+    private fun enrichToTargetPieceCount(
+        pieces: MutableList<WardrobeItemEntity>,
+        shoes: List<WardrobeItemEntity>,
+        outer: List<WardrobeItemEntity>,
+        acc: List<WardrobeItemEntity>,
+        rnd: Random,
+        minTarget: Int,
+        maxPieces: Int,
+    ) {
+        val used = pieces.map { it.id }.toMutableSet()
+        while (pieces.size < minTarget && pieces.size < maxPieces) {
+            val extras = (shoes + outer + acc).filter { it.id !in used }.shuffled(rnd)
+            var added = false
+            for (pick in extras) {
+                pieces.add(pick)
+                used.add(pick.id)
+                if (sizesCoherent(pieces)) {
+                    added = true
+                    break
+                }
+                pieces.removeAt(pieces.lastIndex)
+                used.remove(pick.id)
+            }
+            if (!added) break
+        }
+    }
+
+    /** True when both outfits use the exact same top set and bottom set (prevents three “casual” cards that are the same shirt+jeans). */
+    private fun sameTopBottomSilhouette(a: List<WardrobeItemEntity>, b: List<WardrobeItemEntity>): Boolean {
+        val ta = a.filter { it.category == WardrobeCategories.TOPS }.map { it.id }.toSet()
+        val ba = a.filter { it.category == WardrobeCategories.BOTTOMS }.map { it.id }.toSet()
+        val tb = b.filter { it.category == WardrobeCategories.TOPS }.map { it.id }.toSet()
+        val bb = b.filter { it.category == WardrobeCategories.BOTTOMS }.map { it.id }.toSet()
+        if (ta.isEmpty() || ba.isEmpty() || tb.isEmpty() || bb.isEmpty()) return false
+        return ta == tb && ba == bb
     }
 
     private fun rotationKey(item: WardrobeItemEntity, now: Long): Long {

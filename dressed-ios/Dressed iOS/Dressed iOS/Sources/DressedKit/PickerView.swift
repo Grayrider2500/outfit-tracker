@@ -266,7 +266,7 @@ struct PickerView: View {
                 .font(.subheadline.weight(.semibold))
 
             TabView(selection: $pageIndex) {
-                ForEach(Array(suggestions.enumerated()), id: \.element.id) { idx, sug in
+                ForEach(Array(suggestions.enumerated()), id: \.offset) { idx, sug in
                     VStack(spacing: 12) {
                         SuggestionOutfitCollageCard(suggestion: sug)
                         HStack(spacing: 12) {

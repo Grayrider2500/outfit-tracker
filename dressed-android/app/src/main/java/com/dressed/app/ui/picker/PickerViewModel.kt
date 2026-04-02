@@ -63,7 +63,7 @@ class PickerViewModel(
             _busy.value = true
             try {
                 val items = wardrobeRepository.getAllSnapshot()
-                val seed = System.nanoTime()
+                val seed = System.nanoTime() xor System.currentTimeMillis() xor occasionId.hashCode().toLong()
                 val now = System.currentTimeMillis()
                 val occasionLabel =
                     WardrobePickerEngine.OCCASIONS.find { it.id == occasionId }?.label ?: "Outfit"
