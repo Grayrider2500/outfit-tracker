@@ -24,6 +24,17 @@ android {
             .replace("\"", "\\\"")
     }
 
+    val openaiApiKeyForBuildConfig = run {
+        val props = Properties()
+        val f = rootProject.file("local.properties")
+        if (f.exists()) {
+            f.inputStream().use { stream -> props.load(stream) }
+        }
+        props.getProperty("openaiApiKey", "").orEmpty()
+            .replace("\\", "\\\\")
+            .replace("\"", "\\\"")
+    }
+
     defaultConfig {
         applicationId = "com.crossmountproducts.dressed"
         minSdk = 23
@@ -33,6 +44,7 @@ android {
         // Release must not embed keys or enable cloud reasoning (Codex review).
         buildConfigField("boolean", "ENABLE_AI_REASONING", "false")
         buildConfigField("String", "ANTHROPIC_API_KEY", "\"\"")
+        buildConfigField("String", "OPENAI_API_KEY", "\"\"")
     }
 
     signingConfigs {
@@ -48,6 +60,7 @@ android {
         debug {
             buildConfigField("boolean", "ENABLE_AI_REASONING", "true")
             buildConfigField("String", "ANTHROPIC_API_KEY", "\"$anthropicApiKeyForBuildConfig\"")
+            buildConfigField("String", "OPENAI_API_KEY", "\"$openaiApiKeyForBuildConfig\"")
         }
         release {
             isMinifyEnabled = false
@@ -91,6 +104,7 @@ dependencies {
     ksp("androidx.room:room-compiler:2.8.4")
     implementation("io.coil-kt:coil-compose:2.7.0")
     implementation("androidx.exifinterface:exifinterface:1.3.7")
+    implementation("androidx.security:security-crypto:1.0.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
     debugImplementation("androidx.compose.ui:ui-tooling")
     implementation(platform("com.google.firebase:firebase-bom:34.11.0"))

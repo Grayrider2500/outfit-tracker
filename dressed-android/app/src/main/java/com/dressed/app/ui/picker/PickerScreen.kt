@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -21,6 +22,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material3.Button
 import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.Surface
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -43,6 +45,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.dressed.app.data.picker.PickerAiBannerState
+import com.dressed.app.data.picker.PickerAIProvider
 import com.dressed.app.data.picker.WardrobePickerEngine
 import com.dressed.app.ui.outfits.SuggestionOutfitCollageCard
 import kotlinx.coroutines.launch
@@ -55,8 +59,11 @@ fun PickerScreen(
 ) {
     val suggestions by viewModel.suggestions.collectAsStateWithLifecycle()
     val busy by viewModel.busy.collectAsStateWithLifecycle()
+    val aiBanner by viewModel.aiBanner.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+
+    var showAiSettings by rememberSaveable { mutableStateOf(false) }
 
     var occasionId by rememberSaveable { mutableStateOf(WardrobePickerEngine.OCCASIONS.first().id) }
     var weatherIds by remember { mutableStateOf(emptySet<String>()) }
@@ -152,6 +159,22 @@ fun PickerScreen(
                 }
             }
 
+            AiPickerStatusBanner(
+                model = aiBanner,
+                onOpenSettings = { showAiSettings = true },
+                modifier = Modifier.padding(top = 16.dp),
+            )
+
+            PickerAiSettingsSheet(
+                visible = showAiSettings,
+                store = viewModel.aiStore,
+                onDismissRequest = {
+                    showAiSettings = false
+                    viewModel.refreshAiBanner()
+                },
+                onPrefsChanged = { viewModel.refreshAiBanner() },
+            )
+
             Button(
                 onClick = {
                     viewModel.generate(occasionId, weatherIds, moodIds)
@@ -226,6 +249,68 @@ fun PickerScreen(
             }
             Spacer(Modifier.height(32.dp))
         }
+    }
+}
+
+@Composable
+private fun AiPickerStatusBanner(
+    model: PickerAiBannerModel,
+    onOpenSettings: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val (state, p) = model
+    val (title, subtitle) = aiBannerStrings(state, p)
+    val (container, content) = when (state) {
+        PickerAiBannerState.FEATURE_DISABLED_IN_BUILD ->
+            MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
+        PickerAiBannerState.NEEDS_KEY ->
+            MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.onPrimaryContainer
+        PickerAiBannerState.KEY_SAVED_REASONING_OFF ->
+            MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.onSecondaryContainer
+        PickerAiBannerState.READY ->
+            MaterialTheme.colorScheme.tertiaryContainer to MaterialTheme.colorScheme.onTertiaryContainer
+    }
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = onOpenSettings),
+        shape = MaterialTheme.shapes.medium,
+        color = container.copy(alpha = 0.45f),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Icon(Icons.Filled.AutoAwesome, contentDescription = null, tint = content)
+            Column(Modifier.weight(1f)) {
+                Text(title, style = MaterialTheme.typography.labelLarge, color = content)
+                Text(
+                    subtitle,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = content.copy(alpha = 0.85f),
+                )
+            }
+            Text("›", style = MaterialTheme.typography.labelLarge, color = content)
+        }
+    }
+}
+
+private fun aiBannerStrings(state: PickerAiBannerState, p: PickerAIProvider): Pair<String, String> {
+    return when (state) {
+        PickerAiBannerState.FEATURE_DISABLED_IN_BUILD ->
+            "AI cloud explanations" to "Not enabled in this build — use a debug build for BYOK."
+        PickerAiBannerState.NEEDS_KEY -> {
+            if (p == PickerAIProvider.GROK) {
+                "AI explanations (Grok)" to "Grok isn’t available yet — pick Anthropic or OpenAI, or use on-device hints."
+            } else {
+                "AI outfit explanations" to "Add your ${p.shortBannerLabel} key to enable (optional). Tap to open settings."
+            }
+        }
+        PickerAiBannerState.KEY_SAVED_REASONING_OFF ->
+            "AI reasoning is off" to "${p.shortBannerLabel} key saved — tap to turn explanations back on."
+        PickerAiBannerState.READY ->
+            "AI reasoning on · ${p.shortBannerLabel}" to "${p.shortBannerLabel} adds short reasons to each suggestion."
     }
 }
 

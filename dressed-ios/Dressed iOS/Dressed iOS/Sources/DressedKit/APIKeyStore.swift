@@ -1,13 +1,16 @@
 import Foundation
 import Security
 
-/// Securely stores and retrieves the user's Anthropic API key in the iOS Keychain.
+/// Securely stores per-provider API keys for BYOK picker reasoning (Keychain).
 enum APIKeyStore {
     private static let service = "com.dressed.app"
-    private static let account = "anthropic-api-key"
+    private static let legacyAnthropicAccount = "anthropic-api-key"
 
-    /// Read the stored API key, or nil if not set.
-    static func getKey() -> String? {
+    private static func account(for provider: PickerAIProvider) -> String {
+        "picker-key-\(provider.rawValue)"
+    }
+
+    private static func read(account: String) -> String? {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
@@ -24,15 +27,27 @@ enum APIKeyStore {
         return key
     }
 
-    /// Save or update the API key. Pass nil or empty string to delete.
-    static func setKey(_ key: String?) {
-        // Always delete first to avoid duplicates
+    private static func delete(account: String) {
         let deleteQuery: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: account,
         ]
         SecItemDelete(deleteQuery as CFDictionary)
+    }
+
+    /// Read the stored key for a provider, or `nil`. Migrates legacy Anthropic account when needed.
+    static func getKey(for provider: PickerAIProvider) -> String? {
+        if let v = read(account: account(for: provider)), !v.isEmpty { return v }
+        if provider == .anthropic {
+            if let v = read(account: legacyAnthropicAccount), !v.isEmpty { return v }
+        }
+        return nil
+    }
+
+    /// Save or update the key for a provider. Pass `nil` or empty to delete.
+    static func setKey(_ key: String?, for provider: PickerAIProvider) {
+        delete(account: account(for: provider))
 
         guard let key, !key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
               let data = key.data(using: .utf8) else { return }
@@ -40,22 +55,22 @@ enum APIKeyStore {
         let addQuery: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
-            kSecAttrAccount as String: account,
+            kSecAttrAccount as String: account(for: provider),
             kSecValueData as String: data,
             kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
         ]
         SecItemAdd(addQuery as CFDictionary, nil)
     }
 
-    /// Whether a key is currently stored.
-    static var hasKey: Bool {
-        getKey() != nil
+    static func hasKey(for provider: PickerAIProvider) -> Bool {
+        getKey(for: provider) != nil
     }
 }
 
-/// User preference: master switch for calling Anthropic from the picker (debug + release).
+/// User preference: master switch and selected cloud provider for picker AI reasoning.
 enum AIReasoningPreferences {
     private static let enabledKey = "com.dressed.aiReasoningEnabled"
+    private static let providerKey = "com.dressed.aiPickerProvider"
 
     /// When never set, default `true` so existing installs keep prior behavior after upgrade.
     static var isReasoningEnabled: Bool {
@@ -64,5 +79,14 @@ enum AIReasoningPreferences {
             return UserDefaults.standard.bool(forKey: enabledKey)
         }
         set { UserDefaults.standard.set(newValue, forKey: enabledKey) }
+    }
+
+    /// Stores which BYOK provider the user selected (Anthropic, OpenAI, or Grok placeholder).
+    static var selectedProvider: PickerAIProvider {
+        get {
+            let raw = UserDefaults.standard.string(forKey: providerKey) ?? PickerAIProvider.anthropic.rawValue
+            return PickerAIProvider(rawValue: raw) ?? .anthropic
+        }
+        set { UserDefaults.standard.set(newValue.rawValue, forKey: providerKey) }
     }
 }

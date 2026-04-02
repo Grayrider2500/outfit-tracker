@@ -2,15 +2,41 @@
 
 Wardrobe and outfit tracking in two forms: an **Android app** (Compose) and a **single-file web** prototype, plus an HTML **mockup** for design review.
 
-## What's New in v1.1
+### What's New in v1.1
 
-- **Automatic Wardrobe Picker** — Intelligent outfit suggestions based on occasion, weather, wear history, and color harmony. Includes "Surprise Me" mode and one-tap Save or Wear Today.
-- **AI-Powered Reasoning** (debug builds) — Claude generates friendly natural-language explanations for each suggested outfit.
-- **Full Edit Support** — Edit individual clothing items and entire outfits directly in the app.
-- **Smarter Restore** — Replace-all is now safer (old photos are only deleted after successful restore).
-- **Improved Performance** — Faster and smoother iOS scrolling with cached image loading.
-- **Better Data Integrity** — Deleting items now cleanly removes references from outfits.
-- **Security & Maintenance** — Firebase config is properly gitignored; version bumped to 1.1.0.
+### ✨ Major New Features
+
+**Automatic Wardrobe Picker**  
+Get intelligent outfit suggestions based on your existing wardrobe. Choose an occasion (Casual, Work, Date Night, Formal, Gym, etc.), add weather or mood tags, or tap “Surprise Me” for fresh combinations.  
+Suggestions include smart scoring for color harmony, variety, and wear history.
+
+**AI-Powered Reasoning** (Debug builds only)  
+Each suggested outfit comes with a friendly natural-language explanation powered by Claude (e.g., “This navy blazer complements the gray pants perfectly and hasn’t been worn in 12 days — great for today’s mild weather”).  
+In release builds, the picker falls back to strong rule-based suggestions for security reasons.
+
+**Full Edit Support**  
+- Edit individual clothing items (name, tags, photo, etc.)  
+- Edit entire outfits (name and piece selection)  
+- Delete outfits with confirmation dialog
+
+### 🔧 Key Improvements
+
+- **Safer Restore** — Replace-all now only deletes old photos after the new restore fully succeeds.
+- **Better Data Integrity** — Deleting an item cleanly removes it from all outfits (no stale references).
+- **Performance** — Smoother iOS scrolling thanks to smart image caching.
+- **Photo Handling** — Automatic resizing + correct orientation on Android.
+- **Backup v3** — Efficient .zip format with separate photo files (much smaller and faster for large wardrobes).
+- **Security** — Firebase configuration is now properly gitignored.
+
+### 📋 Other Changes
+- Version bumped to **1.1.0**
+- Cross-platform consistency improvements
+- Debug-only test data seeder (100 items + sample outfits) for easier development and testing
+
+---
+
+**How to use the Picker:**  
+Tap “Suggest Outfits” from the main screen. In debug builds, you can enable AI reasoning by entering your own Anthropic API key in Settings.
 
 ## Repository layout
 

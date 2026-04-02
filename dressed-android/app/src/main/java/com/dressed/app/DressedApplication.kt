@@ -5,6 +5,7 @@ import androidx.room.Room
 import com.dressed.app.data.OutfitRepository
 import com.dressed.app.data.WardrobeRepository
 import com.dressed.app.data.local.DressedDatabase
+import com.dressed.app.data.picker.AiPickerPreferencesStore
 
 class DressedApplication : Application() {
 
@@ -15,6 +16,9 @@ class DressedApplication : Application() {
         private set
 
     lateinit var outfitRepository: OutfitRepository
+        private set
+
+    lateinit var aiPickerPreferences: AiPickerPreferencesStore
         private set
 
     override fun onCreate() {
@@ -36,5 +40,6 @@ class DressedApplication : Application() {
             database.outfitDao(),
         )
         outfitRepository = OutfitRepository(database.outfitDao())
+        aiPickerPreferences = AiPickerPreferencesStore(this)
     }
 }

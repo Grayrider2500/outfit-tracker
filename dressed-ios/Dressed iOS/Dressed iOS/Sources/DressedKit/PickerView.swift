@@ -17,7 +17,7 @@ struct PickerView: View {
     @State private var pageIndex = 0
     @State private var toastMessage: String?
     @State private var showAISettings = false
-    @State private var aiBannerState: PickerAnthropicReasoner.BannerState = .needsKey
+    @State private var aiBannerState: PickerAIReasoner.BannerState = .needsKey
 
     private let navPurple = Color(red: 0.42, green: 0.29, blue: 0.68)
 
@@ -144,24 +144,30 @@ struct PickerView: View {
     }
 
     private var aiBannerTitle: String {
+        let p = AIReasoningPreferences.selectedProvider
         switch aiBannerState {
         case .needsKey:
+            if p == .grok { return "AI explanations (Grok)" }
             return "AI outfit explanations"
         case .keySavedReasoningOff:
             return "AI reasoning is off"
         case .ready:
-            return "AI reasoning on"
+            return "AI reasoning on · \(p.shortBannerLabel)"
         }
     }
 
     private var aiBannerSubtitle: String {
+        let p = AIReasoningPreferences.selectedProvider
         switch aiBannerState {
         case .needsKey:
-            return "Add your Anthropic key to enable (optional)."
+            if p == .grok {
+                return "Grok isn’t available yet — pick Anthropic or OpenAI, or use on-device hints."
+            }
+            return "Add your \(p.shortBannerLabel) key to enable (optional)."
         case .keySavedReasoningOff:
-            return "Tap to turn explanations back on in settings."
+            return "\(p.shortBannerLabel) key saved — tap to turn explanations back on."
         case .ready:
-            return "Claude adds short reasons to each suggestion."
+            return "\(p.shortBannerLabel) adds short reasons to each suggestion."
         }
     }
 
@@ -188,7 +194,7 @@ struct PickerView: View {
     }
 
     private func syncAIBanner() {
-        aiBannerState = PickerAnthropicReasoner.bannerState
+        aiBannerState = PickerAIReasoner.bannerState
     }
 
     private var occasionSection: some View {
@@ -320,7 +326,7 @@ struct PickerView: View {
                 maxOutfits: 3,
                 nowEpochMs: nowMs,
             )
-            result = await PickerAnthropicReasoner.enrichIfPossible(
+            result = await PickerAIReasoner.enrichIfPossible(
                 suggestions: result,
                 occasionId: occasionSnapshot,
                 weatherIds: weatherSnapshot,

@@ -7,7 +7,10 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.dressed.app.BuildConfig
 import com.dressed.app.DressedApplication
-import com.dressed.app.data.picker.PickerAnthropicReasoner
+import com.dressed.app.data.picker.AiPickerPreferencesStore
+import com.dressed.app.data.picker.PickerAIProvider
+import com.dressed.app.data.picker.PickerAIReasoner
+import com.dressed.app.data.picker.PickerAiBannerState
 import com.dressed.app.data.OutfitRepository
 import com.dressed.app.data.WardrobeRepository
 import com.dressed.app.data.local.OutfitEntity
@@ -21,10 +24,16 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.UUID
 
+data class PickerAiBannerModel(
+    val state: PickerAiBannerState,
+    val provider: PickerAIProvider,
+)
+
 class PickerViewModel(
     application: Application,
     private val wardrobeRepository: WardrobeRepository,
     private val outfitRepository: OutfitRepository,
+    val aiStore: AiPickerPreferencesStore,
 ) : AndroidViewModel(application) {
 
     private val _suggestions = MutableStateFlow<List<PickerSuggestion>>(emptyList())
@@ -32,6 +41,22 @@ class PickerViewModel(
 
     private val _busy = MutableStateFlow(false)
     val busy: StateFlow<Boolean> = _busy.asStateFlow()
+
+    private val _aiBanner = MutableStateFlow(computeAiBanner())
+    val aiBanner: StateFlow<PickerAiBannerModel> = _aiBanner.asStateFlow()
+
+    init {
+        refreshAiBanner()
+    }
+
+    fun refreshAiBanner() {
+        _aiBanner.value = computeAiBanner()
+    }
+
+    private fun computeAiBanner(): PickerAiBannerModel {
+        val (state, provider) = PickerAIReasoner.resolveBannerState(aiStore)
+        return PickerAiBannerModel(state, provider)
+    }
 
     fun generate(occasionId: String, weatherTagIds: Set<String>, moodTagIds: Set<String>) {
         viewModelScope.launch {
@@ -58,11 +83,11 @@ class PickerViewModel(
                     nowEpochMs = now,
                 )
                 _suggestions.value =
-                    if (!BuildConfig.ENABLE_AI_REASONING || BuildConfig.ANTHROPIC_API_KEY.isBlank()) {
+                    if (!BuildConfig.ENABLE_AI_REASONING) {
                         base
                     } else {
-                        PickerAnthropicReasoner.enrichReasons(
-                            apiKey = BuildConfig.ANTHROPIC_API_KEY,
+                        PickerAIReasoner.enrichReasons(
+                            store = aiStore,
                             suggestions = base,
                             occasionLabel = occasionLabel,
                             weatherLabels = weatherLabels,
@@ -128,7 +153,12 @@ class PickerViewModel(
                 @Suppress("UNCHECKED_CAST")
                 override fun <T : ViewModel> create(modelClass: Class<T>): T {
                     require(modelClass == PickerViewModel::class.java)
-                    return PickerViewModel(app, app.wardrobeRepository, app.outfitRepository) as T
+                    return PickerViewModel(
+                        app,
+                        app.wardrobeRepository,
+                        app.outfitRepository,
+                        app.aiPickerPreferences,
+                    ) as T
                 }
             }
     }
