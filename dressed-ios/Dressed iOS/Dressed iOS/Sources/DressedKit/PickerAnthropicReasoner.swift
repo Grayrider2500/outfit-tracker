@@ -3,10 +3,17 @@ import Foundation
 /// Phase 3: optional Claude (Anthropic) explanations after rule-based picker results.
 /// Users can connect their own API key via AI Settings (stored in Keychain).
 /// Developers can also set `ANTHROPIC_API_KEY` env var or `AnthropicAPIKey` in Info.plist.
+/// The user-level toggle in AI Settings must be on; otherwise rule-based reasons are kept.
 enum PickerAnthropicReasoner {
     private static let endpoint = URL(string: "https://api.anthropic.com/v1/messages")!
     private static let dayMs: Int64 = 86_400_000
     private static let model = "claude-3-5-haiku-20241022"
+
+    enum BannerState: Equatable {
+        case needsKey
+        case keySavedReasoningOff
+        case ready
+    }
 
     static func resolvedApiKey() -> String {
         // 1. User-stored key in Keychain (BYOK)
@@ -18,9 +25,61 @@ enum PickerAnthropicReasoner {
         return ""
     }
 
-    /// Whether AI reasoning is available (user has connected a key).
-    static var isAvailable: Bool {
+    static var hasApiCredential: Bool {
         !resolvedApiKey().isEmpty
+    }
+
+    static var bannerState: BannerState {
+        guard hasApiCredential else { return .needsKey }
+        return AIReasoningPreferences.isReasoningEnabled ? .ready : .keySavedReasoningOff
+    }
+
+    /// Whether the picker will call Anthropic (toggle on and credential present).
+    static var isAvailable: Bool {
+        bannerState == .ready
+    }
+
+    /// Lightweight validation: one minimal Messages request. Returns `nil` on success, otherwise an error string.
+    static func validateApiKey(_ apiKey: String) async -> String? {
+        let trimmed = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return "Enter an API key to test." }
+
+        let payload: [String: Any] = [
+            "model": model,
+            "max_tokens": 8,
+            "messages": [
+                ["role": "user", "content": "Reply with the single word ok."],
+            ],
+        ]
+        guard let body = try? JSONSerialization.data(withJSONObject: payload) else {
+            return "Could not build request."
+        }
+
+        do {
+            var req = URLRequest(url: endpoint)
+            req.httpMethod = "POST"
+            req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            req.setValue(trimmed, forHTTPHeaderField: "x-api-key")
+            req.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+            req.httpBody = body
+
+            let (data, resp) = try await URLSession.shared.data(for: req)
+            guard let http = resp as? HTTPURLResponse else {
+                return "Invalid response from server."
+            }
+            switch http.statusCode {
+            case 200 ... 299:
+                return nil
+            case 401, 403:
+                return "Key rejected (check that it is valid and active)."
+            default:
+                let snippet = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                let short = snippet.count > 120 ? String(snippet.prefix(120)) + "…" : snippet
+                return short.isEmpty ? "Request failed (HTTP \(http.statusCode))." : "HTTP \(http.statusCode): \(short)"
+            }
+        } catch {
+            return error.localizedDescription
+        }
     }
 
     static func enrichIfPossible(
@@ -30,6 +89,8 @@ enum PickerAnthropicReasoner {
         moodIds: Set<String>,
         nowEpochMs: Int64,
     ) async -> [WardrobePickerEngine.PickerSuggestion] {
+        guard AIReasoningPreferences.isReasoningEnabled else { return suggestions }
+
         let key = resolvedApiKey()
         guard !key.isEmpty, !suggestions.isEmpty else { return suggestions }
 

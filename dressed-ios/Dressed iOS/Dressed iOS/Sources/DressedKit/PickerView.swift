@@ -17,7 +17,7 @@ struct PickerView: View {
     @State private var pageIndex = 0
     @State private var toastMessage: String?
     @State private var showAISettings = false
-    @State private var aiConnected = false
+    @State private var aiBannerState: PickerAnthropicReasoner.BannerState = .needsKey
 
     private let navPurple = Color(red: 0.42, green: 0.29, blue: 0.68)
 
@@ -32,28 +32,7 @@ struct PickerView: View {
                 tagSection(title: "Weather (optional)", pairs: WardrobePickerEngine.weatherTags, selection: $weatherIds)
                 tagSection(title: "Mood (optional)", pairs: WardrobePickerEngine.moodTags, selection: $moodIds)
 
-                // AI status banner
-                Button {
-                    showAISettings = true
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: aiConnected ? "brain" : "brain")
-                            .font(.subheadline)
-                        Text(aiConnected ? "AI reasoning enabled" : "Connect AI for smarter picks")
-                            .font(.caption.weight(.medium))
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .font(.caption2)
-                    }
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
-                    .background(
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .fill(aiConnected ? Color.green.opacity(0.1) : navPurple.opacity(0.1))
-                    )
-                    .foregroundStyle(aiConnected ? .green : navPurple)
-                }
-                .buttonStyle(.plain)
+                aiStatusBanner
 
                 Button {
                     generate()
@@ -110,10 +89,8 @@ struct PickerView: View {
         }
         .toolbarBackground(navPurple, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
-        .onAppear { aiConnected = PickerAnthropicReasoner.isAvailable }
-        .sheet(isPresented: $showAISettings) {
-            aiConnected = PickerAnthropicReasoner.isAvailable
-        } content: {
+        .onAppear { syncAIBanner() }
+        .sheet(isPresented: $showAISettings, onDismiss: { syncAIBanner() }) {
             NavigationStack {
                 AISettingsSheet()
             }
@@ -134,6 +111,84 @@ struct PickerView: View {
                     }
             }
         }
+    }
+
+    private var aiStatusBanner: some View {
+        Button {
+            showAISettings = true
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "brain")
+                    .font(.subheadline)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(aiBannerTitle)
+                        .font(.caption.weight(.semibold))
+                    Text(aiBannerSubtitle)
+                        .font(.caption2)
+                        .opacity(0.85)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                Image(systemName: "chevron.right")
+                    .font(.caption2)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(aiBannerBackgroundColor.opacity(0.14))
+            )
+            .foregroundStyle(aiBannerForegroundColor)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(aiBannerTitle). \(aiBannerSubtitle)")
+    }
+
+    private var aiBannerTitle: String {
+        switch aiBannerState {
+        case .needsKey:
+            return "AI outfit explanations"
+        case .keySavedReasoningOff:
+            return "AI reasoning is off"
+        case .ready:
+            return "AI reasoning on"
+        }
+    }
+
+    private var aiBannerSubtitle: String {
+        switch aiBannerState {
+        case .needsKey:
+            return "Add your Anthropic key to enable (optional)."
+        case .keySavedReasoningOff:
+            return "Tap to turn explanations back on in settings."
+        case .ready:
+            return "Claude adds short reasons to each suggestion."
+        }
+    }
+
+    private var aiBannerForegroundColor: Color {
+        switch aiBannerState {
+        case .needsKey:
+            return navPurple
+        case .keySavedReasoningOff:
+            return .orange
+        case .ready:
+            return .green
+        }
+    }
+
+    private var aiBannerBackgroundColor: Color {
+        switch aiBannerState {
+        case .needsKey:
+            return navPurple
+        case .keySavedReasoningOff:
+            return .orange
+        case .ready:
+            return .green
+        }
+    }
+
+    private func syncAIBanner() {
+        aiBannerState = PickerAnthropicReasoner.bannerState
     }
 
     private var occasionSection: some View {

@@ -52,3 +52,17 @@ enum APIKeyStore {
         getKey() != nil
     }
 }
+
+/// User preference: master switch for calling Anthropic from the picker (debug + release).
+enum AIReasoningPreferences {
+    private static let enabledKey = "com.dressed.aiReasoningEnabled"
+
+    /// When never set, default `true` so existing installs keep prior behavior after upgrade.
+    static var isReasoningEnabled: Bool {
+        get {
+            if UserDefaults.standard.object(forKey: enabledKey) == nil { return true }
+            return UserDefaults.standard.bool(forKey: enabledKey)
+        }
+        set { UserDefaults.standard.set(newValue, forKey: enabledKey) }
+    }
+}
