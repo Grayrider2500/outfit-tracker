@@ -53,6 +53,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.dressed.app.BuildConfig
 import com.dressed.app.ui.WardrobeViewModel
 import com.dressed.app.ui.theme.WardrobeOnBarText
 import kotlinx.coroutines.launch
@@ -143,6 +144,19 @@ fun LandingScreen(
                         },
                         leadingIcon = { Icon(Icons.Outlined.FolderOpen, contentDescription = null) },
                     )
+                    if (BuildConfig.DEBUG) {
+                        DropdownMenuItem(
+                            text = { Text("Seed test data (100 items)") },
+                            onClick = {
+                                menuOpen = false
+                                scope.launch { snackbarHostState.showSnackbar("Seeding test data…") }
+                                viewModel.seedDebugTestData { message ->
+                                    scope.launch { snackbarHostState.showSnackbar(message) }
+                                }
+                            },
+                            leadingIcon = { Icon(Icons.Filled.AutoAwesome, contentDescription = null) },
+                        )
+                    }
                 }
             }
 

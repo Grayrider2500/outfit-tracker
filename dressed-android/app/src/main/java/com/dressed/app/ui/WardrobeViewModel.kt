@@ -6,10 +6,12 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.dressed.app.BuildConfig
 import com.dressed.app.DressedApplication
 import com.dressed.app.data.OutfitRepository
 import com.dressed.app.data.WardrobeRepository
 import com.dressed.app.data.backup.WardrobeBackupCodec
+import com.dressed.app.data.dev.TestDataSeeder
 import com.dressed.app.data.local.ImageStorage
 import com.dressed.app.data.local.WardrobeItemEntity
 import kotlinx.coroutines.Dispatchers
@@ -132,6 +134,28 @@ class WardrobeViewModel(
                     onDone(e.message ?: "Merge failed", null)
                 },
             )
+        }
+    }
+
+    /**
+     * Debug only: inserts ~100 seeded wardrobe items and 9 outfits when missing (stable `devseed-*` ids).
+     */
+    fun seedDebugTestData(onDone: (message: String) -> Unit) {
+        if (!BuildConfig.DEBUG) {
+            onDone("Not available in release builds.")
+            return
+        }
+        viewModelScope.launch {
+            val msg = runCatching {
+                val s = withContext(Dispatchers.IO) {
+                    TestDataSeeder.run(getApplication<DressedApplication>().database)
+                }
+                "Added ${s.itemsAdded} items, ${s.outfitsAdded} outfits. " +
+                    "Skipped ${s.itemsSkipped} items, ${s.outfitsSkipped} outfits (already in database)."
+            }.getOrElse { e ->
+                "Seed failed: ${e.message ?: "unknown error"}"
+            }
+            onDone(msg)
         }
     }
 

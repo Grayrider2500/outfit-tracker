@@ -163,6 +163,13 @@ struct LandingView: View {
             } label: {
                 Label("Restore from file…", systemImage: "square.and.arrow.down")
             }
+            #if DEBUG
+            Button {
+                seedDebugTestData()
+            } label: {
+                Label("Seed test data (100 items)", systemImage: "leaf.fill")
+            }
+            #endif
         } label: {
             Image(systemName: "ellipsis")
                 .font(.title3)
@@ -172,6 +179,22 @@ struct LandingView: View {
                 .overlay(Circle().stroke(Color.white.opacity(0.22), lineWidth: 1))
         }
     }
+
+    // MARK: - Debug seed
+
+    #if DEBUG
+    private func seedDebugTestData() {
+        toastMessage = "Seeding test data…"
+        do {
+            let summary = try DevTestDataSeeder.run(modelContext: modelContext)
+            toastMessage = summary
+        } catch {
+            toastMessage = nil
+            errorMessage = "Seed failed: \(error.localizedDescription)"
+            showingErrorAlert = true
+        }
+    }
+    #endif
 
     // MARK: - Backup / restore
 
