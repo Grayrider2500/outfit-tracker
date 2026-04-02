@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		E35F23172F7E973D0031C1BB /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = E38D87512F7724AF00B50986 /* ZIPFoundation */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		E38D87392F7724AE00B50986 /* Dressed iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Dressed iOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -23,6 +27,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E35F23172F7E973D0031C1BB /* ZIPFoundation in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -258,10 +263,10 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_AnthropicAPIKey = "";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Dressed uses the camera to photograph your clothing.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Dressed needs photo access to attach pictures of your clothing.";
 				INFOPLIST_KEY_NSPrincipalClass = "";
-				INFOPLIST_KEY_AnthropicAPIKey = "";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -306,10 +311,10 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_AnthropicAPIKey = "";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Dressed uses the camera to photograph your clothing.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Dressed needs photo access to attach pictures of your clothing.";
 				INFOPLIST_KEY_NSPrincipalClass = "";
-				INFOPLIST_KEY_AnthropicAPIKey = "";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;

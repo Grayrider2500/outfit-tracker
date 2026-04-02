@@ -16,6 +16,8 @@ struct PickerView: View {
     @State private var busy = false
     @State private var pageIndex = 0
     @State private var toastMessage: String?
+    @State private var showAISettings = false
+    @State private var aiConnected = false
 
     private let navPurple = Color(red: 0.42, green: 0.29, blue: 0.68)
 
@@ -29,6 +31,29 @@ struct PickerView: View {
                 occasionSection
                 tagSection(title: "Weather (optional)", pairs: WardrobePickerEngine.weatherTags, selection: $weatherIds)
                 tagSection(title: "Mood (optional)", pairs: WardrobePickerEngine.moodTags, selection: $moodIds)
+
+                // AI status banner
+                Button {
+                    showAISettings = true
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: aiConnected ? "brain" : "brain")
+                            .font(.subheadline)
+                        Text(aiConnected ? "AI reasoning enabled" : "Connect AI for smarter picks")
+                            .font(.caption.weight(.medium))
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption2)
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .fill(aiConnected ? Color.green.opacity(0.1) : navPurple.opacity(0.1))
+                    )
+                    .foregroundStyle(aiConnected ? .green : navPurple)
+                }
+                .buttonStyle(.plain)
 
                 Button {
                     generate()
@@ -85,6 +110,14 @@ struct PickerView: View {
         }
         .toolbarBackground(navPurple, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
+        .onAppear { aiConnected = PickerAnthropicReasoner.isAvailable }
+        .sheet(isPresented: $showAISettings) {
+            aiConnected = PickerAnthropicReasoner.isAvailable
+        } content: {
+            NavigationStack {
+                AISettingsSheet()
+            }
+        }
         .overlay(alignment: .bottom) {
             if let message = toastMessage {
                 Text(message)

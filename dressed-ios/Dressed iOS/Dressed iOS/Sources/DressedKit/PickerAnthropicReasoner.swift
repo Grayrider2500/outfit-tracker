@@ -1,16 +1,26 @@
 import Foundation
 
 /// Phase 3: optional Claude (Anthropic) explanations after rule-based picker results.
-/// Set `ANTHROPIC_API_KEY` in the scheme environment, or `AnthropicAPIKey` in the generated Info.plist (Xcode build setting).
+/// Users can connect their own API key via AI Settings (stored in Keychain).
+/// Developers can also set `ANTHROPIC_API_KEY` env var or `AnthropicAPIKey` in Info.plist.
 enum PickerAnthropicReasoner {
     private static let endpoint = URL(string: "https://api.anthropic.com/v1/messages")!
     private static let dayMs: Int64 = 86_400_000
     private static let model = "claude-3-5-haiku-20241022"
 
     static func resolvedApiKey() -> String {
+        // 1. User-stored key in Keychain (BYOK)
+        if let stored = APIKeyStore.getKey(), !stored.isEmpty { return stored }
+        // 2. Developer env variable (debug convenience)
         if let e = ProcessInfo.processInfo.environment["ANTHROPIC_API_KEY"], !e.isEmpty { return e }
+        // 3. Info.plist key (build-time config)
         if let s = Bundle.main.object(forInfoDictionaryKey: "AnthropicAPIKey") as? String, !s.isEmpty { return s }
         return ""
+    }
+
+    /// Whether AI reasoning is available (user has connected a key).
+    static var isAvailable: Bool {
+        !resolvedApiKey().isEmpty
     }
 
     static func enrichIfPossible(
@@ -20,7 +30,6 @@ enum PickerAnthropicReasoner {
         moodIds: Set<String>,
         nowEpochMs: Int64,
     ) async -> [WardrobePickerEngine.PickerSuggestion] {
-#if DEBUG
         let key = resolvedApiKey()
         guard !key.isEmpty, !suggestions.isEmpty else { return suggestions }
 
@@ -61,9 +70,6 @@ enum PickerAnthropicReasoner {
         } catch {
             return suggestions
         }
-#else
-        return suggestions
-#endif
     }
 
     private static func makeRequestJSON(

@@ -13,6 +13,27 @@ Wardrobe and outfit tracking in two forms: an **Android app** (Compose) and a **
 | **`CLAUDE.md`** | Map for AI assistants; points to `memory.md`, `restart.md`, `backlog.md`. |
 | **`memory.md` / `restart.md` / `backlog.md`** | Session notes and prioritized tasks (Android-focused). |
 
+## Features
+
+### Automatic Wardrobe Picker
+
+Dressed can intelligently suggest complete outfits based on your wardrobe, tags, wear history, and chosen occasion.
+
+**Features:**
+- Occasion-based suggestions (Casual, Work, Date Night, Formal, Gym, etc.)
+- Weather-aware filtering
+- Smart scoring for color harmony, variety, and wear history
+- "Surprise Me" mode for fresh combinations
+- One-tap "Save as outfit" or "Wear today"
+
+**AI Reasoning (Debug builds only):**  
+In development builds, each suggested outfit includes a friendly natural-language explanation powered by Claude.  
+In release builds, the AI feature is disabled for security reasons (to avoid shipping API keys in the app binary). The picker remains fully functional with strong rule-based suggestions.
+
+To enable AI reasoning during development:
+- Android: Add `anthropicApiKey=sk-ant-...` to `local.properties` (already gitignored)
+- iOS: Add `ANTHROPIC_API_KEY` to your scheme environment variables
+
 ## Live site (GitHub Pages)
 
 - **Web app (root):** https://grayrider2500.github.io/outfit-tracker/  
