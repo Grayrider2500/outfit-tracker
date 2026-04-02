@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -137,18 +136,54 @@ internal fun OutfitCollageCard(
     }
 }
 
+/** Display order for picker summaries (aligns with iOS collage / silhouette flow). */
+internal fun pickerDisplayOrder(category: String): Int = when (category) {
+    WardrobeCategories.TOPS, WardrobeCategories.DRESSES -> 0
+    WardrobeCategories.BOTTOMS -> 1
+    WardrobeCategories.OUTERWEAR -> 2
+    WardrobeCategories.SHOES -> 3
+    WardrobeCategories.ACCESSORIES -> 4
+    else -> 5
+}
+
+internal fun pickerItemsSortedForDisplay(items: List<WardrobeItemEntity>): List<WardrobeItemEntity> =
+    items.sortedWith(
+        compareBy(
+            { pickerDisplayOrder(it.category) },
+            { it.name.lowercase() },
+            { it.id },
+        ),
+    )
+
+/** Short line like "Navy Chinos + White Sneakers" for suggestion cards ([maxPieces] main items). */
+internal fun pickerMainPiecesSummaryLine(items: List<WardrobeItemEntity>, maxPieces: Int = 3): String {
+    val parts = pickerItemsSortedForDisplay(items).take(maxPieces).map { item ->
+        val c = item.colorName.trim()
+        val n = item.name.trim()
+        when {
+            c.isNotEmpty() && n.isNotEmpty() -> "$c $n"
+            n.isNotEmpty() -> n
+            c.isNotEmpty() -> c
+            else -> WardrobeCategories.label(item.category)
+        }
+    }
+    return parts.joinToString(" + ")
+}
+
 /** Picker / suggestion card (no [OutfitEntity] yet). Reuses the same collage layout as [OutfitCollageCard]. */
 @Composable
 internal fun SuggestionOutfitCollageCard(
     title: String,
     items: List<WardrobeItemEntity>,
     subtitle: String?,
+    onClick: () -> Unit,
 ) {
     val collageItems = items.take(4)
-    ElevatedCard(
+    Card(
+        onClick = onClick,
         shape = RoundedCornerShape(14.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
-        colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Column {
             Box(
@@ -195,12 +230,23 @@ internal fun SuggestionOutfitCollageCard(
                 }
             }
             Column(modifier = Modifier.padding(10.dp, 10.dp)) {
+                val summary = pickerMainPiecesSummaryLine(items)
+                if (summary.isNotBlank()) {
+                    Text(
+                        text = summary,
+                        style = MaterialTheme.typography.titleSmall,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.titleSmall,
+                    style = MaterialTheme.typography.labelLarge,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                     color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(top = if (summary.isNotBlank()) 4.dp else 0.dp),
                 )
                 if (!subtitle.isNullOrBlank()) {
                     Text(

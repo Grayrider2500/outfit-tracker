@@ -1,5 +1,7 @@
 package com.dressed.app.data.picker
 
+import android.util.Log
+import com.dressed.app.BuildConfig
 import com.dressed.app.data.local.WardrobeItemEntity
 import com.dressed.app.data.model.WardrobeCategories
 import kotlin.math.abs
@@ -11,6 +13,16 @@ import kotlin.random.Random
  * Rule-based outfit suggestions (Phase 2). Kept in sync with iOS `WardrobePickerEngine.swift`.
  */
 object WardrobePickerEngine {
+
+    /** One item per category per outfit (prevents two jackets / two bags from enrichment). */
+    private val SLOT_CAPPED_CATEGORIES: Set<String> = setOf(
+        WardrobeCategories.TOPS,
+        WardrobeCategories.BOTTOMS,
+        WardrobeCategories.DRESSES,
+        WardrobeCategories.SHOES,
+        WardrobeCategories.OUTERWEAR,
+        WardrobeCategories.ACCESSORIES,
+    )
 
     data class Occasion(
         val id: String,
@@ -55,8 +67,251 @@ object WardrobePickerEngine {
     private const val DAY_MS = 86400000L
     /** Secondary RNG stream; must fit signed `Long` (Fibonacci-hash style). */
     private const val XOR_MASK = 0x51F4A94F51F4A94FL
-    /** Bit pattern 0xC6BC279689FAD6A5 (ULong literal would overflow signed `const Long`). */
-    private const val XOR_MASK_ENRICH = -4128403253811843803L
+
+    private const val LOG_TAG = "WardrobePickerEng"
+
+    private fun pickerLog(message: String) {
+        if (BuildConfig.DEBUG) Log.d(LOG_TAG, message)
+    }
+
+    /** Minimum pieces after expand; target after enrich (both ≤ 5). */
+    private data class SamplerTier(val minPieces: Int, val enrichMin: Int)
+
+    /** Random complete outfits to score per sampler pass (not cross-products). */
+    private const val SAMPLER_TRIALS_STRICT = 72
+    private const val SAMPLER_TRIALS_STRICT_BOOST = 96
+    private const val SAMPLER_TRIALS_RELAXED = 56
+
+    private const val CAP_TB_MAIN = 22
+    private const val CAP_DRESS = 14
+    private const val CAP_SHOE = 14
+    private const val CAP_OUTER = 10
+    private const val CAP_ACC = 10
+    private const val CAP_BOOST_TB = 28
+    private const val CAP_BOOST_DRESS = 18
+    private const val CAP_BOOST_SHOE = 18
+
+    /**
+     * True iff some triple of items from the pool is a valid 3-piece outfit under the same rules
+     * as generation ([isValidDistinctPieces], [sizesCoherent], distinct ids, three items).
+     */
+    private fun poolSupportsThreePieceOutfit(
+        tops: List<WardrobeItemEntity>,
+        bottoms: List<WardrobeItemEntity>,
+        dresses: List<WardrobeItemEntity>,
+        shoes: List<WardrobeItemEntity>,
+        outer: List<WardrobeItemEntity>,
+        acc: List<WardrobeItemEntity>,
+        nowEpochMs: Long,
+    ): Boolean {
+        val capMain = 18
+        val capTert = 14
+
+        fun isValidThreePieceCombo(p: List<WardrobeItemEntity>): Boolean =
+            p.size == 3 &&
+                p.map { it.id }.toSet().size == 3 &&
+                isValidDistinctPieces(p) &&
+                sizesCoherent(p)
+
+        if (tops.isNotEmpty() && bottoms.isNotEmpty() && listOf(shoes, outer, acc).any { it.isNotEmpty() }) {
+            val tt = if (tops.size <= capMain) tops else tops.sortedBy { rotationKey(it, nowEpochMs) }.take(capMain)
+            val bb = if (bottoms.size <= capMain) bottoms else bottoms.sortedBy { rotationKey(it, nowEpochMs) }.take(capMain)
+            for (t in tt) {
+                for (b in bb) {
+                    for (bucket in listOf(shoes, outer, acc)) {
+                        if (bucket.isEmpty()) continue
+                        val slice = if (bucket.size <= capTert) bucket else bucket.sortedBy { rotationKey(it, nowEpochMs) }.take(capTert)
+                        for (x in slice) {
+                            if (isValidThreePieceCombo(listOf(t, b, x))) return true
+                        }
+                    }
+                }
+            }
+        }
+
+        val dressPairs = listOf(
+            shoes to outer,
+            shoes to acc,
+            outer to acc,
+        ).filter { it.first.isNotEmpty() && it.second.isNotEmpty() }
+        if (dresses.isNotEmpty() && dressPairs.isNotEmpty()) {
+            val dd = if (dresses.size <= capMain) dresses else dresses.sortedBy { rotationKey(it, nowEpochMs) }.take(capMain)
+            for (d in dd) {
+                for ((bucketA, bucketB) in dressPairs) {
+                    val aa = if (bucketA.size <= capTert) bucketA else bucketA.sortedBy { rotationKey(it, nowEpochMs) }.take(capTert)
+                    val bb = if (bucketB.size <= capTert) bucketB else bucketB.sortedBy { rotationKey(it, nowEpochMs) }.take(capTert)
+                    for (a in aa) {
+                        for (b in bb) {
+                            if (isValidThreePieceCombo(listOf(d, a, b))) return true
+                        }
+                    }
+                }
+            }
+        }
+
+        return false
+    }
+
+    /** Shoes first, then outerwear, then accessories; within each bucket by [rotationKey] (stable). */
+    private fun orderedFillCandidates(
+        shoes: List<WardrobeItemEntity>,
+        outer: List<WardrobeItemEntity>,
+        acc: List<WardrobeItemEntity>,
+        nowEpochMs: Long,
+    ): List<WardrobeItemEntity> {
+        fun rank(list: List<WardrobeItemEntity>): List<WardrobeItemEntity> =
+            list.sortedWith(
+                compareBy<WardrobeItemEntity>({ rotationKey(it, nowEpochMs) }).thenBy { it.id },
+            )
+        return rank(shoes) + rank(outer) + rank(acc)
+    }
+
+    private fun outfitSignature(pieces: List<WardrobeItemEntity>): String =
+        pieces.map { it.id }.sorted().joinToString(",")
+
+    private fun finalizeScoredOutfit(
+        raw: List<WardrobeItemEntity>,
+        tertiaryOrdered: List<WardrobeItemEntity>,
+        tier: SamplerTier,
+        occasion: Occasion,
+        tagTerms: Set<String>,
+        season: String,
+        weatherTagIds: Set<String>,
+        moodTagIds: Set<String>,
+        nowEpochMs: Long,
+    ): Pair<List<WardrobeItemEntity>, Double>? {
+        var pieces = raw.distinctBy { it.id }.toMutableList()
+        if (pieces.isEmpty()) return null
+        if (!isValidDistinctPieces(pieces)) return null
+        if (pieces.size < tier.minPieces) {
+            val expanded = expandIncompleteOutfit(
+                pieces,
+                tertiaryOrdered,
+                minPieces = tier.minPieces,
+            ) ?: return null
+            pieces = expanded.distinctBy { it.id }.toMutableList()
+        }
+        if (!isValidDistinctPieces(pieces)) return null
+        if (pieces.size < tier.minPieces || pieces.size > 5) return null
+        if (!sizesCoherent(pieces)) return null
+        enrichToTargetPieceCount(
+            pieces,
+            tertiaryOrdered,
+            minTarget = tier.enrichMin,
+            maxPieces = 5,
+        )
+        if (!isValidDistinctPieces(pieces)) return null
+        if (pieces.size < tier.minPieces || pieces.size > 5 || !sizesCoherent(pieces)) return null
+        val sc = scoreOutfit(
+            pieces,
+            occasion,
+            tagTerms,
+            season,
+            weatherTagIds,
+            moodTagIds,
+            nowEpochMs,
+        )
+        return pieces.toList() to sc
+    }
+
+    /**
+     * One stochastic outfit skeleton (2–5 items) before expand/enrich.
+     * Uses only capped pools passed in (already stratified).
+     */
+    private fun sampleOutfitRaw(
+        rt: List<WardrobeItemEntity>,
+        rb: List<WardrobeItemEntity>,
+        rd: List<WardrobeItemEntity>,
+        rsh: List<WardrobeItemEntity>,
+        row: List<WardrobeItemEntity>,
+        rac: List<WardrobeItemEntity>,
+        rnd: Random,
+        dressBias: Float,
+    ): List<WardrobeItemEntity>? {
+        val canDress = rd.isNotEmpty()
+        val canTb = rt.isNotEmpty() && rb.isNotEmpty()
+        val pickDress = when {
+            !canDress -> false
+            !canTb -> true
+            else -> rnd.nextFloat() < dressBias
+        }
+        if (pickDress) {
+            val out = mutableListOf(rd[rnd.nextInt(rd.size)])
+            if (rsh.isNotEmpty() && rnd.nextFloat() < 0.9f) {
+                val s = rsh[rnd.nextInt(rsh.size)]
+                if (canAddCategoryToOutfit(out, s.category)) out.add(s)
+            }
+            if (row.isNotEmpty() && rnd.nextFloat() < 0.48f) {
+                val o = row[rnd.nextInt(row.size)]
+                if (canAddCategoryToOutfit(out, o.category)) out.add(o)
+            }
+            if (rac.isNotEmpty() && rnd.nextFloat() < 0.4f) {
+                val a = rac[rnd.nextInt(rac.size)]
+                if (canAddCategoryToOutfit(out, a.category)) out.add(a)
+            }
+            return if (isValidDistinctPieces(out)) out else null
+        }
+        if (!canTb) return null
+        val out = mutableListOf(
+            rt[rnd.nextInt(rt.size)],
+            rb[rnd.nextInt(rb.size)],
+        )
+        if (rsh.isNotEmpty() && rnd.nextFloat() < 0.86f) {
+            val s = rsh[rnd.nextInt(rsh.size)]
+            if (canAddCategoryToOutfit(out, s.category)) out.add(s)
+        }
+        if (row.isNotEmpty() && rnd.nextFloat() < 0.44f) {
+            val o = row[rnd.nextInt(row.size)]
+            if (canAddCategoryToOutfit(out, o.category)) out.add(o)
+        }
+        if (rac.isNotEmpty() && rnd.nextFloat() < 0.38f) {
+            val a = rac[rnd.nextInt(rac.size)]
+            if (canAddCategoryToOutfit(out, a.category)) out.add(a)
+        }
+        return if (isValidDistinctPieces(out)) out else null
+    }
+
+    private fun runBoundedSampler(
+        rt: List<WardrobeItemEntity>,
+        rb: List<WardrobeItemEntity>,
+        rd: List<WardrobeItemEntity>,
+        rsh: List<WardrobeItemEntity>,
+        row: List<WardrobeItemEntity>,
+        rac: List<WardrobeItemEntity>,
+        tertiaryOrdered: List<WardrobeItemEntity>,
+        tier: SamplerTier,
+        trials: Int,
+        rnd: Random,
+        dressBias: Float,
+        occasion: Occasion,
+        tagTerms: Set<String>,
+        season: String,
+        weatherTagIds: Set<String>,
+        moodTagIds: Set<String>,
+        nowEpochMs: Long,
+    ): MutableList<Pair<List<WardrobeItemEntity>, Double>> {
+        val candidates = mutableListOf<Pair<List<WardrobeItemEntity>, Double>>()
+        val seen = mutableSetOf<String>()
+        repeat(trials) {
+            val raw = sampleOutfitRaw(rt, rb, rd, rsh, row, rac, rnd, dressBias) ?: return@repeat
+            val done = finalizeScoredOutfit(
+                raw,
+                tertiaryOrdered,
+                tier,
+                occasion,
+                tagTerms,
+                season,
+                weatherTagIds,
+                moodTagIds,
+                nowEpochMs,
+            ) ?: return@repeat
+            val sig = outfitSignature(done.first)
+            if (sig in seen) return@repeat
+            seen.add(sig)
+            candidates.add(done)
+        }
+        return candidates
+    }
 
     /** Mix user entropy so occasion/tags/time change shuffle and “Surprise me” rerolls actually diverge. */
     private fun blendPickerSeed(
@@ -124,7 +379,11 @@ object WardrobePickerEngine {
         val pool = allItems.filter { item ->
             item.seasons.isEmpty() || item.seasons.any { it.lowercase() in seasonPool }
         }
-        if (pool.size < 2) return emptyList()
+        pickerLog("stage=in season_filter pool=${pool.size} allItems=${allItems.size} occasion=$occasionId")
+        if (pool.size < 2) {
+            pickerLog("stage=exit early pool<2")
+            return emptyList()
+        }
 
         val blendedSeed = blendPickerSeed(seed, occasionId, weatherTagIds, moodTagIds, nowEpochMs)
         val byCat = pool.groupBy { it.category }
@@ -134,10 +393,11 @@ object WardrobePickerEngine {
         val shoes = byCat[WardrobeCategories.SHOES].orEmpty()
         val outer = byCat[WardrobeCategories.OUTERWEAR].orEmpty()
         val acc = byCat[WardrobeCategories.ACCESSORIES].orEmpty()
+        /** Built once: expand/enrich used to re-sort these pools on every candidate (very hot path). */
+        val tertiaryOrdered = orderedFillCandidates(shoes, outer, acc, nowEpochMs)
 
         val rnd = Random(blendedSeed)
         val rnd2 = Random(blendedSeed xor XOR_MASK)
-        val rndEnrich = Random(blendedSeed xor XOR_MASK_ENRICH)
 
         fun stratified(items: List<WardrobeItemEntity>, n: Int): List<WardrobeItemEntity> {
             if (items.size <= n) return items.shuffled(rnd)
@@ -149,63 +409,115 @@ object WardrobePickerEngine {
             return (fromFresh + fromRand).distinctBy { it.id }.take(n).shuffled(rnd)
         }
 
-        val rngTops = stratified(tops, 12)
-        val rngBottoms = stratified(bottoms, 12)
-        val rngDresses = stratified(dresses, 9)
-        val rngShoes = stratified(shoes, 9)
-        val rngOuter = stratified(outer, 7)
-        val rngAcc = stratified(acc, 7)
+        fun cappedPools(
+            tbCap: Int,
+            dressCap: Int,
+            shoeCap: Int,
+            outerCap: Int,
+            accCap: Int,
+        ): Array<List<WardrobeItemEntity>> = arrayOf(
+            stratified(tops, tbCap),
+            stratified(bottoms, tbCap),
+            stratified(dresses, dressCap),
+            stratified(shoes, shoeCap),
+            stratified(outer, outerCap),
+            stratified(acc, accCap),
+        )
 
-        val candidates = mutableListOf<Pair<List<WardrobeItemEntity>, Double>>()
+        var poolCaps = cappedPools(CAP_TB_MAIN, CAP_DRESS, CAP_SHOE, CAP_OUTER, CAP_ACC)
+        var rt = poolCaps[0]
+        var rb = poolCaps[1]
+        var rd = poolCaps[2]
+        var rsh = poolCaps[3]
+        var row = poolCaps[4]
+        var rac = poolCaps[5]
 
-        fun addCandidate(raw: List<WardrobeItemEntity>) {
-            var pieces = raw.distinctBy { it.id }.toMutableList()
-            if (pieces.isEmpty()) return
-            if (pieces.size < 2) {
-                val expanded = expandIncompleteOutfit(pieces, rngShoes, rngOuter, rngAcc, rnd) ?: return
-                pieces = expanded.distinctBy { it.id }.toMutableList()
-            }
-            if (pieces.size < 2 || pieces.size > 5) return
-            if (!sizesCoherent(pieces)) return
-            enrichToTargetPieceCount(pieces, rngShoes, rngOuter, rngAcc, rndEnrich, minTarget = 3, maxPieces = 5)
-            if (pieces.size < 2 || pieces.size > 5 || !sizesCoherent(pieces)) return
-            val sc = scoreOutfit(pieces, occasion, tagTerms, season, weatherTagIds, moodTagIds, nowEpochMs)
-            candidates.add(pieces.toList() to sc)
+        val threeFeasible = poolSupportsThreePieceOutfit(tops, bottoms, dresses, shoes, outer, acc, nowEpochMs)
+        pickerLog("stage=pool_three_feasible=$threeFeasible")
+
+        val dressBias = when (occasionId) {
+            "date_night", "formal" -> 0.44f
+            else -> 0.30f
         }
 
-        for (d in rngDresses) {
-            for (sh in listOf(null) + rngShoes) {
-                for (ac in listOf(null) + rngAcc) {
-                    val list = buildList {
-                        add(d)
-                        sh?.let { add(it) }
-                        ac?.let { add(it) }
-                    }
-                    addCandidate(list)
-                }
-            }
+        val strictTier = SamplerTier(minPieces = 3, enrichMin = 3)
+        val relaxedTier = SamplerTier(minPieces = 2, enrichMin = 2)
+
+        var candidates = runBoundedSampler(
+            rt, rb, rd, rsh, row, rac,
+            tertiaryOrdered,
+            strictTier,
+            SAMPLER_TRIALS_STRICT,
+            rnd,
+            dressBias,
+            occasion,
+            tagTerms,
+            season,
+            weatherTagIds,
+            moodTagIds,
+            nowEpochMs,
+        )
+        pickerLog("stage=sampler_strict count=${candidates.size}")
+
+        if (candidates.isEmpty() && threeFeasible) {
+            pickerLog("stage=sampler_strict_boost wider_pools")
+            poolCaps = cappedPools(CAP_BOOST_TB, CAP_BOOST_DRESS, CAP_BOOST_SHOE, 14, 12)
+            rt = poolCaps[0]
+            rb = poolCaps[1]
+            rd = poolCaps[2]
+            rsh = poolCaps[3]
+            row = poolCaps[4]
+            rac = poolCaps[5]
+            candidates = runBoundedSampler(
+                rt, rb, rd, rsh, row, rac,
+                tertiaryOrdered,
+                strictTier,
+                SAMPLER_TRIALS_STRICT_BOOST,
+                rnd,
+                dressBias,
+                occasion,
+                tagTerms,
+                season,
+                weatherTagIds,
+                moodTagIds,
+                nowEpochMs,
+            )
+            pickerLog("stage=sampler_strict_boost count=${candidates.size}")
         }
 
-        for (t in rngTops) {
-            for (b in rngBottoms) {
-                for (sh in listOf(null) + rngShoes) {
-                    for (ow in listOf(null) + rngOuter) {
-                        for (ac in listOf(null) + rngAcc) {
-                            val list = buildList {
-                                add(t)
-                                add(b)
-                                sh?.let { add(it) }
-                                ow?.let { add(it) }
-                                ac?.let { add(it) }
-                            }.take(5)
-                            addCandidate(list)
-                        }
-                    }
-                }
-            }
+        var usedRelaxedTier = false
+        if (candidates.isEmpty() && !threeFeasible) {
+            poolCaps = cappedPools(CAP_TB_MAIN, CAP_DRESS, CAP_SHOE, CAP_OUTER, CAP_ACC)
+            rt = poolCaps[0]
+            rb = poolCaps[1]
+            rd = poolCaps[2]
+            rsh = poolCaps[3]
+            row = poolCaps[4]
+            rac = poolCaps[5]
+            candidates = runBoundedSampler(
+                rt, rb, rd, rsh, row, rac,
+                tertiaryOrdered,
+                relaxedTier,
+                SAMPLER_TRIALS_RELAXED,
+                rnd,
+                dressBias,
+                occasion,
+                tagTerms,
+                season,
+                weatherTagIds,
+                moodTagIds,
+                nowEpochMs,
+            )
+            usedRelaxedTier = candidates.isNotEmpty()
+            pickerLog("stage=sampler_relaxed count=${candidates.size}")
+        } else if (candidates.isEmpty()) {
+            pickerLog("stage=strict_empty_despite_three_feasible")
         }
 
-        if (candidates.isEmpty()) return emptyList()
+        if (candidates.isEmpty()) {
+            pickerLog("stage=exit no_raw_candidates")
+            return emptyList()
+        }
 
         // One row per unique item set (keep best score) so duplicate loops don’t flood the shortlist.
         val sorted = candidates
@@ -213,75 +525,131 @@ object WardrobePickerEngine {
             .values
             .map { rows -> rows.maxBy { it.second } }
             .sortedByDescending { it.second }
+        pickerLog("stage=deduped_unique_sets count=${sorted.size}")
+
         val picked = mutableListOf<Pair<List<WardrobeItemEntity>, Double>>()
-        val similarityCap = 0.36
         for ((pair, sc) in sorted) {
-            if (picked.size >= maxOutfits * 12) break
+            if (picked.size >= maxOutfits * 24) break
             val ids = pair.map { it.id }.toSet()
             val tooSimilar = picked.any { prev ->
                 val o = prev.first.map { it.id }.toSet()
-                jaccard(ids, o) > similarityCap ||
-                    sameTopBottomSilhouette(pair, prev.first)
+                val shared = (ids intersect o).size
+                shared >= 2 || sameTopBottomSilhouette(pair, prev.first)
             }
             if (!tooSimilar) picked.add(pair to sc)
-            if (picked.size >= maxOutfits * 8) break
+            if (picked.size >= maxOutfits * 16) break
         }
+        pickerLog("stage=diversity_picked count=${picked.size} (reject_if_2plus_shared_items)")
 
         val topPick = if (picked.isNotEmpty()) picked else sorted.take(maxOutfits * 3)
-        val final = topPick
+        pickerLog("stage=top_pick source=${if (picked.isNotEmpty()) "picked" else "sorted_slice"} count=${topPick.size}")
+
+        val finalPairs = topPick
             .distinctBy { it.first.map { e -> e.id }.sorted().joinToString() }
             .sortedByDescending { it.second }
             .take(maxOutfits)
-            .mapIndexed { idx, (pieces, sc) ->
-                val ordered = pieces.sortedBy { displayOrder(it.category) }
-                PickerSuggestion(
-                    title = "${occasion.label} · Look ${idx + 1}",
-                    items = ordered,
-                    score = sc,
-                    reason = buildReason(ordered, weatherTagIds, moodTagIds, nowEpochMs),
-                )
-            }
+
+        val final = finalPairs.mapIndexed { idx, (pieces, sc) ->
+            val ordered = pieces.sortedBy { displayOrder(it.category) }
+            PickerSuggestion(
+                title = "${occasion.label} · Look ${idx + 1}",
+                items = ordered,
+                score = sc,
+                reason = formatSuggestionReason(
+                    ordered,
+                    weatherTagIds,
+                    moodTagIds,
+                    nowEpochMs,
+                    simplerLooks = ordered.size < 3,
+                ),
+            )
+        }
+        pickerLog("stage=final_outfits count=${final.size} relaxedTier=$usedRelaxedTier")
 
         return final.ifEmpty {
-            val fallbackRow = sorted.firstOrNull { it.first.size >= 2 }
-                ?: sorted.firstOrNull()?.let { (pieces, sc) ->
-                    val expanded = expandIncompleteOutfit(pieces, rngShoes, rngOuter, rngAcc, rndEnrich)
-                    if (expanded != null && expanded.size in 2..5 && sizesCoherent(expanded)) {
+            val minOk = if (usedRelaxedTier) 2 else 3
+            val fallbackRow = sorted.firstOrNull { it.first.size >= minOk && isValidDistinctPieces(it.first) }
+                ?: sorted.firstOrNull()?.let { (pieces, _) ->
+                    val expanded = expandIncompleteOutfit(
+                        pieces,
+                        tertiaryOrdered,
+                        minPieces = minOk,
+                    )
+                    if (expanded != null &&
+                        expanded.size in minOk..5 &&
+                        isValidDistinctPieces(expanded) &&
+                        sizesCoherent(expanded)
+                    ) {
                         expanded to scoreOutfit(expanded, occasion, tagTerms, season, weatherTagIds, moodTagIds, nowEpochMs)
                     } else null
                 }
-            if (fallbackRow == null) return@ifEmpty emptyList()
+            if (fallbackRow == null) {
+                pickerLog("stage=exit fallback_exhausted")
+                return@ifEmpty emptyList()
+            }
             val (pieces, sc) = fallbackRow
             val ordered = pieces.sortedBy { displayOrder(it.category) }
+            pickerLog("stage=fallback single size=${ordered.size}")
             listOf(
                 PickerSuggestion(
                     title = "${occasion.label} · Look 1",
                     items = ordered,
                     score = sc,
-                    reason = buildReason(ordered, weatherTagIds, moodTagIds, nowEpochMs),
+                    reason = formatSuggestionReason(
+                        ordered,
+                        weatherTagIds,
+                        moodTagIds,
+                        nowEpochMs,
+                        simplerLooks = ordered.size < 3,
+                    ),
                 ),
             )
         }
     }
 
-    /** Dress-only and similar incomplete combos get extra pieces so every outfit has 2–5 items when pool allows. */
+    /** Distinct item ids, one piece per capped slot, and no dress mixed with top/bottom. */
+    private fun isValidDistinctPieces(pieces: List<WardrobeItemEntity>): Boolean {
+        if (pieces.map { it.id }.toSet().size != pieces.size) return false
+        val counts = pieces.groupingBy { it.category }.eachCount()
+        for ((cat, n) in counts) {
+            if (cat in SLOT_CAPPED_CATEGORIES && n > 1) return false
+        }
+        val hasDress = pieces.any { it.category == WardrobeCategories.DRESSES }
+        val hasTop = pieces.any { it.category == WardrobeCategories.TOPS }
+        val hasBottom = pieces.any { it.category == WardrobeCategories.BOTTOMS }
+        if (hasDress && (hasTop || hasBottom)) return false
+        return true
+    }
+
+    private fun canAddCategoryToOutfit(pieces: List<WardrobeItemEntity>, category: String): Boolean {
+        if (category in SLOT_CAPPED_CATEGORIES && pieces.any { it.category == category }) return false
+        val hasDress = pieces.any { it.category == WardrobeCategories.DRESSES }
+        if (hasDress && (category == WardrobeCategories.TOPS || category == WardrobeCategories.BOTTOMS)) {
+            return false
+        }
+        val hasTop = pieces.any { it.category == WardrobeCategories.TOPS }
+        val hasBottom = pieces.any { it.category == WardrobeCategories.BOTTOMS }
+        if (category == WardrobeCategories.DRESSES && (hasTop || hasBottom)) return false
+        return true
+    }
+
+    /** Incomplete combos get extra pieces until at least [minPieces] items when pool allows. */
     private fun expandIncompleteOutfit(
         pieces: List<WardrobeItemEntity>,
-        shoes: List<WardrobeItemEntity>,
-        outer: List<WardrobeItemEntity>,
-        acc: List<WardrobeItemEntity>,
-        rnd: Random,
+        tertiaryOrdered: List<WardrobeItemEntity>,
+        minPieces: Int = 3,
     ): List<WardrobeItemEntity>? {
         if (pieces.isEmpty()) return null
         val out = pieces.distinctBy { it.id }.toMutableList()
         val used = out.map { it.id }.toMutableSet()
-        while (out.size < 2) {
-            val extras = (shoes + outer + acc).filter { it.id !in used }.shuffled(rnd)
+        while (out.size < minPieces) {
+            val extras = tertiaryOrdered
+                .filter { it.id !in used && canAddCategoryToOutfit(out, it.category) }
             var added = false
             for (pick in extras) {
                 out.add(pick)
                 used.add(pick.id)
-                if (sizesCoherent(out)) {
+                if (sizesCoherent(out) && isValidDistinctPieces(out)) {
                     added = true
                     break
                 }
@@ -290,27 +658,25 @@ object WardrobePickerEngine {
             }
             if (!added) break
         }
-        return if (out.size >= 2) out.take(5) else null
+        return if (out.size >= minPieces && isValidDistinctPieces(out)) out.take(5) else null
     }
 
     /** Adds shoes / outer / accessories until at least [minTarget] pieces (when pool allows), max [maxPieces]. */
     private fun enrichToTargetPieceCount(
         pieces: MutableList<WardrobeItemEntity>,
-        shoes: List<WardrobeItemEntity>,
-        outer: List<WardrobeItemEntity>,
-        acc: List<WardrobeItemEntity>,
-        rnd: Random,
+        tertiaryOrdered: List<WardrobeItemEntity>,
         minTarget: Int,
         maxPieces: Int,
     ) {
         val used = pieces.map { it.id }.toMutableSet()
         while (pieces.size < minTarget && pieces.size < maxPieces) {
-            val extras = (shoes + outer + acc).filter { it.id !in used }.shuffled(rnd)
+            val extras = tertiaryOrdered
+                .filter { it.id !in used && canAddCategoryToOutfit(pieces, it.category) }
             var added = false
             for (pick in extras) {
                 pieces.add(pick)
                 used.add(pick.id)
-                if (sizesCoherent(pieces)) {
+                if (sizesCoherent(pieces) && isValidDistinctPieces(pieces)) {
                     added = true
                     break
                 }
@@ -347,17 +713,26 @@ object WardrobePickerEngine {
         else -> 5
     }
 
-    private fun jaccard(a: Set<String>, b: Set<String>): Double {
-        if (a.isEmpty() && b.isEmpty()) return 0.0
-        val inter = (a intersect b).size
-        val uni = (a union b).size
-        return inter.toDouble() / uni.toDouble()
+    private fun sizesCoherent(pieces: List<WardrobeItemEntity>): Boolean {
+        val labeled = pieces.filter { it.sizeLabel.trim().isNotEmpty() }
+        if (labeled.size < 2) return true
+        val distinct = labeled.map { it.sizeLabel.trim().uppercase() }.toSet()
+        return distinct.size <= 1
     }
 
-    private fun sizesCoherent(pieces: List<WardrobeItemEntity>): Boolean {
-        val sizes = pieces.map { it.sizeLabel.trim() }.filter { it.isNotEmpty() }
-            .map { it.uppercase() }.toSet()
-        return sizes.size <= 1
+    private fun formatSuggestionReason(
+        pieces: List<WardrobeItemEntity>,
+        weatherTagIds: Set<String>,
+        moodTagIds: Set<String>,
+        nowEpochMs: Long,
+        simplerLooks: Boolean,
+    ): String {
+        val base = buildReason(pieces, weatherTagIds, moodTagIds, nowEpochMs)
+        return if (simplerLooks) {
+            "Limited wardrobe - showing simpler looks · $base"
+        } else {
+            base
+        }
     }
 
     private fun scoreOutfit(

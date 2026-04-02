@@ -15,8 +15,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Checkroom
@@ -113,65 +115,22 @@ fun LandingScreen(
                 .background(gradient)
                 .statusBarsPadding(),
         ) {
-            Box(Modifier.align(Alignment.TopEnd).padding(end = 16.dp, top = 8.dp)) {
-                IconButton(
-                    onClick = { menuOpen = true },
-                    colors = IconButtonDefaults.iconButtonColors(
-                        contentColor = WardrobeOnBarText.copy(alpha = 0.92f),
-                    ),
-                    modifier = Modifier
-                        .background(Color.White.copy(alpha = 0.12f), CircleShape),
-                ) {
-                    Icon(Icons.Filled.MoreVert, contentDescription = "Menu")
-                }
-                DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                    DropdownMenuItem(
-                        text = { Text("Backup to file…") },
-                        onClick = {
-                            menuOpen = false
-                            val day = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
-                            createBackupLauncher.launch("dressed-backup-$day.zip")
-                        },
-                        leadingIcon = { Icon(Icons.Outlined.Save, contentDescription = null) },
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Restore from file…") },
-                        onClick = {
-                            menuOpen = false
-                            openBackupLauncher.launch(
-                                arrayOf("application/zip", "application/json", "application/*", "*/*"),
-                            )
-                        },
-                        leadingIcon = { Icon(Icons.Outlined.FolderOpen, contentDescription = null) },
-                    )
-                    if (BuildConfig.DEBUG) {
-                        DropdownMenuItem(
-                            text = { Text("Seed test data (100 items)") },
-                            onClick = {
-                                menuOpen = false
-                                scope.launch { snackbarHostState.showSnackbar("Seeding test data…") }
-                                viewModel.seedDebugTestData { message ->
-                                    scope.launch { snackbarHostState.showSnackbar(message) }
-                                }
-                            },
-                            leadingIcon = { Icon(Icons.Filled.AutoAwesome, contentDescription = null) },
-                        )
-                    }
-                }
-            }
-
+            // Scrollable hub first; overflow menu after so it stays on top for hit-testing (column is full-width).
             Column(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 32.dp),
+                    .align(Alignment.TopCenter)
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 32.dp)
+                    .padding(bottom = 24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Spacer(Modifier.height(48.dp))
+                Spacer(Modifier.height(32.dp))
                 Surface(
                     shape = RoundedCornerShape(40.dp),
                     color = Color(0x409664FF),
                     border = BorderStroke(1.dp, Color(0x66B48CFF)),
-                    modifier = Modifier.padding(top = 24.dp),
+                    modifier = Modifier.padding(top = 16.dp),
                 ) {
                     Box(
                         modifier = Modifier.padding(32.dp),
@@ -187,7 +146,7 @@ fun LandingScreen(
                     fontWeight = FontWeight.Normal,
                     color = WardrobeOnBarText,
                     letterSpacing = 2.sp,
-                    modifier = Modifier.padding(top = 24.dp),
+                    modifier = Modifier.padding(top = 16.dp),
                 )
                 Text(
                     "YOUR PERSONAL WARDROBE",
@@ -195,14 +154,14 @@ fun LandingScreen(
                     color = WardrobeOnBarText.copy(alpha = 0.55f),
                     letterSpacing = 3.sp,
                 )
-                Spacer(Modifier.height(28.dp))
+                Spacer(Modifier.height(20.dp))
                 Box(
                     modifier = Modifier
                         .height(1.dp)
                         .fillMaxWidth(0.12f)
                         .background(WardrobeOnBarText.copy(alpha = 0.2f)),
                 )
-                Spacer(Modifier.height(28.dp))
+                Spacer(Modifier.height(20.dp))
 
                 HubNavButton(
                     mainLabel = "My Wardrobe",
@@ -236,14 +195,61 @@ fun LandingScreen(
                     icon = Icons.Filled.Explore,
                 )
 
-                Spacer(modifier = Modifier.weight(1f))
+                Spacer(Modifier.height(28.dp))
                 Text(
                     "DRESSED · PERSONAL",
                     style = MaterialTheme.typography.labelSmall,
                     color = WardrobeOnBarText.copy(alpha = 0.3f),
                     letterSpacing = 2.sp,
-                    modifier = Modifier.padding(bottom = 40.dp),
+                    modifier = Modifier.padding(bottom = 8.dp),
                 )
+            }
+
+            Box(Modifier.align(Alignment.TopEnd).padding(end = 16.dp, top = 8.dp)) {
+                IconButton(
+                    onClick = { menuOpen = true },
+                    colors = IconButtonDefaults.iconButtonColors(
+                        contentColor = WardrobeOnBarText.copy(alpha = 0.92f),
+                    ),
+                    modifier = Modifier
+                        .background(Color.White.copy(alpha = 0.12f), CircleShape),
+                ) {
+                    Icon(Icons.Filled.MoreVert, contentDescription = "Menu")
+                }
+                DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                    DropdownMenuItem(
+                        text = { Text("Backup to file…") },
+                        onClick = {
+                            menuOpen = false
+                            val day = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
+                            createBackupLauncher.launch("dressed-backup-$day.zip")
+                        },
+                        leadingIcon = { Icon(Icons.Outlined.Save, contentDescription = null) },
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Restore from file…") },
+                        onClick = {
+                            menuOpen = false
+                            openBackupLauncher.launch(
+                                arrayOf("application/zip", "application/json", "application/*", "*/*"),
+                            )
+                        },
+                        leadingIcon = { Icon(Icons.Outlined.FolderOpen, contentDescription = null) },
+                    )
+                    if (BuildConfig.DEBUG) {
+                        DropdownMenuItem(
+                            text = { Text("Seed professional closet test data") },
+                            onClick = {
+                                menuOpen = false
+                                scope.launch { snackbarHostState.showSnackbar("Seeding test data…") }
+                                viewModel.seedDebugTestData { message ->
+                                    scope.launch { snackbarHostState.showSnackbar(message) }
+                                }
+                            },
+                            leadingIcon = { Icon(Icons.Filled.AutoAwesome, contentDescription = null) },
+                        )
+                    }
+                }
             }
         }
     }

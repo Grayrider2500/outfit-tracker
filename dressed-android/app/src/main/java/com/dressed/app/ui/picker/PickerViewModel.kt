@@ -16,10 +16,12 @@ import com.dressed.app.data.WardrobeRepository
 import com.dressed.app.data.local.OutfitEntity
 import com.dressed.app.data.picker.WardrobePickerEngine
 import com.dressed.app.data.picker.WardrobePickerEngine.PickerSuggestion
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.UUID
@@ -59,8 +61,10 @@ class PickerViewModel(
     }
 
     fun generate(occasionId: String, weatherTagIds: Set<String>, moodTagIds: Set<String>) {
+        if (_busy.value) return
+        _busy.value = true
+        _suggestions.value = emptyList()
         viewModelScope.launch {
-            _busy.value = true
             try {
                 val items = wardrobeRepository.getAllSnapshot()
                 val seed = System.nanoTime() xor System.currentTimeMillis() xor occasionId.hashCode().toLong()
@@ -73,16 +77,16 @@ class PickerViewModel(
                 val moodLabels = moodTagIds.mapNotNull { mid ->
                     WardrobePickerEngine.MOOD_TAGS.find { it.first == mid }?.second
                 }
-                val base = WardrobePickerEngine.suggest(
-                    allItems = items,
-                    occasionId = occasionId,
-                    weatherTagIds = weatherTagIds,
-                    moodTagIds = moodTagIds,
-                    seed = seed,
-                    maxOutfits = 3,
-                    nowEpochMs = now,
-                )
-                _suggestions.value =
+                val result = withContext(Dispatchers.Default) {
+                    val base = WardrobePickerEngine.suggest(
+                        allItems = items,
+                        occasionId = occasionId,
+                        weatherTagIds = weatherTagIds,
+                        moodTagIds = moodTagIds,
+                        seed = seed,
+                        maxOutfits = 3,
+                        nowEpochMs = now,
+                    )
                     if (!BuildConfig.ENABLE_AI_REASONING) {
                         base
                     } else {
@@ -95,6 +99,8 @@ class PickerViewModel(
                             nowEpochMs = now,
                         )
                     }
+                }
+                _suggestions.value = result
             } finally {
                 _busy.value = false
             }

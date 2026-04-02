@@ -138,7 +138,7 @@ class WardrobeViewModel(
     }
 
     /**
-     * Debug only: inserts ~100 seeded wardrobe items and 9 outfits when missing (stable `devseed-*` ids).
+     * Debug only: inserts a fixed professional-closet dataset and 9 outfits when missing.
      */
     fun seedDebugTestData(onDone: (message: String) -> Unit) {
         if (!BuildConfig.DEBUG) {
