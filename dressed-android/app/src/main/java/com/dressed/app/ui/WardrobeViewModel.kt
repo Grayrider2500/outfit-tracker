@@ -14,6 +14,7 @@ import com.dressed.app.data.local.ImageStorage
 import com.dressed.app.data.local.WardrobeItemEntity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.UUID
@@ -27,6 +28,12 @@ class WardrobeViewModel(
     val items: Flow<List<WardrobeItemEntity>> = repository.observeAll()
 
     fun observeItem(id: String): Flow<WardrobeItemEntity?> = repository.observeById(id)
+
+    /** Number of saved outfits that include this wardrobe item. */
+    fun observeOutfitCountForItem(itemId: String): Flow<Int> =
+        outfitRepository.observeAll().map { outfits ->
+            outfits.count { outfit -> itemId in outfit.itemIds }
+        }
 
     fun addItem(
         name: String,

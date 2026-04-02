@@ -58,7 +58,7 @@ class PickerViewModel(
                     nowEpochMs = now,
                 )
                 _suggestions.value =
-                    if (BuildConfig.ANTHROPIC_API_KEY.isBlank()) {
+                    if (!BuildConfig.ENABLE_AI_REASONING || BuildConfig.ANTHROPIC_API_KEY.isBlank()) {
                         base
                     } else {
                         PickerAnthropicReasoner.enrichReasons(

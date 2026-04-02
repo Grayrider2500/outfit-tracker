@@ -59,6 +59,8 @@ fun ItemDetailScreen(
     onDeleted: () -> Unit,
 ) {
     val item by viewModel.observeItem(itemId).collectAsStateWithLifecycle(initialValue = null)
+    val outfitCount by viewModel.observeOutfitCountForItem(itemId)
+        .collectAsStateWithLifecycle(initialValue = 0)
 
     var sawItem by remember { mutableStateOf(false) }
     LaunchedEffect(item) {
@@ -213,7 +215,7 @@ fun ItemDetailScreen(
                     horizontalArrangement = Arrangement.SpaceEvenly,
                 ) {
                     StatBlock(value = "${current.wornCount}", label = "Times Worn")
-                    StatBlock(value = "0", label = "Outfits")
+                    StatBlock(value = "$outfitCount", label = "Outfits")
                 }
 
                 Spacer(Modifier.height(24.dp))

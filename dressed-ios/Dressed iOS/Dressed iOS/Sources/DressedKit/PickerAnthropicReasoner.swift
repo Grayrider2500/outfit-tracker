@@ -20,6 +20,7 @@ enum PickerAnthropicReasoner {
         moodIds: Set<String>,
         nowEpochMs: Int64,
     ) async -> [WardrobePickerEngine.PickerSuggestion] {
+#if DEBUG
         let key = resolvedApiKey()
         guard !key.isEmpty, !suggestions.isEmpty else { return suggestions }
 
@@ -60,6 +61,9 @@ enum PickerAnthropicReasoner {
         } catch {
             return suggestions
         }
+#else
+        return suggestions
+#endif
     }
 
     private static func makeRequestJSON(

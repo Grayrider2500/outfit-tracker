@@ -13,23 +13,26 @@ android {
     namespace = "com.dressed.app"
     compileSdk = 36
 
+    val anthropicApiKeyForBuildConfig = run {
+        val props = Properties()
+        val f = rootProject.file("local.properties")
+        if (f.exists()) {
+            f.inputStream().use { stream -> props.load(stream) }
+        }
+        props.getProperty("anthropicApiKey", "").orEmpty()
+            .replace("\\", "\\\\")
+            .replace("\"", "\\\"")
+    }
+
     defaultConfig {
         applicationId = "com.crossmountproducts.dressed"
         minSdk = 23
         targetSdk = 36
         versionCode = 4
         versionName = "1.1.0"
-        val anthropicKey = run {
-            val props = Properties()
-            val f = rootProject.file("local.properties")
-            if (f.exists()) {
-                f.inputStream().use { stream -> props.load(stream) }
-            }
-            props.getProperty("anthropicApiKey", "").orEmpty()
-                .replace("\\", "\\\\")
-                .replace("\"", "\\\"")
-        }
-        buildConfigField("String", "ANTHROPIC_API_KEY", "\"$anthropicKey\"")
+        // Release must not embed keys or enable cloud reasoning (Codex review).
+        buildConfigField("boolean", "ENABLE_AI_REASONING", "false")
+        buildConfigField("String", "ANTHROPIC_API_KEY", "\"\"")
     }
 
     signingConfigs {
@@ -42,6 +45,10 @@ android {
     }
 
     buildTypes {
+        debug {
+            buildConfigField("boolean", "ENABLE_AI_REASONING", "true")
+            buildConfigField("String", "ANTHROPIC_API_KEY", "\"$anthropicApiKeyForBuildConfig\"")
+        }
         release {
             isMinifyEnabled = false
             signingConfig = signingConfigs.getByName("release")
