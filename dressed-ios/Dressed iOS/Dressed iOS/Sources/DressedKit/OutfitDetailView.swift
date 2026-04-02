@@ -1,6 +1,5 @@
 import SwiftData
 import SwiftUI
-import UIKit
 
 /// Read-only outfit detail: hero collage + full piece list (including missing ids after restore).
 struct OutfitDetailView: View {
@@ -187,15 +186,11 @@ struct OutfitDetailView: View {
     private func heroCell(item: WardrobeItem?) -> some View {
         Group {
             if let item {
-                if let path = item.photoPath, FileManager.default.fileExists(atPath: path),
-                   let ui = UIImage(contentsOfFile: path) {
-                    Image(uiImage: ui)
-                        .resizable()
-                        .scaledToFill()
-                } else {
-                    Text(WardrobeCatalog.emoji(forCategoryKey: item.category))
-                        .font(.system(size: 28))
-                }
+                CachedLocalPhotoImage(
+                    photoPath: item.photoPath,
+                    categoryKey: item.category,
+                    emojiSize: 28,
+                )
             } else {
                 Color(.secondarySystemGroupedBackground).opacity(0.55)
             }
@@ -211,15 +206,11 @@ struct OutfitDetailView: View {
             ZStack {
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
                     .fill(Color(.secondarySystemGroupedBackground))
-                if let path = item.photoPath, FileManager.default.fileExists(atPath: path),
-                   let ui = UIImage(contentsOfFile: path) {
-                    Image(uiImage: ui)
-                        .resizable()
-                        .scaledToFill()
-                } else {
-                    Text(WardrobeCatalog.emoji(forCategoryKey: item.category))
-                        .font(.title2)
-                }
+                CachedLocalPhotoImage(
+                    photoPath: item.photoPath,
+                    categoryKey: item.category,
+                    emojiSize: 26,
+                )
             }
             .frame(width: 52, height: 52)
             .clipped()

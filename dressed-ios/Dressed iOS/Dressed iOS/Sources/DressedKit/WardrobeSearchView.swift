@@ -1,6 +1,5 @@
 import SwiftData
 import SwiftUI
-import UIKit
 
 /// Search + filters + sort (matches Android `WardrobeSearchScreen`).
 struct WardrobeSearchView: View {
@@ -200,15 +199,11 @@ private struct WardrobeSearchResultRow: View {
             ZStack {
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
                     .fill(Color(.secondarySystemGroupedBackground))
-                if let path = item.photoPath, FileManager.default.fileExists(atPath: path),
-                   let ui = UIImage(contentsOfFile: path) {
-                    Image(uiImage: ui)
-                        .resizable()
-                        .scaledToFill()
-                } else {
-                    Text(WardrobeCatalog.emoji(forCategoryKey: item.category))
-                        .font(.system(size: 28))
-                }
+                CachedLocalPhotoImage(
+                    photoPath: item.photoPath,
+                    categoryKey: item.category,
+                    emojiSize: 28,
+                )
             }
             .frame(width: 52, height: 52)
             .clipped()

@@ -1,6 +1,5 @@
 import SwiftData
 import SwiftUI
-import UIKit
 
 /// Wardrobe grid + category chips + total count (matches Android `WardrobeListScreen`).
 struct WardrobeListView: View {
@@ -161,15 +160,11 @@ private struct WardrobeItemCard: View {
             ZStack {
                 Rectangle()
                     .fill(Color(.secondarySystemGroupedBackground))
-                if let path = item.photoPath, FileManager.default.fileExists(atPath: path),
-                   let ui = UIImage(contentsOfFile: path) {
-                    Image(uiImage: ui)
-                        .resizable()
-                        .scaledToFill()
-                } else {
-                    Text(WardrobeCatalog.emoji(forCategoryKey: item.category))
-                        .font(.system(size: 44))
-                }
+                CachedLocalPhotoImage(
+                    photoPath: item.photoPath,
+                    categoryKey: item.category,
+                    emojiSize: 44,
+                )
             }
             // Floating-point ratio required — `3 / 4` is integer 0 in Swift and collapses the image.
             .aspectRatio(3.0 / 4.0, contentMode: .fit)
