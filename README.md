@@ -2,6 +2,16 @@
 
 Wardrobe and outfit tracking in two forms: an **Android app** (Compose) and a **single-file web** prototype, plus an HTML **mockup** for design review.
 
+## What's New in v1.1
+
+- **Automatic Wardrobe Picker** — Intelligent outfit suggestions based on occasion, weather, wear history, and color harmony. Includes "Surprise Me" mode and one-tap Save or Wear Today.
+- **AI-Powered Reasoning** (debug builds) — Claude generates friendly natural-language explanations for each suggested outfit.
+- **Full Edit Support** — Edit individual clothing items and entire outfits directly in the app.
+- **Smarter Restore** — Replace-all is now safer (old photos are only deleted after successful restore).
+- **Improved Performance** — Faster and smoother iOS scrolling with cached image loading.
+- **Better Data Integrity** — Deleting items now cleanly removes references from outfits.
+- **Security & Maintenance** — Firebase config is properly gitignored; version bumped to 1.1.0.
+
 ## Repository layout
 
 | Path | Description |
