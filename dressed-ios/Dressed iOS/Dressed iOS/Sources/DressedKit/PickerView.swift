@@ -1,7 +1,7 @@
 import SwiftData
 import SwiftUI
 
-/// Occasion + tag chips, rule-based suggestions, swipeable collage cards (Phase 1 picker).
+/// Occasion + tag chips, rule-based suggestions, stacked collage cards (Phase 1 picker).
 struct PickerView: View {
     var onNavigateHome: () -> Void
 
@@ -14,7 +14,6 @@ struct PickerView: View {
     @State private var moodIds: Set<String> = []
     @State private var suggestions: [WardrobePickerEngine.PickerSuggestion] = []
     @State private var busy = false
-    @State private var pageIndex = 0
     @State private var toastMessage: String?
     @State private var showAISettings = false
     @State private var aiBannerState: PickerAIReasoner.BannerState = .needsKey
@@ -90,7 +89,7 @@ struct PickerView: View {
                             .foregroundStyle(.secondary)
                     }
                 } else if !suggestions.isEmpty {
-                    resultsPager
+                    resultsList
                     if showInsufficientVarietyHint, suggestions.count < 3 {
                         Text("Not enough varied items for a full outfit – try adding more pieces.")
                             .font(.caption)
@@ -301,51 +300,47 @@ struct PickerView: View {
         .buttonStyle(.plain)
     }
 
-    private var resultsPager: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Suggestions")
-                .font(.subheadline.weight(.semibold))
+    private var resultsList: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Suggestions")
+                    .font(.subheadline.weight(.semibold))
+                Text(suggestions.count == 1 ? "1 look" : "\(suggestions.count) looks")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
 
-            TabView(selection: $pageIndex) {
-                ForEach(Array(suggestions.enumerated()), id: \.offset) { idx, sug in
-                    VStack(spacing: 12) {
-                        SuggestionOutfitCollageCard(suggestion: sug) {
-                            suggestionForDetail = sug
-                        }
-                        HStack(spacing: 12) {
-                            Button {
-                                saveAsNewOutfit(suggestion: sug)
-                            } label: {
-                                Label("Save as outfit", systemImage: "square.and.arrow.down")
-                                    .font(.subheadline.weight(.semibold))
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 12)
-                                    .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                            }
-                            .buttonStyle(.plain)
-
-                            Button {
-                                wearToday(suggestion: sug)
-                            } label: {
-                                Label("Wear today", systemImage: "checkmark.circle.fill")
-                                    .font(.subheadline.weight(.semibold))
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 12)
-                                    .background(navPurple, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                                    .foregroundStyle(.white)
-                            }
-                            .buttonStyle(.plain)
-                        }
+            ForEach(suggestions) { sug in
+                VStack(spacing: 12) {
+                    SuggestionOutfitCollageCard(suggestion: sug) {
+                        suggestionForDetail = sug
                     }
-                    .tag(idx)
+                    HStack(spacing: 12) {
+                        Button {
+                            saveAsNewOutfit(suggestion: sug)
+                        } label: {
+                            Label("Save as outfit", systemImage: "square.and.arrow.down")
+                                .font(.subheadline.weight(.semibold))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        }
+                        .buttonStyle(.plain)
+
+                        Button {
+                            wearToday(suggestion: sug)
+                        } label: {
+                            Label("Wear today", systemImage: "checkmark.circle.fill")
+                                .font(.subheadline.weight(.semibold))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .background(navPurple, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                                .foregroundStyle(.white)
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
             }
-            .tabViewStyle(.page(indexDisplayMode: .automatic))
-            .frame(height: 460)
-
-            Text("Swipe for more looks")
-                .font(.caption)
-                .foregroundStyle(.secondary)
         }
     }
 
@@ -354,7 +349,6 @@ struct PickerView: View {
         busy = true
         suggestions = []
         showInsufficientVarietyHint = false
-        pageIndex = 0
         let occasionSnapshot = occasionId
         let weatherSnapshot = weatherIds
         let moodSnapshot = moodIds

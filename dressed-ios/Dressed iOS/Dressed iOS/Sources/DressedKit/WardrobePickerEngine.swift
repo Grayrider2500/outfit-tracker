@@ -42,8 +42,8 @@ enum WardrobePickerEngine {
     }
 
     private static let xorMaskPick: Int64 = 0x6C07896543210AB0
-    /// Inner-loop tries per slot; higher when cross-outfit rank penalties reject more candidates.
-    private static let pickerAttemptsPerOutfitSlot = 64
+    /// Inner-loop tries per slot (overlap/silhouette filters need headroom after rank penalties).
+    private static let pickerAttemptsPerOutfitSlot = 96
     private static let dayMs: Int64 = 86_400_000
 
     static func currentSeasonKey(month1Based: Int) -> String {
@@ -280,11 +280,23 @@ enum WardrobePickerEngine {
         return elite[idx]
     }
 
-    private static func overlapAtLeastTwoWithAnyPrior(_ ids: Set<String>, _ prior: [[WardrobeItem]]) -> Bool {
+    /// Reject near-duplicate outfits (≥3 shared pieces). Two shared items alone is too strict for coherent
+    /// closets where the same shoes/belt/bag legitimately complete different top+bottom looks.
+    private static func overlapAtLeastThreeWithAnyPrior(_ ids: Set<String>, _ prior: [[WardrobeItem]]) -> Bool {
         for p in prior {
-            if ids.intersection(Set(p.map(\.id))).count >= 2 { return true }
+            if ids.intersection(Set(p.map(\.id))).count >= 3 { return true }
         }
         return false
+    }
+
+    /// Same shirt(s) + bottom(s) as a prior look (Android `sameTopBottomSilhouette`); still block lazy repeats.
+    private static func sameTopBottomSilhouette(_ a: [WardrobeItem], _ b: [WardrobeItem]) -> Bool {
+        let ta = Set(a.filter { $0.category == WardrobeCatalog.tops }.map(\.id))
+        let ba = Set(a.filter { $0.category == WardrobeCatalog.bottoms }.map(\.id))
+        let tb = Set(b.filter { $0.category == WardrobeCatalog.tops }.map(\.id))
+        let bb = Set(b.filter { $0.category == WardrobeCatalog.bottoms }.map(\.id))
+        if ta.isEmpty || ba.isEmpty || tb.isEmpty || bb.isEmpty { return false }
+        return ta == tb && ba == bb
     }
 
     private static func piecesHaveDistinctIds(_ pieces: [WardrobeItem]) -> Bool {
@@ -529,6 +541,7 @@ enum WardrobePickerEngine {
             var slotGen = SeededGenerator(seed: streamSeed(blended: blended, userSeed: seed, slot: slot, salt: xorMaskPick))
             var outfit: [WardrobeItem]?
             var rejOverlap = 0
+            var rejSilhouette = 0
             var rejDupKey = 0
             var rejSanitize = 0
             var rejPostSanDup = 0
@@ -592,8 +605,12 @@ enum WardrobePickerEngine {
                     continue
                 }
                 let idSet = Set(sanIds)
-                if overlapAtLeastTwoWithAnyPrior(idSet, builtPieces) {
+                if overlapAtLeastThreeWithAnyPrior(idSet, builtPieces) {
                     rejOverlap += 1
+                    continue
+                }
+                if builtPieces.contains(where: { sameTopBottomSilhouette(sanitized, $0) }) {
+                    rejSilhouette += 1
                     continue
                 }
                 outfit = sanitized
@@ -601,7 +618,7 @@ enum WardrobePickerEngine {
             }
             guard let finalPieces = outfit else {
                 pickerDebugLog(
-                    "Slot \(slot + 1): no outfit after \(pickerAttemptsPerOutfitSlot) attempts (prior=\(builtPieces.count)); rejects — overlap≥2: \(rejOverlap), dup outfit key: \(rejDupKey), no valid build/sanitize: \(rejSanitize), internal dup post-sanitize: \(rejPostSanDup)",
+                    "Slot \(slot + 1): no outfit after \(pickerAttemptsPerOutfitSlot) attempts (prior=\(builtPieces.count)); rejects — overlap≥3: \(rejOverlap), same top+bottom: \(rejSilhouette), dup outfit key: \(rejDupKey), no valid build/sanitize: \(rejSanitize), internal dup post-sanitize: \(rejPostSanDup)",
                 )
                 break
             }
