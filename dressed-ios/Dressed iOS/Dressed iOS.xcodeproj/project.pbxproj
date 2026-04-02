@@ -65,6 +65,7 @@
 			);
 			name = "Dressed iOS";
 			packageProductDependencies = (
+				E38D87512F7724AF00B50986 /* ZIPFoundation */,
 			);
 			productName = "Dressed iOS";
 			productReference = E38D87392F7724AE00B50986 /* Dressed iOS.app */;
@@ -94,6 +95,9 @@
 			);
 			mainGroup = E38D87302F7724AE00B50986;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				E38D87502F7724AF00B50986 /* XCRemoteSwiftPackageReference "ZIPFoundation" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = E38D873A2F7724AE00B50986 /* Products */;
 			projectDirPath = "";
@@ -357,6 +361,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		E38D87502F7724AF00B50986 /* XCRemoteSwiftPackageReference "ZIPFoundation" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/weichsel/ZIPFoundation.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.9.19;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		E38D87512F7724AF00B50986 /* ZIPFoundation */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E38D87502F7724AF00B50986 /* XCRemoteSwiftPackageReference "ZIPFoundation" */;
+			productName = ZIPFoundation;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = E38D87312F7724AE00B50986 /* Project object */;
 }

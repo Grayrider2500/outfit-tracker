@@ -17,7 +17,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.UUID
-import kotlin.text.Charsets
 
 class WardrobeViewModel(
     application: Application,
@@ -72,10 +71,11 @@ class WardrobeViewModel(
                 runCatching {
                     val items = repository.getAllSnapshot()
                     val outfits = outfitRepository.getAllSnapshot()
-                    val json = WardrobeBackupCodec.toJson(items, outfits)
                     val out = getApplication<Application>().contentResolver.openOutputStream(uri)
                         ?: error("Could not open file for writing")
-                    out.use { it.write(json.toByteArray(Charsets.UTF_8)) }
+                    out.use { stream ->
+                        WardrobeBackupCodec.writeZipArchive(getApplication(), items, outfits, stream)
+                    }
                 }.exceptionOrNull()?.message
             }
             onDone(err)
@@ -87,11 +87,10 @@ class WardrobeViewModel(
         viewModelScope.launch {
             val err = withContext(Dispatchers.IO) {
                 runCatching {
-                    val text = getApplication<Application>().contentResolver.openInputStream(uri)?.use { input ->
-                        input.readBytes().toString(Charsets.UTF_8)
+                    val pair = getApplication<Application>().contentResolver.openInputStream(uri)?.use { input ->
+                        WardrobeBackupCodec.readBackup(getApplication(), input).getOrThrow()
                     } ?: error("Could not read file")
-                    val (items, outfits) = WardrobeBackupCodec.fromJson(getApplication(), text).getOrThrow()
-                    repository.replaceAllWardrobe(items, outfits)
+                    repository.replaceAllWardrobe(pair.first, pair.second)
                 }.exceptionOrNull()?.message
             }
             onDone(err)
@@ -106,11 +105,10 @@ class WardrobeViewModel(
         viewModelScope.launch {
             val result = withContext(Dispatchers.IO) {
                 runCatching {
-                    val text = getApplication<Application>().contentResolver.openInputStream(uri)?.use { input ->
-                        input.readBytes().toString(Charsets.UTF_8)
+                    val pair = getApplication<Application>().contentResolver.openInputStream(uri)?.use { input ->
+                        WardrobeBackupCodec.readBackup(getApplication(), input).getOrThrow()
                     } ?: error("Could not read file")
-                    val (items, outfits) = WardrobeBackupCodec.fromJson(getApplication(), text).getOrThrow()
-                    repository.mergeWardrobe(items, outfits)
+                    repository.mergeWardrobe(pair.first, pair.second)
                 }
             }
             result.fold(

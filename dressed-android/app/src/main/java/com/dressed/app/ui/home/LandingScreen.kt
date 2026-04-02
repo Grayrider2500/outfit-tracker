@@ -55,6 +55,8 @@ import androidx.compose.ui.unit.sp
 import com.dressed.app.ui.WardrobeViewModel
 import com.dressed.app.ui.theme.WardrobeOnBarText
 import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -81,7 +83,7 @@ fun LandingScreen(
     var pendingReplaceUri by remember { mutableStateOf<Uri?>(null) }
 
     val createBackupLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.CreateDocument("application/json"),
+        contract = ActivityResultContracts.CreateDocument("application/zip"),
     ) { uri ->
         if (uri != null) {
             viewModel.exportBackup(uri) { err ->
@@ -124,7 +126,8 @@ fun LandingScreen(
                         text = { Text("Backup to file…") },
                         onClick = {
                             menuOpen = false
-                            createBackupLauncher.launch("dressed-backup.json")
+                            val day = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
+                            createBackupLauncher.launch("dressed-backup-$day.zip")
                         },
                         leadingIcon = { Icon(Icons.Outlined.Save, contentDescription = null) },
                     )
@@ -133,7 +136,7 @@ fun LandingScreen(
                         onClick = {
                             menuOpen = false
                             openBackupLauncher.launch(
-                                arrayOf("application/json", "application/*", "*/*"),
+                                arrayOf("application/zip", "application/json", "application/*", "*/*"),
                             )
                         },
                         leadingIcon = { Icon(Icons.Outlined.FolderOpen, contentDescription = null) },

@@ -3,6 +3,12 @@ import SwiftUI
 import UIKit
 import UniformTypeIdentifiers
 
+private struct PendingRestore {
+    var items: [WardrobeItemDTO]
+    var outfits: [OutfitDTO]
+    var extractedPhotoPaths: [String: String]
+}
+
 /// Hub screen aligned with Android `LandingScreen` / HTML mockup landing tiles.
 struct LandingView: View {
     var onMyWardrobe: () -> Void
@@ -15,12 +21,14 @@ struct LandingView: View {
 
     // Backup/restore state
     @State private var showingDocumentPicker = false
-    @State private var pendingRestoreData: Data?
+    @State private var pendingRestore: PendingRestore?
     @State private var showingRestoreModeChoice = false
     @State private var showingReplaceConfirmation = false
     @State private var toastMessage: String?
     @State private var showingErrorAlert = false
     @State private var errorMessage = ""
+    @State private var shareURL: URL?
+    @State private var showingShareSheet = false
 
     private let gradient = LinearGradient(
         colors: [
@@ -89,7 +97,7 @@ struct LandingView: View {
         .confirmationDialog("Restore backup", isPresented: $showingRestoreModeChoice, titleVisibility: .visible) {
             Button("Merge") { performMerge() }
             Button("Replace all", role: .destructive) { showingReplaceConfirmation = true }
-            Button("Cancel", role: .cancel) { pendingRestoreData = nil }
+            Button("Cancel", role: .cancel) { pendingRestore = nil }
         } message: {
             Text(
                 "Merge adds new items and outfits and skips duplicates by id. " +
@@ -99,7 +107,7 @@ struct LandingView: View {
         }
         .alert("Replace all data?", isPresented: $showingReplaceConfirmation) {
             Button("Replace all", role: .destructive) { performReplace() }
-            Button("Cancel", role: .cancel) { pendingRestoreData = nil }
+            Button("Cancel", role: .cancel) { pendingRestore = nil }
         } message: {
             Text(
                 "This will delete all existing wardrobe items and outfits, replacing them with the backup. " +
@@ -127,22 +135,26 @@ struct LandingView: View {
                     }
             }
         }
+        .sheet(isPresented: $showingShareSheet, onDismiss: {
+            if let url = shareURL {
+                try? FileManager.default.removeItem(at: url)
+                shareURL = nil
+            }
+        }) {
+            if let url = shareURL {
+                ShareSheet(activityItems: [url])
+            }
+        }
     }
 
     // MARK: - Menu
 
     private var menuButton: some View {
         Menu {
-            if let backupData = try? DressedBackup.exportBackup(items: allItems, outfits: allOutfits) {
-                ShareLink(
-                    item: backupData,
-                    preview: SharePreview(
-                        DressedBackup.backupFileName(),
-                        image: Image(systemName: "doc.zipper")
-                    )
-                ) {
-                    Label("Backup to file…", systemImage: "square.and.arrow.up")
-                }
+            Button {
+                exportZipAndShare()
+            } label: {
+                Label("Backup to file…", systemImage: "square.and.arrow.up")
             }
             Button {
                 showingDocumentPicker = true
@@ -159,7 +171,18 @@ struct LandingView: View {
         }
     }
 
-    // MARK: - Restore logic
+    // MARK: - Backup / restore
+
+    private func exportZipAndShare() {
+        do {
+            let url = try DressedBackup.exportBackupZipFile(items: allItems, outfits: allOutfits)
+            shareURL = url
+            showingShareSheet = true
+        } catch {
+            errorMessage = "Could not create backup: \(error.localizedDescription)"
+            showingErrorAlert = true
+        }
+    }
 
     private func handlePickedFile(_ result: Result<URL, Error>) {
         switch result {
@@ -171,9 +194,12 @@ struct LandingView: View {
             }
             defer { url.stopAccessingSecurityScopedResource() }
             do {
-                let data = try Data(contentsOf: url)
-                _ = try DressedBackup.importBackup(from: data)
-                pendingRestoreData = data
+                let parsed = try DressedBackup.importBackup(from: url)
+                pendingRestore = PendingRestore(
+                    items: parsed.items,
+                    outfits: parsed.outfits,
+                    extractedPhotoPaths: parsed.extractedPhotoPaths
+                )
                 showingRestoreModeChoice = true
             } catch {
                 errorMessage = "The selected file is not a valid Dressed backup.\n\(error.localizedDescription)"
@@ -186,11 +212,13 @@ struct LandingView: View {
     }
 
     private func performMerge() {
-        guard let data = pendingRestoreData else { return }
+        guard let pending = pendingRestore else { return }
         do {
-            let (items, outfits) = try DressedBackup.importBackup(from: data)
             let counts = try DressedBackup.restoreMerge(
-                items: items, outfits: outfits, modelContext: modelContext
+                items: pending.items,
+                outfits: pending.outfits,
+                extractedPhotoPaths: pending.extractedPhotoPaths,
+                modelContext: modelContext
             )
             let parts = [
                 counts.newItems > 0 ? "\(counts.newItems) item\(counts.newItems == 1 ? "" : "s")" : nil,
@@ -202,23 +230,25 @@ struct LandingView: View {
             errorMessage = "Failed to merge: \(error.localizedDescription)"
             showingErrorAlert = true
         }
-        pendingRestoreData = nil
+        pendingRestore = nil
     }
 
     private func performReplace() {
-        guard let data = pendingRestoreData else { return }
+        guard let pending = pendingRestore else { return }
         do {
-            let (items, outfits) = try DressedBackup.importBackup(from: data)
             try DressedBackup.restoreReplace(
-                items: items, outfits: outfits, modelContext: modelContext
+                items: pending.items,
+                outfits: pending.outfits,
+                extractedPhotoPaths: pending.extractedPhotoPaths,
+                modelContext: modelContext
             )
-            let count = items.count + outfits.count
+            let count = pending.items.count + pending.outfits.count
             withAnimation { toastMessage = "Restored \(count) record\(count == 1 ? "" : "s")" }
         } catch {
             errorMessage = "Failed to restore: \(error.localizedDescription)"
             showingErrorAlert = true
         }
-        pendingRestoreData = nil
+        pendingRestore = nil
     }
 
     // MARK: - Hub button
@@ -256,7 +286,7 @@ private struct BackupDocumentPicker: UIViewControllerRepresentable {
     @Environment(\.dismiss) private var dismiss
 
     func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
-        let picker = UIDocumentPickerViewController(forOpeningContentTypes: [UTType.json])
+        let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.zip, .json])
         picker.allowsMultipleSelection = false
         picker.delegate = context.coordinator
         return picker
@@ -281,6 +311,18 @@ private struct BackupDocumentPicker: UIViewControllerRepresentable {
             parent.dismiss()
         }
     }
+}
+
+// MARK: - Share sheet
+
+private struct ShareSheet: UIViewControllerRepresentable {
+    var activityItems: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
 
 #Preview {
