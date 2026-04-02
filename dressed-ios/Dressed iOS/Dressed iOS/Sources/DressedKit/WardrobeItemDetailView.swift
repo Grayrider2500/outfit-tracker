@@ -12,6 +12,7 @@ struct WardrobeItemDetailView: View {
     @Query(sort: \Outfit.createdAtEpochMs) private var allOutfits: [Outfit]
 
     @State private var showDeleteConfirm = false
+    @State private var showEditSheet = false
 
     private let navPurple = Color(red: 0.42, green: 0.29, blue: 0.68)
 
@@ -82,6 +83,16 @@ struct WardrobeItemDetailView: View {
                             .tint(navPurple)
                             .padding(.top, 24)
 
+                            Button {
+                                showEditSheet = true
+                            } label: {
+                                Label("Edit Piece", systemImage: "pencil")
+                                    .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(.bordered)
+                            .tint(navPurple)
+                            .padding(.top, 12)
+
                             Button(role: .destructive) {
                                 showDeleteConfirm = true
                             } label: {
@@ -130,6 +141,13 @@ struct WardrobeItemDetailView: View {
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("This cannot be undone.")
+        }
+        .sheet(isPresented: $showEditSheet) {
+            if let item {
+                NavigationStack {
+                    AddItemSheet(editingItem: item)
+                }
+            }
         }
     }
 

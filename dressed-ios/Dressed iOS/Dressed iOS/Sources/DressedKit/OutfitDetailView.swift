@@ -6,9 +6,13 @@ struct OutfitDetailView: View {
     let outfitId: String
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
 
     @Query private var outfitMatch: [Outfit]
     @Query(sort: \WardrobeItem.addedAtEpochMs, order: .reverse) private var allItems: [WardrobeItem]
+
+    @State private var showDeleteConfirm = false
+    @State private var showEditSheet = false
 
     private let navPurple = Color(red: 0.42, green: 0.29, blue: 0.68)
 
@@ -99,6 +103,37 @@ struct OutfitDetailView: View {
                     }
                 }
                 .padding(.horizontal, 16)
+
+                // MARK: - Action buttons
+                VStack(spacing: 12) {
+                    Button {
+                        markWorn(outfit)
+                    } label: {
+                        Text("+ Mark as Worn Today")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(navPurple)
+
+                    Button {
+                        showEditSheet = true
+                    } label: {
+                        Label("Edit Outfit", systemImage: "pencil")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(navPurple)
+
+                    Button(role: .destructive) {
+                        showDeleteConfirm = true
+                    } label: {
+                        Text("Delete Outfit")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
             }
             .padding(.vertical, 16)
         }
@@ -116,6 +151,32 @@ struct OutfitDetailView: View {
                     .foregroundStyle(.white)
             }
         }
+        .confirmationDialog("Delete this outfit?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
+            Button("Delete", role: .destructive) {
+                deleteOutfit(outfit)
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This cannot be undone.")
+        }
+        .sheet(isPresented: $showEditSheet) {
+            NavigationStack {
+                EditOutfitSheet(outfit: outfit)
+            }
+        }
+    }
+
+    // MARK: - Actions
+
+    private func markWorn(_ outfit: Outfit) {
+        outfit.wornCount += 1
+        try? modelContext.save()
+    }
+
+    private func deleteOutfit(_ outfit: Outfit) {
+        modelContext.delete(outfit)
+        try? modelContext.save()
+        dismiss()
     }
 
     // MARK: - Hero (same layout rules as `OutfitCollageCard`; 👗 only when no ids and nothing resolved)
