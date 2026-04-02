@@ -69,5 +69,6 @@ Live URL: https://grayrider2500.github.io/outfit-tracker/
 ## iOS (SwiftUI sources under `dressed-ios/Dressed iOS/.../Sources/DressedKit/`)
 SwiftUI + SwiftData scaffold inside the **Dressed iOS** Xcode project (see `restart.md` for setup history).
 
+- **Picker results UI:** `PickerView.swift` lists suggestions in a **vertical `ForEach`** within the screen `ScrollView` (`resultsList`). A paged **`TabView`** was removed so all 1–3 engine results are visible without horizontal swipe.
 - **Wardrobe grid photos**: `WardrobeItemCard` in `WardrobeListView.swift` needs a **floating-point** aspect ratio (e.g. `.aspectRatio(3.0 / 4.0, contentMode: .fit)`). Literal `3 / 4` is integer division → **0** and hides the image strip.
 - **Where photos are set**: `AddItemSheet` (PhotosPicker / camera) → **`PhotoStorage.saveOptimizedPickedPhotoJPEG`** (or `saveJPEGData` for non-picker paths) → `WardrobeItem.photoPath`. The list screen only displays thumbnails, not a full pick-a-photo hero.

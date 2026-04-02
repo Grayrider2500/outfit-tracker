@@ -2,9 +2,9 @@
 
 **Assistants:** see **`CLAUDE.md`** at the repo root for where everything lives; use this file as the latest session checkpoint.
 
-## Where We Stopped (2026-04-02)
+## Where We Stopped (checkpoint — verify `git status`)
 
-**Repo:** `main` branch, local changes not yet committed/pushed.
+**Repo:** `main` branch; last check was **clean** and **even with `origin/main`**.
 
 ### Android
 - **`google-services.json` is not in git** (security). Listed in `.gitignore`.
@@ -20,7 +20,10 @@ All core screens implemented and building successfully:
 - **Backup/Restore:** v3 zip format, cross-platform with Android, merge/replace modes
 - **AI Settings:** Keychain-secured API key storage, user-facing settings sheet on picker screen
 
-### Changes This Session (2026-04-02)
+### Recent iOS notes
+- **`PickerView.swift` — results layout:** suggestions are a **vertical stack** (`resultsList`) inside the main `ScrollView`, not a page **`TabView`**. Users see every generated look without swiping. Per-suggestion **Save as outfit**, **Wear today**, and **detail sheet** (tap collage) are unchanged. **`WardrobePickerEngine`** logic is separate and was not changed for this.
+
+### Earlier session batch (2026-04-02) — already landed
 1. Deleted dead `PlaceholderScreens.swift`
 2. Added Mark as Worn + Delete + Edit to `OutfitDetailView`
 3. Added Edit mode to `AddItemSheet` (reused via `editingItem` param)
@@ -36,7 +39,8 @@ All core screens implemented and building successfully:
 
 ## Next Session — Quick Start
 
-1. Read **`memory.md`** and **`backlog.md`**.
-2. Commit and push the iOS changes from this session.
-3. Test on a real device: edit item, edit outfit, delete outfit, BYOK AI key flow.
-4. **Remaining gaps:** no unit/UI tests yet; Android outfit detail still needs mark worn/delete/edit.
+1. Read **`memory.md`** and **`backlog.md`**, then **`CLAUDE.md`** for paths.
+2. Run **`git status`**; pull if you work on another machine.
+3. **iOS sanity:** open Picker → Surprise me → confirm **multiple** suggestion cards stack vertically and scroll.
+4. **Android backlog:** outfit detail actions (mark worn / delete / edit) still per **`backlog.md`**.
+5. **Tests:** no unit/UI tests yet.
