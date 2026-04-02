@@ -228,44 +228,56 @@ enum DressedBackup {
         modelContext: ModelContext
     ) throws {
         let existingItems = try modelContext.fetch(FetchDescriptor<WardrobeItem>())
-        for item in existingItems {
-            if let path = item.photoPath {
-                try? FileManager.default.removeItem(atPath: path)
+        let oldPhotoPaths = Set(
+            existingItems.compactMap(\.photoPath).map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+        )
+        let newPhotoPaths = Set(
+            items.map { resolvePhotoPath(dto: $0, extracted: extractedPhotoPaths) }
+                .compactMap { $0 }
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+        )
+
+        try modelContext.transaction {
+            for item in existingItems {
+                modelContext.delete(item)
+            }
+            let existingOutfits = try modelContext.fetch(FetchDescriptor<Outfit>())
+            for outfit in existingOutfits {
+                modelContext.delete(outfit)
+            }
+            for dto in items {
+                let photoPath = resolvePhotoPath(dto: dto, extracted: extractedPhotoPaths)
+                let item = WardrobeItem(
+                    id: dto.id,
+                    name: dto.name,
+                    category: dto.category,
+                    sizeLabel: dto.sizeLabel,
+                    colorHex: dto.colorHex,
+                    colorName: dto.colorName,
+                    seasonsJoined: WardrobeItem.joinSeasons(dto.seasons),
+                    photoPath: photoPath,
+                    wornCount: dto.wornCount,
+                    addedAtEpochMs: dto.addedAtEpochMs
+                )
+                modelContext.insert(item)
+            }
+            for dto in outfits {
+                let outfit = Outfit(
+                    id: dto.id,
+                    name: dto.name,
+                    itemIdsJoined: Outfit.joinItemIds(dto.itemIds),
+                    wornCount: dto.wornCount,
+                    createdAtEpochMs: dto.createdAtEpochMs
+                )
+                modelContext.insert(outfit)
             }
         }
 
-        try modelContext.delete(model: WardrobeItem.self)
-        try modelContext.delete(model: Outfit.self)
-
-        for dto in items {
-            let photoPath = resolvePhotoPath(dto: dto, extracted: extractedPhotoPaths)
-            let item = WardrobeItem(
-                id: dto.id,
-                name: dto.name,
-                category: dto.category,
-                sizeLabel: dto.sizeLabel,
-                colorHex: dto.colorHex,
-                colorName: dto.colorName,
-                seasonsJoined: WardrobeItem.joinSeasons(dto.seasons),
-                photoPath: photoPath,
-                wornCount: dto.wornCount,
-                addedAtEpochMs: dto.addedAtEpochMs
-            )
-            modelContext.insert(item)
+        for path in oldPhotoPaths.subtracting(newPhotoPaths) {
+            try? FileManager.default.removeItem(atPath: path)
         }
-
-        for dto in outfits {
-            let outfit = Outfit(
-                id: dto.id,
-                name: dto.name,
-                itemIdsJoined: Outfit.joinItemIds(dto.itemIds),
-                wornCount: dto.wornCount,
-                createdAtEpochMs: dto.createdAtEpochMs
-            )
-            modelContext.insert(outfit)
-        }
-
-        try modelContext.save()
     }
 
     // MARK: - Restore (Merge)

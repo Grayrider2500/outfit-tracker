@@ -72,16 +72,18 @@ class WardrobeRepository(
     }
 
     /**
-     * Replaces all wardrobe rows, all outfit rows, and associated image files.
-     * Runs in a single transaction. v1 backups supply an empty outfit list.
+     * Replaces all wardrobe rows and all outfit rows. DB work runs in a single transaction.
+     * Old photo files are removed only after the transaction succeeds, and only for paths
+     * not still referenced by the restored items—so a failed restore cannot wipe photos early.
      */
     suspend fun replaceAllWardrobe(
         items: List<WardrobeItemEntity>,
         outfits: List<OutfitEntity> = emptyList(),
     ) {
+        val existing = dao.getAllSnapshot()
+        val oldPhotoPaths = existing.mapNotNull { it.photoPath?.trim()?.takeIf { p -> p.isNotEmpty() } }.toSet()
+        val newPhotoPaths = items.mapNotNull { it.photoPath?.trim()?.takeIf { p -> p.isNotEmpty() } }.toSet()
         database.withTransaction {
-            val existing = dao.getAllSnapshot()
-            existing.forEach { ImageStorage.deleteIfExists(it.photoPath) }
             dao.deleteAllItems()
             outfitDao.deleteAll()
             for (item in items) {
@@ -90,6 +92,9 @@ class WardrobeRepository(
             for (outfit in outfits) {
                 outfitDao.insert(outfit)
             }
+        }
+        for (path in oldPhotoPaths - newPhotoPaths) {
+            ImageStorage.deleteIfExists(path)
         }
     }
 }
