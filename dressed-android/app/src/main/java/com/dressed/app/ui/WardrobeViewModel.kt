@@ -82,7 +82,8 @@ class WardrobeViewModel(
         }
     }
 
-    fun importBackup(uri: Uri, onDone: (errorMessage: String?) -> Unit) {
+    /** Replace all wardrobe + outfit data with backup contents (matches iOS Replace All). */
+    fun importBackupReplace(uri: Uri, onDone: (errorMessage: String?) -> Unit) {
         viewModelScope.launch {
             val err = withContext(Dispatchers.IO) {
                 runCatching {
@@ -94,6 +95,37 @@ class WardrobeViewModel(
                 }.exceptionOrNull()?.message
             }
             onDone(err)
+        }
+    }
+
+    /** Merge backup: add items/outfits not already present by id (matches iOS Merge). */
+    fun importBackupMerge(
+        uri: Uri,
+        onDone: (errorMessage: String?, snackbarMessage: String?) -> Unit,
+    ) {
+        viewModelScope.launch {
+            val result = withContext(Dispatchers.IO) {
+                runCatching {
+                    val text = getApplication<Application>().contentResolver.openInputStream(uri)?.use { input ->
+                        input.readBytes().toString(Charsets.UTF_8)
+                    } ?: error("Could not read file")
+                    val (items, outfits) = WardrobeBackupCodec.fromJson(getApplication(), text).getOrThrow()
+                    repository.mergeWardrobe(items, outfits)
+                }
+            }
+            result.fold(
+                onSuccess = { (newItems, newOutfits) ->
+                    val parts = buildList {
+                        if (newItems > 0) add("$newItems item" + if (newItems == 1) "" else "s")
+                        if (newOutfits > 0) add("$newOutfits outfit" + if (newOutfits == 1) "" else "s")
+                    }
+                    val snack = if (parts.isEmpty()) "No new data to merge" else "Merged ${parts.joinToString(", ")}"
+                    onDone(null, snack)
+                },
+                onFailure = { e ->
+                    onDone(e.message ?: "Merge failed", null)
+                },
+            )
         }
     }
 

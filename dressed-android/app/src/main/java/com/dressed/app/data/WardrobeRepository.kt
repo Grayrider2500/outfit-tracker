@@ -43,6 +43,35 @@ class WardrobeRepository(
     }
 
     /**
+     * Inserts items and outfits whose ids are not already in the database (matches iOS `restoreMerge`).
+     * Skips duplicates by id; does not delete existing rows or photos. Runs in a single transaction.
+     */
+    suspend fun mergeWardrobe(
+        items: List<WardrobeItemEntity>,
+        outfits: List<OutfitEntity> = emptyList(),
+    ): Pair<Int, Int> {
+        var newItems = 0
+        var newOutfits = 0
+        database.withTransaction {
+            val existingItemIds = dao.getAllSnapshot().map { it.id }.toSet()
+            val existingOutfitIds = outfitDao.getAllSnapshot().map { it.id }.toSet()
+            for (item in items) {
+                if (item.id !in existingItemIds) {
+                    dao.insert(item)
+                    newItems++
+                }
+            }
+            for (outfit in outfits) {
+                if (outfit.id !in existingOutfitIds) {
+                    outfitDao.insert(outfit)
+                    newOutfits++
+                }
+            }
+        }
+        return newItems to newOutfits
+    }
+
+    /**
      * Replaces all wardrobe rows, all outfit rows, and associated image files.
      * Runs in a single transaction. v1 backups supply an empty outfit list.
      */

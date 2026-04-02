@@ -86,18 +86,25 @@ struct LandingView: View {
                 handlePickedFile(result)
             }
         }
-        .confirmationDialog("Restore Mode", isPresented: $showingRestoreModeChoice, titleVisibility: .visible) {
+        .confirmationDialog("Restore backup", isPresented: $showingRestoreModeChoice, titleVisibility: .visible) {
             Button("Merge") { performMerge() }
-            Button("Replace All", role: .destructive) { showingReplaceConfirmation = true }
+            Button("Replace all", role: .destructive) { showingReplaceConfirmation = true }
             Button("Cancel", role: .cancel) { pendingRestoreData = nil }
         } message: {
-            Text("Merge adds new items and skips duplicates. Replace All clears your wardrobe and loads the backup.")
+            Text(
+                "Merge adds new items and outfits and skips duplicates by id. " +
+                    "Replace all clears your wardrobe and outfits, then loads the backup. " +
+                    "Both options import photos from the file when adding new pieces."
+            )
         }
-        .alert("Replace All Data?", isPresented: $showingReplaceConfirmation) {
-            Button("Replace All", role: .destructive) { performReplace() }
+        .alert("Replace all data?", isPresented: $showingReplaceConfirmation) {
+            Button("Replace all", role: .destructive) { performReplace() }
             Button("Cancel", role: .cancel) { pendingRestoreData = nil }
         } message: {
-            Text("This will delete all existing wardrobe items and outfits, replacing them with the backup. This cannot be undone.")
+            Text(
+                "This will delete all existing wardrobe items and outfits, replacing them with the backup. " +
+                    "Your current photos will be removed. This cannot be undone."
+            )
         }
         .alert("Restore Error", isPresented: $showingErrorAlert) {
             Button("OK", role: .cancel) {}

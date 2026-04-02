@@ -75,7 +75,10 @@ fun LandingScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     var menuOpen by remember { mutableStateOf(false) }
-    var pendingRestoreUri by remember { mutableStateOf<Uri?>(null) }
+    /** Pick file → choose Merge vs Replace (matches iOS). */
+    var pendingModeChoiceUri by remember { mutableStateOf<Uri?>(null) }
+    /** User chose Replace all → final destructive confirmation. */
+    var pendingReplaceUri by remember { mutableStateOf<Uri?>(null) }
 
     val createBackupLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/json"),
@@ -92,7 +95,7 @@ fun LandingScreen(
 
     val openBackupLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
-    ) { uri -> if (uri != null) pendingRestoreUri = uri }
+    ) { uri -> if (uri != null) pendingModeChoiceUri = uri }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -218,21 +221,61 @@ fun LandingScreen(
         }
     }
 
-    pendingRestoreUri?.let { uri ->
+    pendingModeChoiceUri?.let { uri ->
         AlertDialog(
-            onDismissRequest = { pendingRestoreUri = null },
-            title = { Text("Replace wardrobe?") },
+            onDismissRequest = { pendingModeChoiceUri = null },
+            title = { Text("Restore backup") },
             text = {
                 Text(
-                    "Restoring replaces every piece in Dressed with the backup. " +
-                        "Your current list and photos will be removed. This cannot be undone.",
+                    "Merge adds new items and outfits and skips duplicates by id. " +
+                        "Replace all clears your wardrobe and outfits, then loads the backup. " +
+                        "Both options import photos from the file when adding new pieces.",
+                )
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingModeChoiceUri = null }) { Text("Cancel") }
+            },
+            confirmButton = {
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    TextButton(
+                        onClick = {
+                            pendingModeChoiceUri = null
+                            viewModel.importBackupMerge(uri) { err, snack ->
+                                scope.launch {
+                                    if (err != null) snackbarHostState.showSnackbar("Merge failed: $err")
+                                    else snackbarHostState.showSnackbar(snack ?: "Merge completed")
+                                }
+                            }
+                        },
+                    ) { Text("Merge") }
+                    TextButton(
+                        onClick = {
+                            pendingReplaceUri = uri
+                            pendingModeChoiceUri = null
+                        },
+                    ) {
+                        Text("Replace all", color = MaterialTheme.colorScheme.error)
+                    }
+                }
+            },
+        )
+    }
+
+    pendingReplaceUri?.let { uri ->
+        AlertDialog(
+            onDismissRequest = { pendingReplaceUri = null },
+            title = { Text("Replace all data?") },
+            text = {
+                Text(
+                    "This will delete all existing wardrobe items and outfits, replacing them " +
+                        "with the backup. Your current photos will be removed. This cannot be undone.",
                 )
             },
             confirmButton = {
                 TextButton(
                     onClick = {
-                        pendingRestoreUri = null
-                        viewModel.importBackup(uri) { err ->
+                        pendingReplaceUri = null
+                        viewModel.importBackupReplace(uri) { err ->
                             scope.launch {
                                 if (err == null) snackbarHostState.showSnackbar("Restore completed")
                                 else snackbarHostState.showSnackbar("Restore failed: $err")
@@ -240,11 +283,11 @@ fun LandingScreen(
                         }
                     },
                 ) {
-                    Text("Restore", color = MaterialTheme.colorScheme.error)
+                    Text("Replace all", color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { pendingRestoreUri = null }) { Text("Cancel") }
+                TextButton(onClick = { pendingReplaceUri = null }) { Text("Cancel") }
             },
         )
     }
