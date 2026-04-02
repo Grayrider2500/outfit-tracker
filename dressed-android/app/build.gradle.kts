@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -17,6 +19,17 @@ android {
         targetSdk = 36
         versionCode = 4
         versionName = "1.1.0"
+        val anthropicKey = run {
+            val props = Properties()
+            val f = rootProject.file("local.properties")
+            if (f.exists()) {
+                f.inputStream().use { stream -> props.load(stream) }
+            }
+            props.getProperty("anthropicApiKey", "").orEmpty()
+                .replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+        }
+        buildConfigField("String", "ANTHROPIC_API_KEY", "\"$anthropicKey\"")
     }
 
     signingConfigs {
@@ -50,6 +63,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 

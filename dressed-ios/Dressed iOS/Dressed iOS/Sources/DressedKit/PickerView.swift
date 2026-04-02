@@ -217,18 +217,29 @@ struct PickerView: View {
         suggestions = []
         pageIndex = 0
         let seed = Int64.random(in: 1 ... Int64.max)
-        DispatchQueue.global(qos: .userInitiated).async {
+        let occasionSnapshot = occasionId
+        let weatherSnapshot = weatherIds
+        let moodSnapshot = moodIds
+        let itemsSnapshot = allItems
+        Task {
             let nowMs = Int64(Date().timeIntervalSince1970 * 1000)
-            let result = WardrobePickerEngine.suggest(
-                allItems: allItems,
-                occasionId: occasionId,
-                weatherTagIds: weatherIds,
-                moodTagIds: moodIds,
+            var result = WardrobePickerEngine.suggest(
+                allItems: itemsSnapshot,
+                occasionId: occasionSnapshot,
+                weatherTagIds: weatherSnapshot,
+                moodTagIds: moodSnapshot,
                 seed: seed,
                 maxOutfits: 3,
                 nowEpochMs: nowMs,
             )
-            DispatchQueue.main.async {
+            result = await PickerAnthropicReasoner.enrichIfPossible(
+                suggestions: result,
+                occasionId: occasionSnapshot,
+                weatherIds: weatherSnapshot,
+                moodIds: moodSnapshot,
+                nowEpochMs: nowMs,
+            )
+            await MainActor.run {
                 suggestions = result
                 busy = false
                 if result.isEmpty {

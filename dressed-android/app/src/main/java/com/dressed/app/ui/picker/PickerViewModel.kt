@@ -5,7 +5,9 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.dressed.app.BuildConfig
 import com.dressed.app.DressedApplication
+import com.dressed.app.data.picker.PickerAnthropicReasoner
 import com.dressed.app.data.OutfitRepository
 import com.dressed.app.data.WardrobeRepository
 import com.dressed.app.data.local.OutfitEntity
@@ -38,7 +40,15 @@ class PickerViewModel(
                 val items = wardrobeRepository.getAllSnapshot()
                 val seed = System.nanoTime()
                 val now = System.currentTimeMillis()
-                _suggestions.value = WardrobePickerEngine.suggest(
+                val occasionLabel =
+                    WardrobePickerEngine.OCCASIONS.find { it.id == occasionId }?.label ?: "Outfit"
+                val weatherLabels = weatherTagIds.mapNotNull { tid ->
+                    WardrobePickerEngine.WEATHER_TAGS.find { it.first == tid }?.second
+                }
+                val moodLabels = moodTagIds.mapNotNull { mid ->
+                    WardrobePickerEngine.MOOD_TAGS.find { it.first == mid }?.second
+                }
+                val base = WardrobePickerEngine.suggest(
                     allItems = items,
                     occasionId = occasionId,
                     weatherTagIds = weatherTagIds,
@@ -47,6 +57,19 @@ class PickerViewModel(
                     maxOutfits = 3,
                     nowEpochMs = now,
                 )
+                _suggestions.value =
+                    if (BuildConfig.ANTHROPIC_API_KEY.isBlank()) {
+                        base
+                    } else {
+                        PickerAnthropicReasoner.enrichReasons(
+                            apiKey = BuildConfig.ANTHROPIC_API_KEY,
+                            suggestions = base,
+                            occasionLabel = occasionLabel,
+                            weatherLabels = weatherLabels,
+                            moodLabels = moodLabels,
+                            nowEpochMs = now,
+                        )
+                    }
             } finally {
                 _busy.value = false
             }

@@ -261,6 +261,7 @@
 				INFOPLIST_KEY_NSCameraUsageDescription = "Dressed uses the camera to photograph your clothing.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Dressed needs photo access to attach pictures of your clothing.";
 				INFOPLIST_KEY_NSPrincipalClass = "";
+				INFOPLIST_KEY_AnthropicAPIKey = "";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -308,6 +309,7 @@
 				INFOPLIST_KEY_NSCameraUsageDescription = "Dressed uses the camera to photograph your clothing.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Dressed needs photo access to attach pictures of your clothing.";
 				INFOPLIST_KEY_NSPrincipalClass = "";
+				INFOPLIST_KEY_AnthropicAPIKey = "";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
