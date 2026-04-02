@@ -18,6 +18,8 @@ struct PickerView: View {
     @State private var toastMessage: String?
     @State private var showAISettings = false
     @State private var aiBannerState: PickerAIReasoner.BannerState = .needsKey
+    @State private var showInsufficientVarietyHint = false
+    @State private var suggestionForDetail: WardrobePickerEngine.PickerSuggestion?
 
     private let navPurple = Color(red: 0.42, green: 0.29, blue: 0.68)
 
@@ -34,33 +36,67 @@ struct PickerView: View {
 
                 aiStatusBanner
 
+                if busy {
+                    Text("Checking your wardrobe and building suggestions...")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: .infinity)
+                }
+
                 Button {
                     generate()
                 } label: {
-                    HStack {
-                        Spacer()
+                    HStack(spacing: 10) {
+                        Spacer(minLength: 0)
                         if busy {
                             ProgressView()
                                 .tint(.white)
+                            Text("Building outfits...")
+                                .font(.headline)
                         } else {
                             Text("Surprise me")
                                 .font(.headline)
                         }
-                        Spacer()
+                        Spacer(minLength: 0)
                     }
                     .padding(.vertical, 16)
                     .background(navPurple, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                     .foregroundStyle(.white)
                 }
                 .buttonStyle(.plain)
-                .disabled(busy || allItems.count < 2)
+                .disabled(allItems.count < 3)
+                .allowsHitTesting(!busy && allItems.count >= 3)
 
-                if suggestions.isEmpty && !busy {
-                    Text("Tap Surprise me for 1–3 ideas from your wardrobe. Add at least two in-season pieces first.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                if busy && suggestions.isEmpty {
+                    VStack(spacing: 12) {
+                        ProgressView()
+                            .scaleEffect(1.1)
+                        Text("Checking your wardrobe and building suggestions...")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 24)
+                } else if suggestions.isEmpty && !busy {
+                    if showInsufficientVarietyHint {
+                        Text("Not enough varied items for a full outfit – try adding more pieces.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Text("Tap Surprise me for 1–3 full outfits (three or more pieces each). Add at least three in-season pieces, with shoes, outerwear, or accessories to complete a look.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
                 } else if !suggestions.isEmpty {
                     resultsPager
+                    if showInsufficientVarietyHint, suggestions.count < 3 {
+                        Text("Not enough varied items for a full outfit – try adding more pieces.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .padding(.top, 4)
+                    }
                 }
             }
             .padding(.horizontal, 16)
@@ -71,6 +107,11 @@ struct PickerView: View {
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
         #endif
+        .sheet(item: $suggestionForDetail) { sug in
+            NavigationStack {
+                SuggestionDetailSheet(suggestion: sug)
+            }
+        }
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Button("← Home") { onNavigateHome() }
@@ -268,7 +309,9 @@ struct PickerView: View {
             TabView(selection: $pageIndex) {
                 ForEach(Array(suggestions.enumerated()), id: \.offset) { idx, sug in
                     VStack(spacing: 12) {
-                        SuggestionOutfitCollageCard(suggestion: sug)
+                        SuggestionOutfitCollageCard(suggestion: sug) {
+                            suggestionForDetail = sug
+                        }
                         HStack(spacing: 12) {
                             Button {
                                 saveAsNewOutfit(suggestion: sug)
@@ -298,7 +341,7 @@ struct PickerView: View {
                 }
             }
             .tabViewStyle(.page(indexDisplayMode: .automatic))
-            .frame(height: 420)
+            .frame(height: 460)
 
             Text("Swipe for more looks")
                 .font(.caption)
@@ -307,17 +350,29 @@ struct PickerView: View {
     }
 
     private func generate() {
+        guard !busy else { return }
         busy = true
         suggestions = []
+        showInsufficientVarietyHint = false
         pageIndex = 0
-        let seed = Int64.random(in: 1 ... Int64.max)
         let occasionSnapshot = occasionId
         let weatherSnapshot = weatherIds
         let moodSnapshot = moodIds
         let itemsSnapshot = allItems
+        var seedHasher = Hasher()
+        seedHasher.combine(UUID().uuidString)
+        seedHasher.combine(occasionSnapshot)
+        seedHasher.combine(Int64(Date().timeIntervalSince1970 * 1000))
+        for w in weatherSnapshot.sorted() { seedHasher.combine(w) }
+        for m in moodSnapshot.sorted() { seedHasher.combine(m) }
+        let seed =
+            Int64.random(in: 1 ... Int64.max)
+                ^ Int64(seedHasher.finalize())
+                ^ Int64(weatherSnapshot.hashValue)
+                ^ Int64(moodSnapshot.hashValue)
         Task {
             let nowMs = Int64(Date().timeIntervalSince1970 * 1000)
-            var result = WardrobePickerEngine.suggest(
+            let outcome = WardrobePickerEngine.suggest(
                 allItems: itemsSnapshot,
                 occasionId: occasionSnapshot,
                 weatherTagIds: weatherSnapshot,
@@ -326,6 +381,8 @@ struct PickerView: View {
                 maxOutfits: 3,
                 nowEpochMs: nowMs,
             )
+            let insufficient = outcome.shouldShowInsufficientVarietyMessage
+            var result = outcome.suggestions
             result = await PickerAIReasoner.enrichIfPossible(
                 suggestions: result,
                 occasionId: occasionSnapshot,
@@ -335,9 +392,17 @@ struct PickerView: View {
             )
             await MainActor.run {
                 suggestions = result
+                showInsufficientVarietyHint = insufficient
                 busy = false
                 if result.isEmpty {
-                    withAnimation { toastMessage = "Not enough matching pieces — try another occasion or tags." }
+                    let msg = insufficient
+                        ? "Not enough varied items for a full outfit – try adding more pieces."
+                        : "Not enough matching pieces — try another occasion or tags."
+                    withAnimation { toastMessage = msg }
+                } else if insufficient {
+                    withAnimation {
+                        toastMessage = "Not enough varied items for a full outfit – try adding more pieces."
+                    }
                 }
             }
         }
@@ -380,37 +445,53 @@ struct PickerView: View {
 
 private struct SuggestionOutfitCollageCard: View {
     let suggestion: WardrobePickerEngine.PickerSuggestion
+    var onTap: () -> Void
+
+    private var mainPiecesSummary: String {
+        pickerMainPiecesSummaryLine(items: suggestion.items, maxPieces: 3)
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            collage
-                .aspectRatio(1, contentMode: .fit)
-                .clipped()
+        Button(action: onTap) {
+            VStack(alignment: .leading, spacing: 0) {
+                collage
+                    .aspectRatio(1, contentMode: .fit)
+                    .clipped()
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text(suggestion.title)
-                    .font(.subheadline.weight(.semibold))
-                    .lineLimit(2)
-                Text(suggestion.reason)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(4)
-                    .fixedSize(horizontal: false, vertical: true)
-                HStack(spacing: 4) {
-                    let n = suggestion.items.count
-                    Text("\(n) piece" + (n == 1 ? "" : "s"))
+                VStack(alignment: .leading, spacing: 4) {
+                    if !mainPiecesSummary.isEmpty {
+                        Text(mainPiecesSummary)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.primary)
+                            .lineLimit(2)
+                            .multilineTextAlignment(.leading)
+                    }
+                    Text(suggestion.title)
+                        .font(.subheadline.weight(.medium))
+                        .lineLimit(2)
+                        .padding(.top, mainPiecesSummary.isEmpty ? 0 : 2)
+                    Text(suggestion.reason)
                         .font(.caption2)
                         .foregroundStyle(.secondary)
-                    Text("· score \(Int(suggestion.score))")
-                        .font(.caption2)
-                        .foregroundStyle(Color(red: 0.42, green: 0.29, blue: 0.68))
+                        .lineLimit(4)
+                        .fixedSize(horizontal: false, vertical: true)
+                    HStack(spacing: 4) {
+                        let n = suggestion.items.count
+                        Text("\(n) piece" + (n == 1 ? "" : "s"))
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                        Text("· score \(Int(suggestion.score))")
+                            .font(.caption2)
+                            .foregroundStyle(Color(red: 0.42, green: 0.29, blue: 0.68))
+                    }
                 }
+                .padding(10)
             }
-            .padding(10)
+            .background(Color(.systemBackground))
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .shadow(color: .black.opacity(0.06), radius: 2, x: 0, y: 1)
         }
-        .background(Color(.systemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .shadow(color: .black.opacity(0.06), radius: 2, x: 0, y: 1)
+        .buttonStyle(.plain)
     }
 
     private var collage: some View {
@@ -469,6 +550,88 @@ private struct SuggestionOutfitCollageCard: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .clipped()
+    }
+}
+
+private func pickerDisplayOrder(_ category: String) -> Int {
+    switch category {
+    case WardrobeCatalog.tops, WardrobeCatalog.dresses: 0
+    case WardrobeCatalog.bottoms: 1
+    case WardrobeCatalog.outerwear: 2
+    case WardrobeCatalog.shoes: 3
+    case WardrobeCatalog.accessories: 4
+    default: 5
+    }
+}
+
+private func pickerItemsSortedForDisplay(_ items: [WardrobeItem]) -> [WardrobeItem] {
+    items.sorted {
+        let o0 = pickerDisplayOrder($0.category)
+        let o1 = pickerDisplayOrder($1.category)
+        if o0 != o1 { return o0 < o1 }
+        if $0.name != $1.name { return $0.name < $1.name }
+        return $0.id < $1.id
+    }
+}
+
+private func pickerMainPiecesSummaryLine(items: [WardrobeItem], maxPieces: Int = 3) -> String {
+    pickerItemsSortedForDisplay(items).prefix(maxPieces).map { item in
+        let c = item.colorName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let n = item.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !c.isEmpty, !n.isEmpty { return "\(c) \(n)" }
+        if !n.isEmpty { return n }
+        if !c.isEmpty { return c }
+        return WardrobeCatalog.label(forCategoryKey: item.category)
+    }.joined(separator: " + ")
+}
+
+private struct SuggestionDetailSheet: View {
+    let suggestion: WardrobePickerEngine.PickerSuggestion
+
+    var body: some View {
+        List {
+            Section {
+                Text(suggestion.reason)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            } header: {
+                Text("Why this look")
+            }
+            Section {
+                ForEach(pickerItemsSortedForDisplay(suggestion.items), id: \.id) { item in
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(pieceHeadline(item))
+                            .font(.body.weight(.semibold))
+                        Text(detailLine(item))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.vertical, 4)
+                }
+            } header: {
+                Text("All pieces (\(suggestion.items.count))")
+            }
+        }
+        .navigationTitle(suggestion.title)
+        #if os(iOS)
+        .navigationBarTitleDisplayMode(.inline)
+        #endif
+    }
+
+    private func pieceHeadline(_ item: WardrobeItem) -> String {
+        let c = item.colorName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let n = item.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !c.isEmpty, !n.isEmpty { return "\(c) \(n)" }
+        if !n.isEmpty { return n }
+        if !c.isEmpty { return c }
+        return WardrobeCatalog.label(forCategoryKey: item.category)
+    }
+
+    private func detailLine(_ item: WardrobeItem) -> String {
+        var parts: [String] = [WardrobeCatalog.label(forCategoryKey: item.category)]
+        let s = item.sizeLabel.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !s.isEmpty { parts.append(s) }
+        return parts.joined(separator: " · ")
     }
 }
 

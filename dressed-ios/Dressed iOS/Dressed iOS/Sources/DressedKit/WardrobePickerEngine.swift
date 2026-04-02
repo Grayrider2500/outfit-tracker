@@ -34,9 +34,16 @@ enum WardrobePickerEngine {
         var itemIds: [String] { items.map(\.id) }
     }
 
-    private static let xorMask: Int64 = 0x51F4A94F51F4A94F
-    /// Bit pattern 0xC6BC279689FAD6A5 (hex overflows signed Int64 literal).
-    private static let xorMaskEnrich: Int64 = -4_128_403_253_811_843_803
+    /// Result of rule-based picking: only includes outfits with **≥ 3 distinct items** when `suggestions` is non-empty.
+    struct PickerSuggestOutcome {
+        let suggestions: [PickerSuggestion]
+        /// Closet cannot assemble outfits, **or** fewer than requested diverse looks were found this run.
+        let shouldShowInsufficientVarietyMessage: Bool
+    }
+
+    private static let xorMaskPick: Int64 = 0x6C07896543210AB0
+    /// Inner-loop tries per slot; higher when cross-outfit rank penalties reject more candidates.
+    private static let pickerAttemptsPerOutfitSlot = 64
     private static let dayMs: Int64 = 86_400_000
 
     static func currentSeasonKey(month1Based: Int) -> String {
@@ -72,18 +79,45 @@ enum WardrobePickerEngine {
     ) -> Int64 {
         var h = UInt64(bitPattern: seed)
         h ^= UInt64(bitPattern: Int64(occasionId.hashValue)) &* 0x9E3779B97F4A7C15
+        for (i, u) in occasionId.utf8.enumerated() {
+            h ^= UInt64(u) &<< UInt64((i * 7 + 3) % 56)
+            h &+= UInt64(u) &* UInt64(i &+ 1)
+        }
         let wx = weatherTagIds.sorted().joined(separator: ",")
         h ^= UInt64(UInt32(truncatingIfNeeded: wx.hashValue)) &<< 9
         h ^= UInt64(truncatingIfNeeded: wx.hashValue) &<< 17
+        h ^= UInt64(wx.unicodeScalars.reduce(0) { $0 &+ UInt64($1.value) })
         let mx = moodTagIds.sorted().joined(separator: ",")
         h ^= UInt64(bitPattern: Int64(mx.hashValue)) &<< 13
+        h ^= UInt64(mx.unicodeScalars.reduce(0) { $0 &+ UInt64($1.value) &* 31 })
         let now = UInt64(bitPattern: nowEpochMs)
         h ^= now
         h ^= reverseBitsUInt64(now)
         h ^= now >> 33
+        h ^= UInt64(bitPattern: seed &* 0x5851_F42D_4C95_7F1D)
         var out = Int64(bitPattern: h)
         if out == 0 { out = -7_046_029_254_386_353_131 } // 0x9E3779B97F4A7C15
         return out
+    }
+
+    #if DEBUG
+    private static func pickerDebugLog(_ msg: String) {
+        print("[WardrobePicker] \(msg)")
+    }
+    #else
+    private static func pickerDebugLog(_ msg: String) {}
+    #endif
+
+    /// Per-slot RNG so each selected look uses an independent stream (tap + slot).
+    private static func streamSeed(blended: Int64, userSeed: Int64, slot: Int, salt: Int64) -> Int64 {
+        var x = UInt64(bitPattern: blended)
+        x ^= UInt64(bitPattern: userSeed) &* 0x9E37_79B9_7F4A_7C15
+        x ^= UInt64(UInt32(truncatingIfNeeded: slot)) &* 0x85EB_CA6B
+        x ^= UInt64(bitPattern: salt)
+        x &+= UInt64(slot &+ 1) &<< 21
+        var o = Int64(bitPattern: x)
+        if o == 0 { o = -0x51F4_A94F_51F4_A94F }
+        return o
     }
 
     private static func reverseBitsUInt64(_ x: UInt64) -> UInt64 {
@@ -96,6 +130,308 @@ enum WardrobePickerEngine {
         return r
     }
 
+    /// ≥3 distinct ids, 3–5 pieces; **no** size-label gating (real closets rarely track sizes consistently).
+    private static func sanitizeDistinctOutfitPieces(_ pieces: [WardrobeItem]) -> [WardrobeItem]? {
+        let u = pieces.uniqueStableById()
+        guard u.count >= 3, u.count <= 5 else { return nil }
+        guard Set(u.map(\.id)).count == u.count else { return nil }
+        return u
+    }
+
+    /// True if the pool can form at least one dress-based or top+bottom+shoe silhouette with a third piece where needed.
+    private static func poolHasFeasibleThreePieceOutfit(pool: [WardrobeItem]) -> Bool {
+        var byCat: [String: [WardrobeItem]] = [:]
+        for item in pool {
+            byCat[item.category, default: []].append(item)
+        }
+        let tops = byCat[WardrobeCatalog.tops] ?? []
+        let bottoms = byCat[WardrobeCatalog.bottoms] ?? []
+        let dresses = byCat[WardrobeCatalog.dresses] ?? []
+        let shoes = byCat[WardrobeCatalog.shoes] ?? []
+        let outer = byCat[WardrobeCatalog.outerwear] ?? []
+        let acc = byCat[WardrobeCatalog.accessories] ?? []
+
+        if !dresses.isEmpty, !shoes.isEmpty, !(outer.isEmpty && acc.isEmpty) {
+            return true
+        }
+        if !tops.isEmpty, !bottoms.isEmpty, !shoes.isEmpty {
+            return true
+        }
+        return false
+    }
+
+    /// Strong ranking for occasion / season / tags / rotation; used for ordering and display score.
+    private static func itemPickerRank(
+        _ item: WardrobeItem,
+        occasion: Occasion,
+        tagTerms: Set<String>,
+        seasonKey: String,
+        weatherTagIds: Set<String>,
+        moodTagIds: Set<String>,
+        nowEpochMs: Int64,
+        categoryTotalsInPool: [String: Int],
+    ) -> Double {
+        var r = 0.0
+        if occasion.preferredCategories.contains(item.category) { r += 200 }
+        let seasons = item.seasonsList
+        if seasons.isEmpty || seasons.contains(where: { $0.caseInsensitiveCompare(seasonKey) == .orderedSame }) {
+            r += 78
+        }
+        let hay = "\(item.name) \(item.colorName)".lowercased()
+        for t in tagTerms where !t.isEmpty {
+            if hay.contains(t) { r += 58 }
+        }
+        for w in weatherTagIds where !w.isEmpty {
+            let low = w.lowercased()
+            if hay.contains(low) { r += 96 }
+        }
+        for m in moodTagIds where !m.isEmpty {
+            let low = m.lowercased()
+            if hay.contains(low) { r += 96 }
+        }
+        r += tagKeywordBonus(item, weatherTagIds: weatherTagIds, moodTagIds: moodTagIds)
+        r += 72.0 / Double(1 + item.wornCount)
+        if item.wornCount == 0 { r += 22 }
+        else if let lw = item.lastWornAtEpochMs {
+            let days = (nowEpochMs - lw) / dayMs
+            if days >= 21 { r += 28 }
+            else if days >= 8 { r += 16 }
+            else if days >= 1 { r += 6 }
+        }
+        if let n = categoryTotalsInPool[item.category], n <= 3 { r += 14 }
+        if tagTerms.contains("cold"), item.category == WardrobeCatalog.outerwear { r += 38 }
+        if tagTerms.contains("rainy"), item.category == WardrobeCatalog.outerwear { r += 32 }
+        let moodL = Set(moodTagIds.map { $0.lowercased() })
+        if moodL.contains("cozy"), item.category == WardrobeCatalog.outerwear { r += 26 }
+        if tagTerms.contains("bright"), isVividHex(item.colorHex) { r += 18 }
+        if tagTerms.contains("minimal"), isNeutralHex(item.colorHex) { r += 18 }
+        return r
+    }
+
+    /// Per id: number of **prior** suggested outfits in this run that already include the piece (drives diversity).
+    private static func priorOutfitReuseCounts(_ priorOutfits: [[WardrobeItem]]) -> [String: Int] {
+        var m: [String: Int] = [:]
+        for outfit in priorOutfits {
+            for id in Set(outfit.map(\.id)) {
+                m[id, default: 0] += 1
+            }
+        }
+        return m
+    }
+
+    private static func adjustedPickRank(
+        _ item: WardrobeItem,
+        occasion: Occasion,
+        tagTerms: Set<String>,
+        seasonKey: String,
+        weatherTagIds: Set<String>,
+        moodTagIds: Set<String>,
+        nowEpochMs: Int64,
+        categoryTotalsInPool: [String: Int],
+        priorOutfitReuseCounts: [String: Int],
+    ) -> Double {
+        let base = itemPickerRank(item, occasion: occasion, tagTerms: tagTerms, seasonKey: seasonKey, weatherTagIds: weatherTagIds, moodTagIds: moodTagIds, nowEpochMs: nowEpochMs, categoryTotalsInPool: categoryTotalsInPool)
+        let prior = priorOutfitReuseCounts[item.id, default: 0]
+        var r = base - Double(prior) * 250
+        // Strong stick after each prior outfit: deprioritize reuse even when multiplier alone would still leave “devseed” elites winning every slot.
+        if prior > 0 { r -= 200 }
+        return r
+    }
+
+    /// Full Fisher–Yates on the entire buffer (used for the top‑N ranked slice only).
+    private static func fisherYatesShuffle(_ items: inout [WardrobeItem], gen: inout SeededGenerator) {
+        let n = items.count
+        guard n > 1 else { return }
+        var i = n - 1
+        while i > 0 {
+            let j = Int(gen.next() % UInt64(i + 1))
+            items.swapAt(i, j)
+            i -= 1
+        }
+    }
+
+    private static func pickRandomFromTopN(
+        _ items: [WardrobeItem],
+        excluding: Set<String>,
+        topN: Int,
+        occasion: Occasion,
+        tagTerms: Set<String>,
+        seasonKey: String,
+        weatherTagIds: Set<String>,
+        moodTagIds: Set<String>,
+        nowEpochMs: Int64,
+        categoryTotalsInPool: [String: Int],
+        priorOutfitReuseCounts: [String: Int],
+        gen: inout SeededGenerator,
+    ) -> WardrobeItem? {
+        let filtered = items.filter { !excluding.contains($0.id) }
+        guard !filtered.isEmpty else { return nil }
+        let ranked = filtered.sorted { a, b in
+            let ra = adjustedPickRank(a, occasion: occasion, tagTerms: tagTerms, seasonKey: seasonKey, weatherTagIds: weatherTagIds, moodTagIds: moodTagIds, nowEpochMs: nowEpochMs, categoryTotalsInPool: categoryTotalsInPool, priorOutfitReuseCounts: priorOutfitReuseCounts)
+            let rb = adjustedPickRank(b, occasion: occasion, tagTerms: tagTerms, seasonKey: seasonKey, weatherTagIds: weatherTagIds, moodTagIds: moodTagIds, nowEpochMs: nowEpochMs, categoryTotalsInPool: categoryTotalsInPool, priorOutfitReuseCounts: priorOutfitReuseCounts)
+            if ra != rb { return ra > rb }
+            return a.id < b.id
+        }
+        let take = min(topN, ranked.count)
+        guard take > 0 else { return nil }
+        var elite = Array(ranked.prefix(take))
+        fisherYatesShuffle(&elite, gen: &gen)
+        let idx = Int(gen.next() % UInt64(take))
+        return elite[idx]
+    }
+
+    private static func overlapAtLeastTwoWithAnyPrior(_ ids: Set<String>, _ prior: [[WardrobeItem]]) -> Bool {
+        for p in prior {
+            if ids.intersection(Set(p.map(\.id))).count >= 2 { return true }
+        }
+        return false
+    }
+
+    private static func piecesHaveDistinctIds(_ pieces: [WardrobeItem]) -> Bool {
+        pieces.count == Set(pieces.map(\.id)).count
+    }
+
+    private static func tryBuildDressSilhouette(
+        dresses: [WardrobeItem],
+        shoes: [WardrobeItem],
+        outer: [WardrobeItem],
+        acc: [WardrobeItem],
+        occasion: Occasion,
+        tagTerms: Set<String>,
+        seasonKey: String,
+        weatherTagIds: Set<String>,
+        moodTagIds: Set<String>,
+        nowEpochMs: Int64,
+        categoryTotalsInPool: [String: Int],
+        priorOutfitReuseCounts: [String: Int],
+        gen: inout SeededGenerator,
+    ) -> [WardrobeItem]? {
+        guard let dress = pickRandomFromTopN(
+            dresses, excluding: [], topN: 14,
+            occasion: occasion, tagTerms: tagTerms, seasonKey: seasonKey, weatherTagIds: weatherTagIds, moodTagIds: moodTagIds,
+            nowEpochMs: nowEpochMs, categoryTotalsInPool: categoryTotalsInPool, priorOutfitReuseCounts: priorOutfitReuseCounts, gen: &gen,
+        ) else { return nil }
+        var usedIds = Set([dress.id])
+        guard let shoe = pickRandomFromTopN(
+            shoes, excluding: usedIds, topN: 14,
+            occasion: occasion, tagTerms: tagTerms, seasonKey: seasonKey, weatherTagIds: weatherTagIds, moodTagIds: moodTagIds,
+            nowEpochMs: nowEpochMs, categoryTotalsInPool: categoryTotalsInPool, priorOutfitReuseCounts: priorOutfitReuseCounts, gen: &gen,
+        ) else { return nil }
+        usedIds.insert(shoe.id)
+        let thirdPool = outer + acc
+        guard let extra = pickRandomFromTopN(
+            thirdPool, excluding: usedIds, topN: 14,
+            occasion: occasion, tagTerms: tagTerms, seasonKey: seasonKey, weatherTagIds: weatherTagIds, moodTagIds: moodTagIds,
+            nowEpochMs: nowEpochMs, categoryTotalsInPool: categoryTotalsInPool, priorOutfitReuseCounts: priorOutfitReuseCounts, gen: &gen,
+        ) else { return nil }
+        usedIds.insert(extra.id)
+        var pieces = [dress, shoe, extra]
+        let roll = Int(gen.next() % 100)
+        if pieces.count < 5 {
+            if roll < 38, let o = pickRandomFromTopN(
+                outer, excluding: usedIds, topN: 10,
+                occasion: occasion, tagTerms: tagTerms, seasonKey: seasonKey, weatherTagIds: weatherTagIds, moodTagIds: moodTagIds,
+                nowEpochMs: nowEpochMs, categoryTotalsInPool: categoryTotalsInPool, priorOutfitReuseCounts: priorOutfitReuseCounts, gen: &gen,
+            ) {
+                pieces.append(o)
+                usedIds.insert(o.id)
+            } else if roll < 76, let a = pickRandomFromTopN(
+                acc, excluding: usedIds, topN: 10,
+                occasion: occasion, tagTerms: tagTerms, seasonKey: seasonKey, weatherTagIds: weatherTagIds, moodTagIds: moodTagIds,
+                nowEpochMs: nowEpochMs, categoryTotalsInPool: categoryTotalsInPool, priorOutfitReuseCounts: priorOutfitReuseCounts, gen: &gen,
+            ) {
+                pieces.append(a)
+                usedIds.insert(a.id)
+            }
+        }
+        guard piecesHaveDistinctIds(pieces) else { return nil }
+        return pieces
+    }
+
+    private static func tryBuildTopBottomSilhouette(
+        tops: [WardrobeItem],
+        bottoms: [WardrobeItem],
+        shoes: [WardrobeItem],
+        outer: [WardrobeItem],
+        acc: [WardrobeItem],
+        occasion: Occasion,
+        tagTerms: Set<String>,
+        seasonKey: String,
+        weatherTagIds: Set<String>,
+        moodTagIds: Set<String>,
+        nowEpochMs: Int64,
+        categoryTotalsInPool: [String: Int],
+        priorOutfitReuseCounts: [String: Int],
+        gen: inout SeededGenerator,
+    ) -> [WardrobeItem]? {
+        guard let top = pickRandomFromTopN(
+            tops, excluding: [], topN: 14,
+            occasion: occasion, tagTerms: tagTerms, seasonKey: seasonKey, weatherTagIds: weatherTagIds, moodTagIds: moodTagIds,
+            nowEpochMs: nowEpochMs, categoryTotalsInPool: categoryTotalsInPool, priorOutfitReuseCounts: priorOutfitReuseCounts, gen: &gen,
+        ) else { return nil }
+        var usedIds = Set([top.id])
+        guard let bottom = pickRandomFromTopN(
+            bottoms, excluding: usedIds, topN: 14,
+            occasion: occasion, tagTerms: tagTerms, seasonKey: seasonKey, weatherTagIds: weatherTagIds, moodTagIds: moodTagIds,
+            nowEpochMs: nowEpochMs, categoryTotalsInPool: categoryTotalsInPool, priorOutfitReuseCounts: priorOutfitReuseCounts, gen: &gen,
+        ) else { return nil }
+        usedIds.insert(bottom.id)
+        guard let shoe = pickRandomFromTopN(
+            shoes, excluding: usedIds, topN: 14,
+            occasion: occasion, tagTerms: tagTerms, seasonKey: seasonKey, weatherTagIds: weatherTagIds, moodTagIds: moodTagIds,
+            nowEpochMs: nowEpochMs, categoryTotalsInPool: categoryTotalsInPool, priorOutfitReuseCounts: priorOutfitReuseCounts, gen: &gen,
+        ) else { return nil }
+        usedIds.insert(shoe.id)
+        var pieces = [top, bottom, shoe]
+        if pieces.count < 5, Int(gen.next() % 100) < 44, let o = pickRandomFromTopN(
+            outer, excluding: usedIds, topN: 10,
+            occasion: occasion, tagTerms: tagTerms, seasonKey: seasonKey, weatherTagIds: weatherTagIds, moodTagIds: moodTagIds,
+            nowEpochMs: nowEpochMs, categoryTotalsInPool: categoryTotalsInPool, priorOutfitReuseCounts: priorOutfitReuseCounts, gen: &gen,
+        ) {
+            pieces.append(o)
+            usedIds.insert(o.id)
+        }
+        if pieces.count < 5, Int(gen.next() % 100) < 44, let a = pickRandomFromTopN(
+            acc, excluding: usedIds, topN: 10,
+            occasion: occasion, tagTerms: tagTerms, seasonKey: seasonKey, weatherTagIds: weatherTagIds, moodTagIds: moodTagIds,
+            nowEpochMs: nowEpochMs, categoryTotalsInPool: categoryTotalsInPool, priorOutfitReuseCounts: priorOutfitReuseCounts, gen: &gen,
+        ) {
+            pieces.append(a)
+            usedIds.insert(a.id)
+        }
+        guard piecesHaveDistinctIds(pieces) else { return nil }
+        return pieces
+    }
+
+    private static func outfitHeuristicScore(
+        _ pieces: [WardrobeItem],
+        occasion: Occasion,
+        tagTerms: Set<String>,
+        seasonKey: String,
+        weatherTagIds: Set<String>,
+        moodTagIds: Set<String>,
+        nowEpochMs: Int64,
+        categoryTotalsInPool: [String: Int],
+    ) -> Double {
+        var s = pieces.map {
+            itemPickerRank($0, occasion: occasion, tagTerms: tagTerms, seasonKey: seasonKey, weatherTagIds: weatherTagIds, moodTagIds: moodTagIds, nowEpochMs: nowEpochMs, categoryTotalsInPool: categoryTotalsInPool)
+        }.reduce(0, +)
+        s += Double(Set(pieces.map(\.category)).count) * 5
+        let mains = pieces.filter {
+            $0.category == WardrobeCatalog.tops ||
+                $0.category == WardrobeCatalog.bottoms ||
+                $0.category == WardrobeCatalog.dresses
+        }
+        if mains.count >= 2,
+           let c0 = parseRgb(mains[0].colorHex),
+           let c1 = parseRgb(mains[1].colorHex) {
+            let lumDiff = abs(c0.luminance - c1.luminance)
+            if (0.10...0.52).contains(lumDiff) { s += 14 }
+            s += hueHarmonyBonus(c0, c1)
+        }
+        return s
+    }
+
     static func suggest(
         allItems: [WardrobeItem],
         occasionId: String,
@@ -104,7 +440,7 @@ enum WardrobePickerEngine {
         seed: Int64,
         maxOutfits: Int = 3,
         nowEpochMs: Int64 = Int64(Date().timeIntervalSince1970 * 1000),
-    ) -> [PickerSuggestion] {
+    ) -> PickerSuggestOutcome {
         let occasion = occasions.first { $0.id == occasionId } ?? occasions[0]
         let month = Calendar.current.component(.month, from: Date())
         let season = currentSeasonKey(month1Based: month)
@@ -115,7 +451,19 @@ enum WardrobePickerEngine {
             let seasons = item.seasonsList
             return seasons.isEmpty || seasons.contains { seasonPool.contains($0.lowercased()) }
         }
-        guard pool.count >= 2 else { return [] }
+
+        func outcomeInsufficientOnly() -> PickerSuggestOutcome {
+            let feasibleInPool = pool.count >= 3 && poolHasFeasibleThreePieceOutfit(pool: pool)
+            let o = PickerSuggestOutcome(
+                suggestions: [],
+                shouldShowInsufficientVarietyMessage: !allItems.isEmpty && (pool.count < 3 || !feasibleInPool),
+            )
+            pickerDebugLog("Final suggestions count: \(o.suggestions.count), insufficient message: \(o.shouldShowInsufficientVarietyMessage)")
+            return o
+        }
+
+        guard pool.count >= 3 else { return outcomeInsufficientOnly() }
+        pickerDebugLog("Initial pool size: \(pool.count)")
 
         let blended = blendPickerSeed(
             seed: seed,
@@ -136,240 +484,164 @@ enum WardrobePickerEngine {
         let outer = byCat[WardrobeCatalog.outerwear] ?? []
         let acc = byCat[WardrobeCatalog.accessories] ?? []
 
-        var gen = SeededGenerator(seed: blended)
-        var gen2 = SeededGenerator(seed: blended ^ xorMask)
-        var genEnrich = SeededGenerator(seed: blended ^ xorMaskEnrich)
-
-        func stratified(_ items: [WardrobeItem], _ n: Int) -> [WardrobeItem] {
-            if items.count <= n { return items.shuffled(using: &gen) }
-            let half = (n + 1) / 2
-            let freshFirst = items.sorted { rotationKey($0, nowEpochMs) < rotationKey($1, nowEpochMs) }
-            let fromFresh = Array(freshFirst.prefix(half))
-            let freshIds = Set(fromFresh.map(\.id))
-            var remaining = items.filter { !freshIds.contains($0.id) }
-            if remaining.isEmpty { remaining = items }
-            let need = max(0, n - fromFresh.count)
-            let fromRand = Array(remaining.shuffled(using: &gen2).prefix(need))
-            var combined = fromFresh + fromRand
-            var seen = Set<String>()
-            combined = combined.filter { seen.insert($0.id).inserted }
-            return Array(combined.prefix(n)).shuffled(using: &gen)
+        var categoryTotalsInPool: [String: Int] = [:]
+        for item in pool {
+            categoryTotalsInPool[item.category, default: 0] += 1
         }
 
-        let rngTops = stratified(tops, 12)
-        let rngBottoms = stratified(bottoms, 12)
-        let rngDresses = stratified(dresses, 9)
-        let rngShoes = stratified(shoes, 9)
-        let rngOuter = stratified(outer, 7)
-        let rngAcc = stratified(acc, 7)
+        let canDressSilhouette = !dresses.isEmpty && !shoes.isEmpty && (!outer.isEmpty || !acc.isEmpty)
+        let canTopBottomSilhouette = !tops.isEmpty && !bottoms.isEmpty && !shoes.isEmpty
+        guard canDressSilhouette || canTopBottomSilhouette else {
+            return outcomeInsufficientOnly()
+        }
 
-        var candidates: [(pieces: [WardrobeItem], score: Double)] = []
-
-        func addCandidate(_ raw: [WardrobeItem]) {
-            var pieces = raw.uniqueStableById()
-            guard !pieces.isEmpty else { return }
-            if pieces.count < 2 {
-                guard let expanded = expandIncompleteOutfit(pieces, shoes: shoes, outer: outer, acc: acc, gen: &gen) else { return }
-                pieces = expanded
+        let dressRouteBiasBase: Double = {
+            switch occasion.id {
+            case "formal", "date_night": return 0.58
+            case "gym": return 0.07
+            default: return 0.36
             }
-            guard pieces.count >= 2, pieces.count <= 5, sizesCoherent(pieces) else { return }
-            var mutable = pieces
-            enrichToTargetPieceCount(
-                &mutable,
-                shoes: shoes,
-                outer: outer,
-                acc: acc,
-                gen: &genEnrich,
-                minTarget: 3,
-                maxPieces: 5,
-            )
-            guard mutable.count >= 2, mutable.count <= 5, sizesCoherent(mutable) else { return }
-            let sc = scoreOutfit(
-                mutable,
+        }()
+        let weatherL = Set(weatherTagIds.map { $0.lowercased() })
+        let moodL = Set(moodTagIds.map { $0.lowercased() })
+        var dressRouteBias = dressRouteBiasBase
+        if weatherL.contains("cold") || weatherL.contains("rainy") || weatherL.contains("windy") {
+            dressRouteBias -= 0.10
+        }
+        if moodL.contains("cozy") || moodL.contains("relaxed") {
+            dressRouteBias -= 0.08
+        }
+        if moodL.contains("bold") || moodL.contains("polished") {
+            dressRouteBias += 0.10
+        }
+        if !weatherL.isEmpty || !moodL.isEmpty {
+            dressRouteBias += 0.05
+        }
+        dressRouteBias = min(max(dressRouteBias, 0.05), 0.82)
+
+        var suggestions: [PickerSuggestion] = []
+        var builtPieces: [[WardrobeItem]] = []
+        var usedOutfitKeys = Set<String>()
+
+        // Diverse outfit selection: `priorOutfitReuseCounts(builtPieces)` + `adjustedPickRank` penalize items from prior looks (this run).
+        for slot in 0 ..< maxOutfits {
+            let reuseForPicks = priorOutfitReuseCounts(builtPieces)
+            var slotGen = SeededGenerator(seed: streamSeed(blended: blended, userSeed: seed, slot: slot, salt: xorMaskPick))
+            var outfit: [WardrobeItem]?
+            var rejOverlap = 0
+            var rejDupKey = 0
+            var rejSanitize = 0
+            var rejPostSanDup = 0
+            for _ in 0 ..< pickerAttemptsPerOutfitSlot {
+                let useDress: Bool
+                if canDressSilhouette && canTopBottomSilhouette {
+                    let r = Double(Int64(bitPattern: slotGen.next()) % 10_000) / 10_000.0
+                    useDress = r < dressRouteBias
+                } else {
+                    useDress = canDressSilhouette
+                }
+                let candidate: [WardrobeItem]?
+                if useDress {
+                    candidate = tryBuildDressSilhouette(
+                        dresses: dresses,
+                        shoes: shoes,
+                        outer: outer,
+                        acc: acc,
+                        occasion: occasion,
+                        tagTerms: tagTerms,
+                        seasonKey: season,
+                        weatherTagIds: weatherTagIds,
+                        moodTagIds: moodTagIds,
+                        nowEpochMs: nowEpochMs,
+                        categoryTotalsInPool: categoryTotalsInPool,
+                        priorOutfitReuseCounts: reuseForPicks,
+                        gen: &slotGen,
+                    )
+                } else {
+                    candidate = tryBuildTopBottomSilhouette(
+                        tops: tops,
+                        bottoms: bottoms,
+                        shoes: shoes,
+                        outer: outer,
+                        acc: acc,
+                        occasion: occasion,
+                        tagTerms: tagTerms,
+                        seasonKey: season,
+                        weatherTagIds: weatherTagIds,
+                        moodTagIds: moodTagIds,
+                        nowEpochMs: nowEpochMs,
+                        categoryTotalsInPool: categoryTotalsInPool,
+                        priorOutfitReuseCounts: reuseForPicks,
+                        gen: &slotGen,
+                    )
+                }
+                guard let raw = candidate,
+                      let sanitized = sanitizeDistinctOutfitPieces(raw) else {
+                    rejSanitize += 1
+                    continue
+                }
+                let sanIds = sanitized.map(\.id)
+                guard Set(sanIds).count == sanIds.count else {
+                    rejPostSanDup += 1
+                    pickerDebugLog("Reject: internal duplicate ids post-sanitize, ids=\(sanIds)")
+                    continue
+                }
+                let key = sanIds.sorted().joined(separator: ",")
+                guard !usedOutfitKeys.contains(key) else {
+                    rejDupKey += 1
+                    continue
+                }
+                let idSet = Set(sanIds)
+                if overlapAtLeastTwoWithAnyPrior(idSet, builtPieces) {
+                    rejOverlap += 1
+                    continue
+                }
+                outfit = sanitized
+                break
+            }
+            guard let finalPieces = outfit else {
+                pickerDebugLog(
+                    "Slot \(slot + 1): no outfit after \(pickerAttemptsPerOutfitSlot) attempts (prior=\(builtPieces.count)); rejects — overlap≥2: \(rejOverlap), dup outfit key: \(rejDupKey), no valid build/sanitize: \(rejSanitize), internal dup post-sanitize: \(rejPostSanDup)",
+                )
+                break
+            }
+            let key = finalPieces.map(\.id).sorted().joined(separator: ",")
+            usedOutfitKeys.insert(key)
+            builtPieces.append(finalPieces)
+            let selIds = finalPieces.map(\.id).sorted()
+            pickerDebugLog("Selected outfit #\(suggestions.count + 1): ids = \(selIds), pieces = \(finalPieces.count)")
+            let display = finalPieces.sorted { displayOrder($0.category) < displayOrder($1.category) }
+            let score = outfitHeuristicScore(
+                display,
                 occasion: occasion,
                 tagTerms: tagTerms,
                 seasonKey: season,
                 weatherTagIds: weatherTagIds,
                 moodTagIds: moodTagIds,
                 nowEpochMs: nowEpochMs,
+                categoryTotalsInPool: categoryTotalsInPool,
             )
-            candidates.append((mutable, sc))
-        }
-
-        for d in rngDresses {
-            for sh in ([Optional<WardrobeItem>.none] + rngShoes.map { Optional($0) }) {
-                for ac in ([Optional<WardrobeItem>.none] + rngAcc.map { Optional($0) }) {
-                    var list = [d]
-                    if let sh { list.append(sh) }
-                    if let ac { list.append(ac) }
-                    addCandidate(list)
-                }
-            }
-        }
-
-        for t in rngTops {
-            for b in rngBottoms {
-                for sh in ([Optional<WardrobeItem>.none] + rngShoes.map { Optional($0) }) {
-                    for ow in ([Optional<WardrobeItem>.none] + rngOuter.map { Optional($0) }) {
-                        for ac in ([Optional<WardrobeItem>.none] + rngAcc.map { Optional($0) }) {
-                            var list = [t, b]
-                            if let sh { list.append(sh) }
-                            if let ow { list.append(ow) }
-                            if let ac { list.append(ac) }
-                            addCandidate(Array(list.prefix(5)))
-                        }
-                    }
-                }
-            }
-        }
-
-        guard !candidates.isEmpty else { return [] }
-
-        var bestByKey: [String: (pieces: [WardrobeItem], score: Double)] = [:]
-        for c in candidates {
-            let k = c.pieces.map(\.id).sorted().joined(separator: ",")
-            if let p = bestByKey[k] {
-                if c.score > p.score { bestByKey[k] = c }
-            } else {
-                bestByKey[k] = c
-            }
-        }
-        let sorted = bestByKey.values.sorted { $0.score > $1.score }
-        var picked: [(pieces: [WardrobeItem], score: Double)] = []
-        let similarityCap = 0.36
-        for pair in sorted {
-            if picked.count >= maxOutfits * 12 { break }
-            let ids = Set(pair.pieces.map(\.id))
-            let tooSimilar = picked.contains { prev in
-                let o = Set(prev.pieces.map(\.id))
-                return jaccard(ids, o) > similarityCap || sameTopBottomSilhouette(pair.pieces, prev.pieces)
-            }
-            if !tooSimilar { picked.append(pair) }
-            if picked.count >= maxOutfits * 8 { break }
-        }
-
-        let topPick = picked.isEmpty ? Array(sorted.prefix(maxOutfits * 3)) : picked
-        var unique: [(pieces: [WardrobeItem], score: Double)] = []
-        var seen: Set<String> = []
-        for p in topPick.sorted(by: { $0.score > $1.score }) {
-            let key = p.pieces.map(\.id).sorted().joined(separator: ",")
-            if seen.contains(key) { continue }
-            seen.insert(key)
-            unique.append(p)
-            if unique.count >= maxOutfits { break }
-        }
-
-        let mapped: [PickerSuggestion] = unique.enumerated().map { idx, row in
-            let ordered = row.pieces.sorted { displayOrder($0.category) < displayOrder($1.category) }
-            return PickerSuggestion(
-                title: "\(occasion.label) · Look \(idx + 1)",
-                items: ordered,
-                score: row.score,
-                reason: buildReason(ordered, weatherTagIds: weatherTagIds, moodTagIds: moodTagIds, nowEpochMs: nowEpochMs),
-            )
-        }
-
-        if mapped.isEmpty {
-            var fallback: (pieces: [WardrobeItem], score: Double)?
-            if let row = sorted.first(where: { $0.pieces.count >= 2 }) {
-                fallback = row
-            } else if let row = sorted.first,
-                      let expanded = expandIncompleteOutfit(row.pieces, shoes: shoes, outer: outer, acc: acc, gen: &genEnrich),
-                      expanded.count >= 2, expanded.count <= 5, sizesCoherent(expanded) {
-                let sc = scoreOutfit(
-                    expanded,
-                    occasion: occasion,
-                    tagTerms: tagTerms,
-                    seasonKey: season,
-                    weatherTagIds: weatherTagIds,
-                    moodTagIds: moodTagIds,
-                    nowEpochMs: nowEpochMs,
-                )
-                fallback = (expanded, sc)
-            }
-            guard let fb = fallback else { return [] }
-            let ordered = fb.pieces.sorted { displayOrder($0.category) < displayOrder($1.category) }
-            return [
+            suggestions.append(
                 PickerSuggestion(
-                    title: "\(occasion.label) · Look 1",
-                    items: ordered,
-                    score: fb.score,
-                    reason: buildReason(ordered, weatherTagIds: weatherTagIds, moodTagIds: moodTagIds, nowEpochMs: nowEpochMs),
+                    title: "\(occasion.label) · Look \(suggestions.count + 1)",
+                    items: display,
+                    score: score,
+                    reason: buildReason(display, weatherTagIds: weatherTagIds, moodTagIds: moodTagIds, nowEpochMs: nowEpochMs),
                 ),
-            ]
+            )
         }
-        return mapped
-    }
 
-    private static func enrichToTargetPieceCount(
-        _ pieces: inout [WardrobeItem],
-        shoes: [WardrobeItem],
-        outer: [WardrobeItem],
-        acc: [WardrobeItem],
-        gen: inout SeededGenerator,
-        minTarget: Int,
-        maxPieces: Int,
-    ) {
-        var used = Set(pieces.map(\.id))
-        while pieces.count < minTarget, pieces.count < maxPieces {
-            let extras = (shoes + outer + acc).filter { !used.contains($0.id) }.shuffled(using: &gen)
-            var added = false
-            for pick in extras {
-                pieces.append(pick)
-                used.insert(pick.id)
-                if sizesCoherent(pieces) {
-                    added = true
-                    break
-                }
-                pieces.removeLast()
-                used.remove(pick.id)
-            }
-            if !added { break }
+        if suggestions.isEmpty {
+            pickerDebugLog("simple suggest: no outfits built (pool=\(pool.count))")
+            return outcomeInsufficientOnly()
         }
-    }
 
-    private static func sameTopBottomSilhouette(_ a: [WardrobeItem], _ b: [WardrobeItem]) -> Bool {
-        let ta = Set(a.filter { $0.category == WardrobeCatalog.tops }.map(\.id))
-        let ba = Set(a.filter { $0.category == WardrobeCatalog.bottoms }.map(\.id))
-        let tb = Set(b.filter { $0.category == WardrobeCatalog.tops }.map(\.id))
-        let bb = Set(b.filter { $0.category == WardrobeCatalog.bottoms }.map(\.id))
-        if ta.isEmpty || ba.isEmpty || tb.isEmpty || bb.isEmpty { return false }
-        return ta == tb && ba == bb
-    }
+        let finalSets = builtPieces.map { "[" + $0.map(\.id).sorted().joined(separator: ", ") + "]" }.joined(separator: ", ")
+        pickerDebugLog("Final selected outfits: [\(finalSets)]")
 
-    private static func expandIncompleteOutfit(
-        _ pieces: [WardrobeItem],
-        shoes: [WardrobeItem],
-        outer: [WardrobeItem],
-        acc: [WardrobeItem],
-        gen: inout SeededGenerator,
-    ) -> [WardrobeItem]? {
-        guard !pieces.isEmpty else { return nil }
-        var out = pieces.uniqueStableById()
-        var used = Set(out.map(\.id))
-        while out.count < 2 {
-            let extras = (shoes + outer + acc).filter { !used.contains($0.id) }.shuffled(using: &gen)
-            var added = false
-            for pick in extras {
-                out.append(pick)
-                used.insert(pick.id)
-                if sizesCoherent(out) {
-                    added = true
-                    break
-                }
-                out.removeLast()
-                used.remove(pick.id)
-            }
-            if !added { break }
-        }
-        guard out.count >= 2 else { return nil }
-        return Array(out.prefix(5))
-    }
-
-    private static func rotationKey(_ item: WardrobeItem, _ now: Int64) -> Int64 {
-        if item.wornCount == 0 { return .min }
-        guard let lw = item.lastWornAtEpochMs else { return now - 60 * dayMs }
-        return lw
+        let insufficientVariety = false
+        pickerDebugLog("Final suggestions count: \(suggestions.count), insufficient message: \(insufficientVariety)")
+        return PickerSuggestOutcome(suggestions: suggestions, shouldShowInsufficientVarietyMessage: insufficientVariety)
     }
 
     private static func displayOrder(_ category: String) -> Int {
@@ -383,90 +655,17 @@ enum WardrobePickerEngine {
         }
     }
 
-    private static func jaccard(_ a: Set<String>, _ b: Set<String>) -> Double {
-        if a.isEmpty && b.isEmpty { return 0 }
-        let inter = a.intersection(b).count
-        let uni = a.union(b).count
-        return Double(inter) / Double(uni)
-    }
-
-    private static func sizesCoherent(_ pieces: [WardrobeItem]) -> Bool {
-        let sizes = Set(
-            pieces.map { $0.sizeLabel.trimmingCharacters(in: .whitespacesAndNewlines) }
-                .filter { !$0.isEmpty }
-                .map { $0.uppercased() },
-        )
-        return sizes.count <= 1
-    }
-
     private static func tagKeywordBonus(_ p: WardrobeItem, weatherTagIds: Set<String>, moodTagIds: Set<String>) -> Double {
         var b = 0.0
         let hay = "\(p.name) \(p.colorName)".lowercased()
         let w = Set(weatherTagIds.map { $0.lowercased() })
         let m = Set(moodTagIds.map { $0.lowercased() })
-        if w.contains("sunny"), hay.contains("linen") || hay.contains("light") || hay.contains("breath") { b += 4 }
-        if w.contains("rainy"), hay.contains("nylon") || hay.contains("water") || hay.contains("shell") { b += 4 }
-        if w.contains("hot"), hay.contains("linen") || hay.contains("cotton") || hay.contains("mesh") || hay.contains("tank") { b += 4 }
-        if w.contains("cold"), hay.contains("wool") || hay.contains("fleece") || hay.contains("down") || hay.contains("thermal") { b += 4 }
-        if m.contains("cozy"), hay.contains("knit") || hay.contains("wool") || hay.contains("fleece") { b += 3 }
+        if w.contains("sunny"), hay.contains("linen") || hay.contains("light") || hay.contains("breath") { b += 8 }
+        if w.contains("rainy"), hay.contains("nylon") || hay.contains("water") || hay.contains("shell") { b += 8 }
+        if w.contains("hot"), hay.contains("linen") || hay.contains("cotton") || hay.contains("mesh") || hay.contains("tank") { b += 8 }
+        if w.contains("cold"), hay.contains("wool") || hay.contains("fleece") || hay.contains("down") || hay.contains("thermal") { b += 8 }
+        if m.contains("cozy"), hay.contains("knit") || hay.contains("wool") || hay.contains("fleece") { b += 7 }
         return b
-    }
-
-    private static func scoreOutfit(
-        _ pieces: [WardrobeItem],
-        occasion: Occasion,
-        tagTerms: Set<String>,
-        seasonKey: String,
-        weatherTagIds: Set<String>,
-        moodTagIds: Set<String>,
-        nowEpochMs: Int64,
-    ) -> Double {
-        var s = 0.0
-        let moodLower = Set(moodTagIds.map { $0.lowercased() })
-        for p in pieces {
-            s += 78.0 / Double(1 + p.wornCount)
-            let seasons = p.seasonsList
-            if seasons.isEmpty || seasons.contains(where: { $0.caseInsensitiveCompare(seasonKey) == .orderedSame }) {
-                s += 10
-            }
-            if occasion.preferredCategories.contains(p.category) { s += 8 }
-            let hay = "\(p.name) \(p.colorName)".lowercased()
-            for t in tagTerms where !t.isEmpty {
-                if hay.contains(t) { s += 5 }
-            }
-            s += tagKeywordBonus(p, weatherTagIds: weatherTagIds, moodTagIds: moodTagIds)
-            if p.wornCount == 0 {
-                s += 14
-            } else if let lw = p.lastWornAtEpochMs {
-                let days = (nowEpochMs - lw) / dayMs
-                if days >= 21 { s += 18 }
-                else if days >= 8 { s += 12 }
-                else if days >= 1 { s += 4 }
-            }
-            if (3...9).contains(p.wornCount) { s += 5 }
-            if tagTerms.contains("cold"), p.category == WardrobeCatalog.outerwear { s += 12 }
-            if tagTerms.contains("rainy"), p.category == WardrobeCatalog.outerwear { s += 10 }
-            if moodLower.contains("cozy"), p.category == WardrobeCatalog.outerwear { s += 8 }
-            if tagTerms.contains("bright"), isVividHex(p.colorHex) { s += 6 }
-            if tagTerms.contains("minimal"), isNeutralHex(p.colorHex) { s += 6 }
-        }
-
-        let mainPieces = pieces.filter {
-            $0.category == WardrobeCatalog.tops ||
-                $0.category == WardrobeCatalog.bottoms ||
-                $0.category == WardrobeCatalog.dresses
-        }
-        if mainPieces.count >= 2,
-           let c0 = parseRgb(mainPieces[0].colorHex),
-           let c1 = parseRgb(mainPieces[1].colorHex) {
-            let lumDiff = abs(c0.luminance - c1.luminance)
-            if (0.10...0.52).contains(lumDiff) { s += 16 }
-            if lumDiff < 0.07 { s -= 8 }
-            s += hueHarmonyBonus(c0, c1)
-        }
-
-        s += Double(Set(pieces.map(\.category)).count) * 2.0
-        return s
     }
 
     private static func buildReason(

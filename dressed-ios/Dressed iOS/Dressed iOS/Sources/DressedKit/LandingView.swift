@@ -167,7 +167,7 @@ struct LandingView: View {
             Button {
                 seedDebugTestData()
             } label: {
-                Label("Seed test data (100 items)", systemImage: "leaf.fill")
+                Label("Seed professional closet test data", systemImage: "leaf.fill")
             }
             #endif
         } label: {
