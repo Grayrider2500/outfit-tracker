@@ -139,9 +139,21 @@ struct WardrobeItemDetailView: View {
     }
 
     private func deleteItem(_ item: WardrobeItem) {
-        PhotoStorage.deleteFileIfExists(at: item.photoPath)
-        modelContext.delete(item)
-        try? modelContext.save()
+        let id = item.id
+        let photoPath = item.photoPath
+        do {
+            try modelContext.transaction {
+                for outfit in allOutfits where outfit.itemIdList.contains(id) {
+                    outfit.itemIdsJoined = Outfit.joinItemIds(
+                        outfit.itemIdList.filter { $0 != id },
+                    )
+                }
+                modelContext.delete(item)
+            }
+            PhotoStorage.deleteFileIfExists(at: photoPath)
+        } catch {
+            // Keep UI responsive; DB state is unchanged if transaction failed.
+        }
         onBack()
     }
 

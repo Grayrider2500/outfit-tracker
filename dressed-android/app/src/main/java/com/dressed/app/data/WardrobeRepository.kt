@@ -29,8 +29,17 @@ class WardrobeRepository(
 
     suspend fun deleteItemAndPhoto(id: String) {
         val item = dao.getById(id)
+        database.withTransaction {
+            val outfits = outfitDao.getAllSnapshot().filter { outfit ->
+                outfit.itemIds.any { it == id }
+            }
+            for (outfit in outfits) {
+                val nextIds = outfit.itemIds.filterNot { it == id }
+                outfitDao.insert(outfit.copy(itemIds = nextIds))
+            }
+            dao.deleteById(id)
+        }
         ImageStorage.deleteIfExists(item?.photoPath)
-        dao.deleteById(id)
     }
 
     /**
