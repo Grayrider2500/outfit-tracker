@@ -43,10 +43,17 @@ All core screens implemented and building successfully:
 3. Created `EditOutfitScreen.kt` — pre-populated name + item picker, calls `updateOutfit` on save
 4. `OutfitsScreen` (OutfitsNav) — added `outfits_edit/{id}` route, wired `onEdit` from detail → edit screen
 
+### Session batch (2026-04-05 continued) — pending push
+5. `OutfitsScreen` — Sort / Filter Outfits shipped:
+   - **Sort:** Newest (createdAtEpochMs desc) | Most Worn (wornCount desc) | A–Z (name asc)
+   - **Season filter:** All | Spring | Summer | Autumn | Winter — inferred from constituent wardrobe piece seasons
+   - **Size filter:** Any | Solo (1) | 2–3 pcs | 4+ pcs
+   - Three horizontal `LazyRow` chip bars above the grid; state persists via `rememberSaveable`
+   - `EmptyOutfitsState` now shows contextual message ("No outfits match / Try adjusting filters") when filters are active
+
 ## Next Session — Quick Start
 
 1. Read **`memory.md`** and **`backlog.md`**, then **`CLAUDE.md`** for paths.
-2. Run **`git status`**; pull if you work on another machine.
-3. **iOS sanity:** open Picker → Surprise me → confirm **multiple** suggestion cards stack vertically and scroll.
-4. **Android backlog:** outfit detail actions (mark worn / delete / edit) still per **`backlog.md`**.
-5. **Tests:** no unit/UI tests yet.
+2. Run **`git status`**; push the pending commit if not done from Android Studio.
+3. **Next backlog item:** Wear-count stats card on Landing Screen.
+4. **Tests:** no unit/UI tests yet.
