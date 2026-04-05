@@ -2,102 +2,53 @@
 
 **Assistants:** see **`CLAUDE.md`** at the repo root for where everything lives; use this file as the latest session checkpoint.
 
-## Where We Stopped (checkpoint — verify `git status`)
+## Where we stopped (checkpoint — run `git status` to verify)
 
-**Repo:** `main` branch; last check was **clean** and **even with `origin/main`**.
+**Repo:** `main` branch, **pushed** to **`origin/main`** (last push included iOS outfits sort/filter + rebased docs/seed commits).
 
 ### Android
 - **`google-services.json` is not in git** (security). Listed in `.gitignore`.
-- **Outfit detail (read-only):** `OutfitDetailScreen.kt`, route `outfits_detail/{id}`.
-- **`versionCode`:** 3 in `app/build.gradle.kts`.
+- **`TestDataSeeder`:** full dataset only in **`app/src/debug/`**; **`app/src/release/`** has a tiny stub (`run` throws). `LandingScreen` seed menu remains `BuildConfig.DEBUG`. `WardrobeViewModel.seedDebugTestData` still guards on `BuildConfig.DEBUG`.
+- **`versionCode`:** **4** in `app/build.gradle.kts` (bump as needed per release).
 
-### iOS — Fully Functional
-All core screens implemented and building successfully:
-- **Wardrobe:** list grid + add + edit + detail (mark worn, delete with cascade)
-- **Outfits:** list + create + edit + detail (mark worn, delete)
-- **Search:** text + category + season filters, 3 sort modes
-- **Picker:** rule-based suggestions + AI reasoning (BYOK — user connects own Anthropic key)
-- **Backup/Restore:** v3 zip format, cross-platform with Android, merge/replace modes
-- **AI Settings:** Keychain-secured API key storage, user-facing settings sheet on picker screen
+### iOS — fully functional
+Same scope as before, plus:
+- **Outfits list:** **`OutfitsListView.swift`** — horizontal **`filterBar`** (sort: newest / most worn / A–Z; season chips incl. Autumn→`fall` key; piece-count: solo / 2–3 / 4+). **`displayedOutfits`** filters/sorts in memory; `@Query` unchanged. **`FilterChip`** + **`noResultsState`**. Name sort uses **`localizedLowercase`**; sorts use **`sorted(by:)`** for Swift 7.
+- **`DevTestDataSeeder`:** entire file **`#if DEBUG`** — not compiled in Release. **`DevTestDataSeeder.run`** uses optional `targetItemCount` to avoid main-actor default-arg issues.
 
-### Recent iOS notes
-- **`PickerView.swift` — results layout:** suggestions are a **vertical stack** (`resultsList`) inside the main `ScrollView`, not a page **`TabView`**. Users see every generated look without swiping. Per-suggestion **Save as outfit**, **Wear today**, and **detail sheet** (tap collage) are unchanged. **`WardrobePickerEngine`** logic is separate and was not changed for this.
+### Docs / distribution copy
+- Root **`README.md`** refreshed (features, repo map, Firebase `applicationId` note).
+- **`dressed-android/STORE_LISTING.md`** and **`dressed-ios/STORE_LISTING.md`** — draft Play / App Store text.
+- **`CLAUDE.md`** — iOS path + store listing pointers.
 
-### Earlier session batch (2026-04-02) — already landed
-1. Deleted dead `PlaceholderScreens.swift`
-2. Added Mark as Worn + Delete + Edit to `OutfitDetailView`
-3. Added Edit mode to `AddItemSheet` (reused via `editingItem` param)
-4. Created `EditOutfitSheet` for editing outfit name + pieces
-5. Added Edit button to `WardrobeItemDetailView`
-6. Created `APIKeyStore.swift` — Keychain wrapper for Anthropic API key
-7. Created `AISettingsSheet.swift` — BYOK settings UI
-8. Updated `PickerAnthropicReasoner` — removed `#if DEBUG` gate, reads from Keychain first
-9. Updated `PickerView` — AI status banner + settings sheet entry point
+### iOS picker note
+- **`PickerView.swift`:** suggestions are a **vertical stack** in the main `ScrollView` (no paged `TabView` for results).
 
-### Security follow-up (optional)
-- The old `google-services.json` may still exist in **git history**. If the repo is public, consider **rotating / restricting** the Firebase/Android API key in Google Cloud Console.
+## Completed recently (already on `main`)
 
-### Session batch (2026-04-05) — just landed
-1. `OutfitDetailScreen` — added Mark as Worn button, Delete Outfit (with confirmation dialog), Edit pencil icon in TopAppBar
-2. `OutfitsViewModel` — added `updateOutfit(updated, onUpdated)`
-3. Created `EditOutfitScreen.kt` — pre-populated name + item picker, calls `updateOutfit` on save
-4. `OutfitsScreen` (OutfitsNav) — added `outfits_edit/{id}` route, wired `onEdit` from detail → edit screen
+- Landing **stats** card (both platforms).
+- Item detail **“Worn in outfits”** list (both platforms).
+- **iOS outfits sort/filter** parity with Android chip rows.
+- **Docs & store drafts**; **seed data excluded from release builds** (Android flavor sources + iOS `#if DEBUG`).
+- **Borrowable library** Android export: **`FileProvider` + `ACTION_SEND`** share sheet (not `CreateDocument`-only).
 
-### Session batch (2026-04-05 continued) — pending push
-5. `OutfitsScreen` — Sort / Filter Outfits shipped (Android)
-6. **Occasion hashtag tags** — shipped on **both Android and iOS**:
-   - Tags: `#date night`, `#concert`, `#brunch`, `#work`, `#gym`, `#staying in`
-   - **Android:** `WardrobeOccasions` model, DB migration 4→5, `AddItemScreen` chip picker, `WardrobeSearchScreen` OCCASION filter, backup codec updated
-   - **iOS:** `WardrobeItem.occasionsJoined`, `WardrobeCatalog.occasions`, `AddItemSheet` chip picker, `WardrobeSearchView` OCCASION filter, `BackupRestore` DTO updated
-   - Keys identical on both platforms → cross-platform backup files remain compatible
+## Next up — see `backlog.md`
 
-## Workflow Note
-Code writing is being split: **architecture / debugging / cross-platform sync → here; single-platform UI implementation → Cursor/Codex**. Keep specs in `backlog.md` tight enough that Cursor can execute without ambiguity.
+**Medium priority:** Outfit seasons tag (inherit from pieces or manual).
 
-## Completed This Session
-- Occasion hashtag tags — both platforms (Android DB v5, iOS SwiftData auto-migrated)
-- Occasion tag editing on existing items — Android `ItemDetailScreen` + `WardrobeViewModel.updateItem()`; `withOccasionToggled()` helper preserves WardrobeOccasions.ALL order
-- Borrowable Library — both platforms complete (Cursor)
-  - iOS: swipe-to-delete list + ⋯ detail menu; share sheet via `UIActivityViewController`
-  - Android: `LibraryImportOutcome` + `consumePendingOpenImportedLibrary()` pattern avoids re-navigate on rotation; export uses `CreateDocument` (save picker) — **not yet a share sheet**
-- Delete borrowed library — both platforms complete
+**Lower priority:** search across outfits, outfit hero photo, dark mode polish, a11y, onboarding.
 
-## Next Up — Cursor Tasks (see backlog.md)
+## Workflow note
 
-Cursor tasks status:
+Architecture / cross-platform sync → this repo; tight specs live in **`backlog.md`** for Cursor-style execution.
 
-1. ✅ **Stats card on Landing Screen** — DONE (2026-04-05). `StatsCard` (pieces · total wears · outfits) between divider and first hub button on Android; `statsCard` view in iOS `LandingView`. Both compile clean.
-
-2. ✅ **Item detail "Worn in outfits" list** — DONE (2026-04-05). Android: `observeOutfitsForItem` on `WardrobeViewModel` + collected in `ItemDetailScreen`. iOS: `wornInOutfits` filter in `WardrobeItemDetailView`. Both compile clean.
-
-3. ✅ **iOS Outfits sort/filter parity** — DONE (2026-04-05). `OutfitsListView` now has `outfitSortOptions` / `outfitSeasonFilters` / `outfitSizeFilters`, `displayedOutfits` computed property, `filterBar` + `FilterChip`, `noResultsState`. Matches Android `OutfitsListScreen` exactly. Xcodebuild clean.
-
-## Distribution Status — v1.1.0 build 4
-
-All pre-distribution checklist items cleared (Codex review found no blockers). App is ready to package.
-
-**Upgrade path for existing users:** install new APK/IPA over existing app — Room migrations run automatically (v1→v6), data preserved. Recommend user does a backup first as insurance.
-
-**Remaining backlog (post-tester feedback):**
-- Outfit seasons tag (inherit from pieces or manual)
-- Android `.dressed-library` mime-type polish (currently `application/zip` + filename sniff; low risk, post-feedback fix)
-
-Remaining medium priority: **Outfit seasons tag** (inherit from constituent pieces or manual override).
-
-## Borrowable Library — Design Spec
-- **Concept:** "Chris has these items available to borrow" — file-based, no backend
-- **Sharer:** marks items `lendable = true` via toggle on Item Detail → exports `.dressed-library` zip
-- **File format:** same zip structure as backup; manifest adds `"type": "library"` + `"sharerName": "Chris"`; only `lendable` items included
-- **Borrower:** opens file → imports into a separate `BorrowedLibrary` store (NOT wardrobe) → shown on a dedicated Libraries screen
-- **Read-only:** borrowed items cannot be edited, worn-counted, or added to outfits
-- **Multiple libraries:** borrower can hold libraries from multiple people simultaneously
-- **Refresh:** re-importing a library from the same sharer replaces the old one (match by sharerName or a library ID in the manifest)
-- **Android DB:** `lendable INTEGER NOT NULL DEFAULT 0` on `wardrobe_items` (migration 5→6); new `borrowed_libraries` + `borrowed_items` tables
-- **iOS SwiftData:** `lendable: Bool = false` on `WardrobeItem` (auto-migrates); new `BorrowedLibrary` + `BorrowedItem` models
-
-## Next Session — Quick Start
+## Next session — quick start
 
 1. Read **`memory.md`** and **`backlog.md`**, then **`CLAUDE.md`** for paths.
-2. Run **`git status`**; push pending commits from Android Studio if not done.
-3. Pick up next Cursor task from `backlog.md`.
-4. **Tests:** no unit/UI tests yet.
+2. **`git pull`** and check **`git status`**.
+3. Pick work from **`backlog.md`** or tester feedback.
+4. **Tests:** still no unit/UI suite.
+
+## Optional security follow-up
+
+- Old **`google-services.json`** may exist in **git history** on a public repo — consider rotating/restricting Firebase/Android keys in Google Cloud Console.

@@ -2,33 +2,28 @@
 
 **Assistants:** repo map and session flow → **`CLAUDE.md`** (root).
 
-## Next Up (Cursor tasks)
+## Done (reference)
 
-~~Android library export — switch to share sheet~~ — ✅ Complete (2026-04-05). `cacheDir` + `FileProvider` + `ACTION_SEND` share sheet, matching iOS.
+- Android library export — share sheet (`FileProvider` + `ACTION_SEND`).
+- Occasion tag editing on existing items (Android + iOS).
+- Borrowable Library (both platforms).
+- Wear-count / **stats card** on landing (both platforms).
+- **iOS Outfits sort/filter parity** — `OutfitsListView` matches Android chip rows (`displayedOutfits`, `filterBar`, `FilterChip`).
+- **Item detail: “Worn in outfits”** (both platforms).
+- Backup/restore including outfits (both platforms).
 
-~~Occasion tag editing on existing items~~ — ✅ Complete (Android + iOS, 2026-04-05)
+## Medium priority
 
-~~Borrowable Library~~ — ✅ Both platforms complete (Cursor, 2026-04-05)
+1. **Outfit seasons tag** — inherit seasons from constituent pieces or allow manual override.
 
-## Medium Priority
+## Lower priority
 
-~~1. **Wear-count on Landing Screen**~~ — ✅ Done (2026-04-05).
-~~0. **iOS Outfits sort/filter parity**~~ — ✅ Done (2026-04-05). `OutfitsListView` now matches Android chip rows exactly. Stats card (pieces · total wears · outfits) on both Android + iOS landing screens.
+2. **Search across outfits** — extend search or add dedicated outfits search.
 
-2. **Outfit seasons tag** — inherit seasons from constituent pieces or allow manual override
+3. **Outfit photo** — user-taken or uploaded full-outfit photo in addition to collage.
 
-~~6. **Backup / Restore for Outfits**~~ — ✅ Already complete. Android `WardrobeBackupCodec.writeZipArchive` + both restore modes include outfits; iOS `BackupRestore.swift` has `OutfitDTO` + merge/replace paths.
+4. **Dark mode polish** — verify outfit screens in dark theme.
 
-~~7. **Item detail: "Worn in outfits" list**~~ — ✅ Done (2026-04-05). Shows outfit names on item detail screen on both platforms via `observeOutfitsForItem` (Android) and filtered `@Query` (iOS).
+5. **Accessibility** — content descriptions on collage cells; semantic roles on picker rows.
 
-## Lower Priority
-
-8. **Search across outfits** — extend search or add dedicated outfits search
-
-9. **Outfit photo** — allow user to take/upload a full outfit photo instead of / in addition to the collage
-
-10. **Dark mode polish** — verify all new outfit screens render correctly in dark theme
-
-11. **Accessibility** — content descriptions on collage cells; semantic roles on picker row
-
-12. **Onboarding tooltips** — first-launch hint cards pointing to + FAB on Wardrobe and Outfits screens
+6. **Onboarding tooltips** — first-launch hints for Wardrobe / Outfits FABs.
