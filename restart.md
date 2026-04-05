@@ -4,14 +4,14 @@
 
 ## Where we stopped (checkpoint — run `git status` to verify)
 
-**Repo:** `main` branch, **pushed** to **`origin/main`** (last push included iOS outfits sort/filter + rebased docs/seed commits).
+**Repo:** `main` branch, **pushed** to **`origin/main`**.
 
 ### Android
 - **`google-services.json` is not in git** (security). Listed in `.gitignore`.
 - **`TestDataSeeder`:** full dataset only in **`app/src/debug/`**; **`app/src/release/`** has a tiny stub (`run` throws). `LandingScreen` seed menu remains `BuildConfig.DEBUG`. `WardrobeViewModel.seedDebugTestData` still guards on `BuildConfig.DEBUG`.
-- **`versionCode`:** bump to **5** for the photo-fix build before distributing.
+- **`versionCode`:** **5** in `app/build.gradle.kts` (`versionName 1.1.0`).
 
-### iOS — fully functional
+### iOS — submitted to TestFlight (awaiting Apple review)
 Same scope as before, plus:
 - **Outfits list:** **`OutfitsListView.swift`** — horizontal **`filterBar`** (sort: newest / most worn / A–Z; season chips incl. Autumn→`fall` key; piece-count: solo / 2–3 / 4+). **`displayedOutfits`** filters/sorts in memory; `@Query` unchanged. **`FilterChip`** + **`noResultsState`**. Name sort uses **`localizedLowercase`**; sorts use **`sorted(by:)`** for Swift 7.
 - **`DevTestDataSeeder`:** entire file **`#if DEBUG`** — not compiled in Release. **`DevTestDataSeeder.run`** uses optional `targetItemCount` to avoid main-actor default-arg issues.
@@ -27,18 +27,18 @@ Same scope as before, plus:
 ## Completed recently (already on `main`)
 
 - Landing **stats** card (both platforms).
-- Item detail **”Worn in outfits”** list (both platforms).
+- Item detail **"Worn in outfits"** list (both platforms).
 - **iOS outfits sort/filter** parity with Android chip rows.
 - **Docs & store drafts**; **seed data excluded from release builds** (Android flavor sources + iOS `#if DEBUG`).
 - **Borrowable library** Android export: **`FileProvider` + `ACTION_SEND`** share sheet (not `CreateDocument`-only).
 - **Android photo persistence fix + edit item** (build 5):
   - `AddItemScreen` copies photo immediately on selection/capture (`IO` dispatcher); `isCopyingPhoto` guard disables Save while copy runs.
   - Camera now uses `copyFromFile(context, file)` bypassing FileProvider URI round-trip (unreliable on Samsung).
-  - `ImageStorage.copyFromFile` added; both paths log via `Log.e`.
+  - Gallery now reads all bytes immediately via `readBytes()` then `copyFromBytes` — fixes Samsung one-shot stream pipe (second `openInputStream` returns null silently).
+  - `ImageStorage.copyFromFile` + `copyFromBytes` added; all paths log via `Log.e`.
   - `ItemDetailScreen`: Edit icon in top bar → `wardrobe_edit/{id}` route.
   - `WardrobeNav` + `WardrobeSearchNav`: edit routes added.
   - `WardrobeViewModel.saveEdit`: loads existing entity, upserts copy, deletes old photo file if photo changed.
-  - **Build 5 APK needed** — bump `versionCode` to 5 before distributing.
 
 ## Next up — see `backlog.md`
 
