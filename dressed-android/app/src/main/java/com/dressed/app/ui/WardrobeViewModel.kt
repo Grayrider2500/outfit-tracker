@@ -44,7 +44,6 @@ class WardrobeViewModel(
         colorHex: String,
         colorName: String,
         seasons: List<String>,
-        occasions: List<String> = emptyList(),
         photoUri: Uri?,
         onInserted: () -> Unit = {},
     ) {
@@ -58,7 +57,6 @@ class WardrobeViewModel(
                 colorHex = colorHex,
                 colorName = colorName,
                 seasons = seasons,
-                occasions = occasions,
                 photoPath = path,
                 wornCount = 0,
                 lastWornAtEpochMs = null,

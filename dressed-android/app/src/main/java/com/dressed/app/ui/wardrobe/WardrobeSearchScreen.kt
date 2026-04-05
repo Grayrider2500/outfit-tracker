@@ -34,7 +34,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dressed.app.data.model.WardrobeCategories
-import com.dressed.app.data.model.WardrobeOccasions
 import com.dressed.app.data.model.WardrobeSeasons
 import com.dressed.app.data.model.WardrobeSortOption
 import com.dressed.app.data.model.sortedForDisplay
@@ -56,7 +55,6 @@ fun WardrobeSearchScreen(
     var nameQuery by rememberSaveable { mutableStateOf("") }
     var filterKey by rememberSaveable { mutableStateOf(WardrobeCategories.ALL) }
     var seasonKey by rememberSaveable { mutableStateOf(WardrobeCategories.ALL) }
-    var occasionKey by rememberSaveable { mutableStateOf(WardrobeCategories.ALL) }
     var sortMode by rememberSaveable { mutableStateOf("recent") }
 
     val sortOption = when (sortMode) {
@@ -70,7 +68,7 @@ fun WardrobeSearchScreen(
         else items.filter { it.category == filterKey }
     }
 
-    val displayed = remember(afterCategory, nameQuery, seasonKey, occasionKey, sortOption) {
+    val displayed = remember(afterCategory, nameQuery, seasonKey, sortOption) {
         var list = afterCategory
         val q = nameQuery.trim()
         if (q.isNotEmpty()) {
@@ -78,9 +76,6 @@ fun WardrobeSearchScreen(
         }
         if (seasonKey != WardrobeCategories.ALL) {
             list = list.filter { seasonKey in it.seasons }
-        }
-        if (occasionKey != WardrobeCategories.ALL) {
-            list = list.filter { occasionKey in it.occasions }
         }
         list.sortedForDisplay(sortOption)
     }
@@ -179,33 +174,6 @@ fun WardrobeSearchScreen(
                 }
             }
 
-            Spacer(Modifier.height(16.dp))
-            Text(
-                "OCCASION",
-                style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.4.sp),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 16.dp),
-            )
-            Spacer(Modifier.height(10.dp))
-            FlowRow(
-                modifier = Modifier.padding(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                FilterChip(
-                    selected = occasionKey == WardrobeCategories.ALL,
-                    onClick = { occasionKey = WardrobeCategories.ALL },
-                    label = { Text("All", style = MaterialTheme.typography.labelSmall) },
-                )
-                WardrobeOccasions.ALL.forEach { (key, label) ->
-                    FilterChip(
-                        selected = occasionKey == key,
-                        onClick = { occasionKey = key },
-                        label = { Text(label, style = MaterialTheme.typography.labelSmall) },
-                    )
-                }
-            }
-
             Spacer(Modifier.height(12.dp))
             FlowRow(
                 modifier = Modifier
@@ -238,7 +206,7 @@ fun WardrobeSearchScreen(
                         .fillMaxWidth()
                         .padding(horizontal = 24.dp),
                     hasItemsInWardrobe = items.isNotEmpty(),
-                    filtersExcludeAll = items.isNotEmpty() && displayed.isEmpty() && (seasonKey != WardrobeCategories.ALL || occasionKey != WardrobeCategories.ALL || filterKey != WardrobeCategories.ALL),
+                    filtersExcludeAll = items.isNotEmpty() && afterCategory.isNotEmpty() && displayed.isEmpty(),
                     emptyTitle = when {
                         items.isNotEmpty() && nameQuery.isNotBlank() -> "No name matches"
                         else -> null

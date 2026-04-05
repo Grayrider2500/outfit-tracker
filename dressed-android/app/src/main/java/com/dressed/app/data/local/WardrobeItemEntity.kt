@@ -13,8 +13,6 @@ data class WardrobeItemEntity(
     val colorHex: String,
     val colorName: String,
     val seasons: List<String>,
-    /** Occasion tags, e.g. ["date_night", "work"]. Stored as comma-joined string via [Converters]. */
-    val occasions: List<String> = emptyList(),
     val photoPath: String?,
     val wornCount: Int,
     /** Set when the user marks the item worn (`Wear today` / Mark worn); used for picker rotation and reasons. */
