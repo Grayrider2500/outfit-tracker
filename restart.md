@@ -68,7 +68,7 @@ Cursor tasks status:
 
 1. ✅ **Stats card on Landing Screen** — DONE (2026-04-05). `StatsCard` (pieces · total wears · outfits) between divider and first hub button on Android; `statsCard` view in iOS `LandingView`. Both compile clean.
 
-2. **Item detail "Worn in outfits" list** — Cursor spec written; pending implementation. Android: `observeOutfitsForItem(itemId): Flow<List<String>>` on `WardrobeViewModel`, collect in `ItemDetailScreen`. iOS: `@Query var allOutfits` in `WardrobeItemDetailView`, filter by `item.id`.
+2. ✅ **Item detail "Worn in outfits" list** — DONE (2026-04-05). Android: `observeOutfitsForItem` on `WardrobeViewModel` + collected in `ItemDetailScreen`. iOS: `wornInOutfits` filter in `WardrobeItemDetailView`. Both compile clean.
 
 Remaining medium priority: **Outfit seasons tag** (inherit from constituent pieces or manual override).
 
