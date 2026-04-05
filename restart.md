@@ -37,6 +37,12 @@ All core screens implemented and building successfully:
 ### Security follow-up (optional)
 - The old `google-services.json` may still exist in **git history**. If the repo is public, consider **rotating / restricting** the Firebase/Android API key in Google Cloud Console.
 
+### Session batch (2026-04-05) — just landed
+1. `OutfitDetailScreen` — added Mark as Worn button, Delete Outfit (with confirmation dialog), Edit pencil icon in TopAppBar
+2. `OutfitsViewModel` — added `updateOutfit(updated, onUpdated)`
+3. Created `EditOutfitScreen.kt` — pre-populated name + item picker, calls `updateOutfit` on save
+4. `OutfitsScreen` (OutfitsNav) — added `outfits_edit/{id}` route, wired `onEdit` from detail → edit screen
+
 ## Next Session — Quick Start
 
 1. Read **`memory.md`** and **`backlog.md`**, then **`CLAUDE.md`** for paths.

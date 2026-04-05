@@ -16,8 +16,16 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -42,7 +50,7 @@ import com.dressed.app.data.model.WardrobeCategories
 import com.dressed.app.ui.WardrobeViewModel
 import com.dressed.app.ui.wardrobe.coilPhotoFileOrNull
 
-/** Read-only outfit detail (parity with iOS). Uses [coilPhotoFileOrNull] for resized JPEG paths. */
+/** Outfit detail with Mark as Worn, Delete, and Edit actions. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OutfitDetailScreen(
@@ -50,6 +58,7 @@ fun OutfitDetailScreen(
     wardrobeViewModel: WardrobeViewModel,
     outfitsViewModel: OutfitsViewModel,
     onBack: () -> Unit,
+    onEdit: (String) -> Unit = {},
 ) {
     val outfit by outfitsViewModel.observeOutfit(outfitId).collectAsStateWithLifecycle(initialValue = null)
     val wardrobeItems by wardrobeViewModel.items.collectAsStateWithLifecycle(initialValue = emptyList())
@@ -62,6 +71,8 @@ fun OutfitDetailScreen(
     LaunchedEffect(sawOutfit, outfit) {
         if (sawOutfit && outfit == null) onBack()
     }
+
+    var showDeleteConfirm by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -82,6 +93,17 @@ fun OutfitDetailScreen(
                         )
                     }
                 },
+                actions = {
+                    if (outfit != null) {
+                        IconButton(onClick = { onEdit(outfitId) }) {
+                            Icon(
+                                Icons.Filled.Edit,
+                                contentDescription = "Edit outfit",
+                                tint = MaterialTheme.colorScheme.onPrimary,
+                            )
+                        }
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     titleContentColor = MaterialTheme.colorScheme.onPrimary,
@@ -93,9 +115,7 @@ fun OutfitDetailScreen(
         when {
             outfitId.isBlank() -> {
                 Box(
-                    Modifier
-                        .fillMaxSize()
-                        .padding(padding),
+                    Modifier.fillMaxSize().padding(padding),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text("Invalid outfit.", style = MaterialTheme.typography.bodyLarge)
@@ -103,9 +123,7 @@ fun OutfitDetailScreen(
             }
             outfit == null && !sawOutfit -> {
                 Box(
-                    Modifier
-                        .fillMaxSize()
-                        .padding(padding),
+                    Modifier.fillMaxSize().padding(padding),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text("Loading…", style = MaterialTheme.typography.bodyLarge)
@@ -123,6 +141,7 @@ fun OutfitDetailScreen(
                         .padding(padding)
                         .verticalScroll(rememberScrollState()),
                 ) {
+                    // Collage hero
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -134,6 +153,7 @@ fun OutfitDetailScreen(
                         OutfitDetailHero(resolved = resolved, orderedIds = orderedIds)
                     }
 
+                    // Name + stats
                     Text(
                         text = displayName,
                         style = MaterialTheme.typography.headlineSmall,
@@ -157,6 +177,29 @@ fun OutfitDetailScreen(
                         }
                     }
 
+                    // Actions
+                    Column(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        Button(
+                            onClick = { outfitsViewModel.markWorn(outfitId) },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text("+ Mark as Worn Today")
+                        }
+                        OutlinedButton(
+                            onClick = { showDeleteConfirm = true },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = MaterialTheme.colorScheme.error,
+                            ),
+                        ) {
+                            Text("Delete Outfit")
+                        }
+                    }
+
+                    // Pieces list
                     Text(
                         text = "Pieces",
                         style = MaterialTheme.typography.titleSmall,
@@ -185,6 +228,26 @@ fun OutfitDetailScreen(
             else -> Unit
         }
     }
+
+    if (showDeleteConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            title = { Text("Delete this outfit?") },
+            text = { Text("The outfit will be removed. Your wardrobe pieces are not affected.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteConfirm = false
+                        outfitsViewModel.deleteOutfit(outfitId)
+                        // onBack() fires automatically via LaunchedEffect when outfit becomes null
+                    },
+                ) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirm = false }) { Text("Cancel") }
+            },
+        )
+    }
 }
 
 @Composable
@@ -207,32 +270,12 @@ private fun OutfitDetailHero(
         else -> {
             Column(Modifier.fillMaxSize()) {
                 Row(Modifier.weight(1f)) {
-                    HeroImageCell(
-                        item = collageItems[0],
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight(),
-                    )
-                    HeroImageCell(
-                        item = collageItems.getOrNull(1),
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight(),
-                    )
+                    HeroImageCell(collageItems[0], Modifier.weight(1f).fillMaxHeight())
+                    HeroImageCell(collageItems.getOrNull(1), Modifier.weight(1f).fillMaxHeight())
                 }
                 Row(Modifier.weight(1f)) {
-                    HeroImageCell(
-                        item = collageItems.getOrNull(2),
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight(),
-                    )
-                    HeroImageCell(
-                        item = collageItems.getOrNull(3),
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight(),
-                    )
+                    HeroImageCell(collageItems.getOrNull(2), Modifier.weight(1f).fillMaxHeight())
+                    HeroImageCell(collageItems.getOrNull(3), Modifier.weight(1f).fillMaxHeight())
                 }
             }
         }
@@ -256,8 +299,7 @@ private fun FourEmptyHeroCells() {
 @Composable
 private fun EmptyHeroCell(modifier: Modifier) {
     Box(
-        modifier
-            .fillMaxSize()
+        modifier.fillMaxSize()
             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)),
     )
 }
@@ -265,8 +307,7 @@ private fun EmptyHeroCell(modifier: Modifier) {
 @Composable
 private fun HeroImageCell(item: WardrobeItemEntity?, modifier: Modifier = Modifier) {
     Box(
-        modifier = modifier
-            .fillMaxSize()
+        modifier = modifier.fillMaxSize()
             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)),
         contentAlignment = Alignment.Center,
     ) {
@@ -305,9 +346,7 @@ private fun OutfitDetailPieceRow(
     ) {
         if (item != null) {
             Box(
-                Modifier
-                    .size(52.dp)
-                    .clip(RoundedCornerShape(8.dp))
+                Modifier.size(52.dp).clip(RoundedCornerShape(8.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)),
                 contentAlignment = Alignment.Center,
             ) {
@@ -320,10 +359,7 @@ private fun OutfitDetailPieceRow(
                         modifier = Modifier.fillMaxSize(),
                     )
                 } else {
-                    Text(
-                        text = WardrobeCategories.emoji(item.category),
-                        style = MaterialTheme.typography.headlineSmall,
-                    )
+                    Text(WardrobeCategories.emoji(item.category), style = MaterialTheme.typography.headlineSmall)
                 }
             }
             Column(Modifier.weight(1f)) {
@@ -342,9 +378,7 @@ private fun OutfitDetailPieceRow(
             }
         } else {
             Box(
-                Modifier
-                    .size(52.dp)
-                    .clip(RoundedCornerShape(8.dp))
+                Modifier.size(52.dp).clip(RoundedCornerShape(8.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)),
                 contentAlignment = Alignment.Center,
             ) {

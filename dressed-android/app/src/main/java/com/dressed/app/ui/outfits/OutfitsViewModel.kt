@@ -47,6 +47,14 @@ class OutfitsViewModel(
         viewModelScope.launch { repository.deleteById(id) }
     }
 
+    /** Replace an existing outfit's name and item list (wornCount and createdAt are preserved). */
+    fun updateOutfit(updated: OutfitEntity, onUpdated: () -> Unit = {}) {
+        viewModelScope.launch {
+            repository.insert(updated)
+            onUpdated()
+        }
+    }
+
     companion object {
         fun factory(app: DressedApplication): ViewModelProvider.Factory =
             object : ViewModelProvider.Factory {

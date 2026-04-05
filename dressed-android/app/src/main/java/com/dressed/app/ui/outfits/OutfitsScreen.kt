@@ -37,6 +37,7 @@ import com.dressed.app.ui.WardrobeViewModel
 private const val ROUTE_OUTFITS_LIST = "outfits_list"
 private const val ROUTE_CREATE_OUTFIT = "outfits_create"
 private const val ROUTE_OUTFIT_DETAIL = "outfits_detail/{id}"
+private const val ROUTE_EDIT_OUTFIT = "outfits_edit/{id}"
 
 @Composable
 fun OutfitsNav(
@@ -77,6 +78,20 @@ fun OutfitsNav(
                 wardrobeViewModel = wardrobeViewModel,
                 outfitsViewModel = outfitsViewModel,
                 onBack = { navController.popBackStack() },
+                onEdit = { editId -> navController.navigate("outfits_edit/$editId") },
+            )
+        }
+        composable(
+            route = ROUTE_EDIT_OUTFIT,
+            arguments = listOf(navArgument("id") { type = NavType.StringType }),
+        ) { entry ->
+            val id = entry.arguments?.getString("id").orEmpty()
+            EditOutfitScreen(
+                outfitId = id,
+                wardrobeViewModel = wardrobeViewModel,
+                outfitsViewModel = outfitsViewModel,
+                onBack = { navController.popBackStack() },
+                onSaved = { navController.popBackStack() },
             )
         }
     }

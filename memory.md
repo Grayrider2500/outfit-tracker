@@ -38,7 +38,8 @@ Live URL: https://grayrider2500.github.io/outfit-tracker/
 - `landing` → LandingScreen
 - `wardrobe` → WardrobeNav (nested: wardrobe_list, wardrobe_add, wardrobe_detail/{id})
 - `search` → WardrobeSearchNav
-- `outfits` → OutfitsNav (nested: `outfits_list`, `outfits_create`, `outfits_detail/{id}`)
+- `outfits` → OutfitsNav (nested: `outfits_list`, `outfits_create`, `outfits_detail/{id}`, `outfits_edit/{id}`)
+- `picker` → PickerScreen
 
 ## App Icon
 - Generated PNG icons at all mipmap densities (mdpi→xxxhdpi) using Python/cairosvg
@@ -58,7 +59,8 @@ Live URL: https://grayrider2500.github.io/outfit-tracker/
 - Outfit card style: **Collage** (2×2 grid of item photos, square aspect ratio)
 - Empty collage cells show muted surfaceVariant background
 - Single-item outfits show the photo full-size (no 2×2 split)
-- **Outfit detail:** read-only screen shipped (`OutfitDetailScreen`); **Mark as worn**, **delete outfit**, and **edit outfit** still on backlog
+- **Outfit detail:** full actions shipped — Mark as Worn button, Delete (with confirmation dialog), Edit pencil icon in TopAppBar → `EditOutfitScreen`
+- **`updateOutfit(updated, onUpdated)`** added to `OutfitsViewModel` — uses `OnConflictStrategy.REPLACE` to update in place
 - The HTML mockup (`dressed-mockup.html`) serves as the web/design reference
 
 ## WardrobeCategories / Seasons
