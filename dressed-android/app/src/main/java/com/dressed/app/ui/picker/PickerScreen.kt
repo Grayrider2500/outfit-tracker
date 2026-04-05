@@ -507,10 +507,12 @@ private fun pickerPreviewSampleSuggestions(): List<WardrobePickerEngine.PickerSu
             colorHex = "#c4b498",
             colorName = "Tan",
             seasons = emptyList(),
+            occasions = emptyList(),
             photoPath = null,
             wornCount = 0,
             lastWornAtEpochMs = null,
             addedAtEpochMs = 0L,
+            lendable = false,
         ),
         WardrobeItemEntity(
             id = "p2",
@@ -520,10 +522,12 @@ private fun pickerPreviewSampleSuggestions(): List<WardrobePickerEngine.PickerSu
             colorHex = "#2e4057",
             colorName = "Navy",
             seasons = emptyList(),
+            occasions = emptyList(),
             photoPath = null,
             wornCount = 0,
             lastWornAtEpochMs = null,
             addedAtEpochMs = 0L,
+            lendable = false,
         ),
         WardrobeItemEntity(
             id = "p3",
@@ -533,10 +537,12 @@ private fun pickerPreviewSampleSuggestions(): List<WardrobePickerEngine.PickerSu
             colorHex = "#ffffff",
             colorName = "White",
             seasons = emptyList(),
+            occasions = emptyList(),
             photoPath = null,
             wornCount = 0,
             lastWornAtEpochMs = null,
             addedAtEpochMs = 0L,
+            lendable = false,
         ),
     )
     return listOf(

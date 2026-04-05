@@ -62,6 +62,18 @@ struct WardrobeItemDetailView: View {
                                     .padding(.top, 8)
                             }
 
+                            Toggle("Available to lend", isOn: Binding(
+                                get: { item.lendable },
+                                set: { newVal in
+                                    item.lendable = newVal
+                                    try? modelContext.save()
+                                },
+                            ))
+                            .padding(.top, 12)
+                            Text("Include this piece in a .dressed-library share file.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+
                             Divider()
                                 .padding(.vertical, 20)
 

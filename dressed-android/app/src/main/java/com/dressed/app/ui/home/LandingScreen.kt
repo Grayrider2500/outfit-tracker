@@ -22,6 +22,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Checkroom
+import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Explore
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
@@ -56,7 +57,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.dressed.app.BuildConfig
+import com.dressed.app.ui.LibrariesViewModel
 import com.dressed.app.ui.WardrobeViewModel
+import com.dressed.app.ui.library.LibraryExplainerDialog
 import com.dressed.app.ui.theme.WardrobeOnBarText
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -66,10 +69,13 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun LandingScreen(
     viewModel: WardrobeViewModel,
+    librariesViewModel: LibrariesViewModel,
     onMyWardrobe: () -> Unit,
     onSearchFilter: () -> Unit,
     onOutfits: () -> Unit,
     onSuggestOutfits: () -> Unit,
+    onLibraries: () -> Unit,
+    onNavigateToBorrowedLibraries: () -> Unit = {},
 ) {
     val gradient = Brush.linearGradient(
         colors = listOf(
@@ -86,6 +92,26 @@ fun LandingScreen(
     var pendingModeChoiceUri by remember { mutableStateOf<Uri?>(null) }
     /** User chose Replace all → final destructive confirmation. */
     var pendingReplaceUri by remember { mutableStateOf<Uri?>(null) }
+
+    var showLibraryExplainer by remember { mutableStateOf(false) }
+    var pendingNavigateLibraries by remember { mutableStateOf(false) }
+
+    val openLibraryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument(),
+    ) { uri ->
+        if (uri != null) {
+            librariesViewModel.importLibraryFromUri(uri) { err ->
+                scope.launch {
+                    if (err != null) {
+                        snackbarHostState.showSnackbar("Library import failed: $err")
+                    } else {
+                        snackbarHostState.showSnackbar("Library imported")
+                        onNavigateToBorrowedLibraries()
+                    }
+                }
+            }
+        }
+    }
 
     val createBackupLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/zip"),
@@ -188,6 +214,21 @@ fun LandingScreen(
                 )
                 Spacer(Modifier.height(12.dp))
                 HubNavButton(
+                    mainLabel = "Borrowed libraries",
+                    subLabel = "Pieces friends shared with you",
+                    onClick = {
+                        if (!viewModel.libraryExplainerSeen()) {
+                            pendingNavigateLibraries = true
+                            showLibraryExplainer = true
+                        } else {
+                            onLibraries()
+                        }
+                    },
+                    emphasized = false,
+                    icon = Icons.Filled.Send,
+                )
+                Spacer(Modifier.height(12.dp))
+                HubNavButton(
                     mainLabel = "Suggest outfits",
                     subLabel = "Picker — smart looks from your closet",
                     onClick = onSuggestOutfits,
@@ -235,6 +276,23 @@ fun LandingScreen(
                             )
                         },
                         leadingIcon = { Icon(Icons.Outlined.FolderOpen, contentDescription = null) },
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Import shared library…") },
+                        onClick = {
+                            menuOpen = false
+                            openLibraryLauncher.launch(arrayOf("application/zip", "*/*"))
+                        },
+                        leadingIcon = { Icon(Icons.Outlined.FolderOpen, contentDescription = null) },
+                    )
+                    DropdownMenuItem(
+                        text = { Text("About sharing libraries") },
+                        onClick = {
+                            menuOpen = false
+                            viewModel.setLibraryExplainerSeen(false)
+                            pendingNavigateLibraries = false
+                            showLibraryExplainer = true
+                        },
                     )
                     if (BuildConfig.DEBUG) {
                         DropdownMenuItem(
@@ -321,6 +379,23 @@ fun LandingScreen(
             },
             dismissButton = {
                 TextButton(onClick = { pendingReplaceUri = null }) { Text("Cancel") }
+            },
+        )
+    }
+
+    if (showLibraryExplainer) {
+        LibraryExplainerDialog(
+            onDismiss = {
+                showLibraryExplainer = false
+                pendingNavigateLibraries = false
+            },
+            onContinue = { dontShowAgain ->
+                if (dontShowAgain) viewModel.setLibraryExplainerSeen(true)
+                showLibraryExplainer = false
+                if (pendingNavigateLibraries) {
+                    pendingNavigateLibraries = false
+                    onLibraries()
+                }
             },
         )
     }

@@ -2,6 +2,7 @@ package com.dressed.app.ui
 
 import android.app.Application
 import android.net.Uri
+import androidx.core.content.FileProvider
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -10,7 +11,9 @@ import com.dressed.app.BuildConfig
 import com.dressed.app.DressedApplication
 import com.dressed.app.data.OutfitRepository
 import com.dressed.app.data.WardrobeRepository
+import com.dressed.app.data.backup.LibraryShareCodec
 import com.dressed.app.data.backup.WardrobeBackupCodec
+import com.dressed.app.data.library.LibraryPreferences
 import com.dressed.app.data.dev.TestDataSeeder
 import com.dressed.app.data.local.ImageStorage
 import com.dressed.app.data.local.WardrobeItemEntity
@@ -19,12 +22,14 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
 import java.util.UUID
 
 class WardrobeViewModel(
     application: Application,
     private val repository: WardrobeRepository,
     private val outfitRepository: OutfitRepository,
+    private val libraryPreferences: LibraryPreferences,
 ) : AndroidViewModel(application) {
 
     val items: Flow<List<WardrobeItemEntity>> = repository.observeAll()
@@ -63,6 +68,7 @@ class WardrobeViewModel(
                 wornCount = 0,
                 lastWornAtEpochMs = null,
                 addedAtEpochMs = System.currentTimeMillis(),
+                lendable = false,
             )
             repository.insert(entity)
             onInserted()
@@ -75,6 +81,56 @@ class WardrobeViewModel(
 
     fun deleteItem(id: String) {
         viewModelScope.launch { repository.deleteItemAndPhoto(id) }
+    }
+
+    /** Full row upsert (DAO uses OnConflictStrategy.REPLACE). Use for lendable, occasions, etc. */
+    fun updateItem(entity: WardrobeItemEntity) {
+        viewModelScope.launch { repository.insert(entity) }
+    }
+
+    fun saveSharerDisplayName(name: String) {
+        libraryPreferences.sharerDisplayName = name.trim()
+    }
+
+    fun sharerDisplayName(): String = libraryPreferences.sharerDisplayName
+
+    fun libraryExplainerSeen(): Boolean = libraryPreferences.libraryExplainerSeen
+
+    fun setLibraryExplainerSeen(seen: Boolean) {
+        libraryPreferences.libraryExplainerSeen = seen
+    }
+
+    /**
+     * Writes a `.dressed-library` zip under [Application.getCacheDir] and returns a [FileProvider] URI
+     * for [Intent.ACTION_SEND] (share sheet).
+     */
+    fun exportBorrowableLibraryForShare(
+        sharerName: String,
+        onDone: (errorMessage: String?, contentUri: Uri?) -> Unit,
+    ) {
+        viewModelScope.launch {
+            val result = withContext(Dispatchers.IO) {
+                runCatching {
+                    val ctx = getApplication<Application>()
+                    val trimmed = sharerName.trim()
+                    if (trimmed.isEmpty()) error("Sharer name required")
+                    val all = repository.getAllSnapshot()
+                    val lendable = all.filter { it.lendable }
+                    if (lendable.isEmpty()) error("No items marked available to lend")
+                    val stem = trimmed.replace(Regex("[^a-zA-Z0-9._-]"), "_").ifEmpty { "shared" }
+                    val file = File(ctx.cacheDir, "dressed-library-$stem.dressed-library")
+                    file.outputStream().use { stream ->
+                        LibraryShareCodec.writeLibraryZip(lendable, trimmed, stream)
+                    }
+                    FileProvider.getUriForFile(
+                        ctx,
+                        "${ctx.packageName}.fileprovider",
+                        file,
+                    )
+                }
+            }
+            onDone(result.exceptionOrNull()?.message, result.getOrNull())
+        }
     }
 
     fun exportBackup(uri: Uri, onDone: (errorMessage: String?) -> Unit) {
@@ -167,7 +223,12 @@ class WardrobeViewModel(
                 @Suppress("UNCHECKED_CAST")
                 override fun <T : ViewModel> create(modelClass: Class<T>): T {
                     require(modelClass == WardrobeViewModel::class.java)
-                    return WardrobeViewModel(app, app.wardrobeRepository, app.outfitRepository) as T
+                    return WardrobeViewModel(
+                        app,
+                        app.wardrobeRepository,
+                        app.outfitRepository,
+                        app.libraryPreferences,
+                    ) as T
                 }
             }
     }

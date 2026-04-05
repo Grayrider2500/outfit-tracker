@@ -15,6 +15,7 @@ struct LandingView: View {
     var onSearch: () -> Void
     var onOutfits: () -> Void
     var onSuggestOutfits: () -> Void
+    var onLibraries: () -> Void
 
     @Query(sort: \WardrobeItem.addedAtEpochMs) private var allItems: [WardrobeItem]
     @Query(sort: \Outfit.createdAtEpochMs) private var allOutfits: [Outfit]
@@ -30,6 +31,12 @@ struct LandingView: View {
     @State private var errorMessage = ""
     @State private var shareURL: URL?
     @State private var showingShareSheet = false
+
+    @AppStorage("library_explainer_seen") private var libraryExplainerSeen = false
+    @State private var showLibraryExplainer = false
+    @State private var libraryExplainerDontShowAgain = false
+    @State private var pendingNavigateLibrariesAfterExplainer = false
+    @State private var showingLibraryImporter = false
 
     private let gradient = LinearGradient(
         colors: [
@@ -71,8 +78,17 @@ struct LandingView: View {
                 VStack(spacing: 14) {
                     hubButton(title: "My Wardrobe", icon: "tshirt.fill", subtitle: "Browse & manage pieces", action: onMyWardrobe)
                     hubButton(title: "Search & Filter", icon: "magnifyingglass", subtitle: "Find by name, category & season", action: onSearch)
-                    hubButton(title: "Suggest outfits", icon: "sparkles", subtitle: "Occasion, weather & mood picks", action: onSuggestOutfits)
                     hubButton(title: "Outfits", icon: "rectangle.stack.fill", subtitle: "Put looks together", action: onOutfits)
+                    hubButton(title: "Borrowed libraries", icon: "books.vertical", subtitle: "Pieces friends shared with you") {
+                        if !libraryExplainerSeen {
+                            pendingNavigateLibrariesAfterExplainer = true
+                            libraryExplainerDontShowAgain = false
+                            showLibraryExplainer = true
+                        } else {
+                            onLibraries()
+                        }
+                    }
+                    hubButton(title: "Suggest outfits", icon: "sparkles", subtitle: "Occasion, weather & mood picks", action: onSuggestOutfits)
                 }
                 .padding(.top, 32)
                 .padding(.horizontal, 24)
@@ -147,6 +163,61 @@ struct LandingView: View {
                 ShareSheet(activityItems: [url])
             }
         }
+        .sheet(isPresented: $showLibraryExplainer) {
+            LibraryExplainerSheet(
+                isPresented: $showLibraryExplainer,
+                dontShowAgain: $libraryExplainerDontShowAgain,
+                onCancel: {
+                    pendingNavigateLibrariesAfterExplainer = false
+                },
+                onContinue: {
+                    if libraryExplainerDontShowAgain {
+                        libraryExplainerSeen = true
+                    }
+                    let goLibraries = pendingNavigateLibrariesAfterExplainer
+                    pendingNavigateLibrariesAfterExplainer = false
+                    if goLibraries {
+                        onLibraries()
+                    }
+                },
+            )
+        }
+        .fileImporter(
+            isPresented: $showingLibraryImporter,
+            allowedContentTypes: libraryImporterContentTypes,
+            allowsMultipleSelection: false,
+        ) { result in
+            handleLibraryFileImport(result)
+        }
+    }
+
+    private var libraryImporterContentTypes: [UTType] {
+        var types: [UTType] = [.zip, .data]
+        if let dressedLib = UTType(filenameExtension: "dressed-library") {
+            types.insert(dressedLib, at: 0)
+        }
+        return types
+    }
+
+    private func handleLibraryFileImport(_ result: Result<[URL], Error>) {
+        switch result {
+        case .success(let urls):
+            guard let url = urls.first else { return }
+            let accessed = url.startAccessingSecurityScopedResource()
+            defer {
+                if accessed { url.stopAccessingSecurityScopedResource() }
+            }
+            do {
+                try DressedLibraryShare.importFromZip(url: url, modelContext: modelContext)
+                withAnimation { toastMessage = "Imported shared library" }
+            } catch {
+                errorMessage = error.localizedDescription
+                showingErrorAlert = true
+            }
+        case .failure(let error):
+            errorMessage = error.localizedDescription
+            showingErrorAlert = true
+        }
     }
 
     // MARK: - Menu
@@ -162,6 +233,19 @@ struct LandingView: View {
                 showingDocumentPicker = true
             } label: {
                 Label("Restore from file…", systemImage: "square.and.arrow.down")
+            }
+            Button {
+                showingLibraryImporter = true
+            } label: {
+                Label("Import shared library…", systemImage: "tray.and.arrow.down")
+            }
+            Button {
+                libraryExplainerSeen = false
+                pendingNavigateLibrariesAfterExplainer = false
+                libraryExplainerDontShowAgain = false
+                showLibraryExplainer = true
+            } label: {
+                Label("About sharing libraries", systemImage: "info.circle")
             }
             #if DEBUG
             Button {
@@ -351,5 +435,5 @@ private struct ShareSheet: UIViewControllerRepresentable {
 }
 
 #Preview {
-    LandingView(onMyWardrobe: {}, onSearch: {}, onOutfits: {}, onSuggestOutfits: {})
+    LandingView(onMyWardrobe: {}, onSearch: {}, onOutfits: {}, onSuggestOutfits: {}, onLibraries: {})
 }

@@ -4,6 +4,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -26,8 +28,10 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
@@ -48,9 +52,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.dressed.app.data.local.WardrobeItemEntity
 import com.dressed.app.data.model.WardrobeCategories
+import com.dressed.app.data.model.WardrobeOccasions
 import com.dressed.app.ui.WardrobeViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun ItemDetailScreen(
     itemId: String,
@@ -206,7 +211,49 @@ fun ItemDetailScreen(
                     )
                 }
 
+                Spacer(Modifier.height(16.dp))
+                Text("Occasions", style = MaterialTheme.typography.labelLarge)
+                Spacer(Modifier.height(8.dp))
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    WardrobeOccasions.ALL.forEach { (key, label) ->
+                        val selected = current.occasions.contains(key)
+                        FilterChip(
+                            selected = selected,
+                            onClick = {
+                                viewModel.updateItem(current.withOccasionToggled(key))
+                            },
+                            label = { Text(label) },
+                        )
+                    }
+                }
+
                 Spacer(Modifier.height(20.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text(
+                        "Available to lend",
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    Switch(
+                        checked = current.lendable,
+                        onCheckedChange = { on ->
+                            viewModel.updateItem(current.copy(lendable = on))
+                        },
+                    )
+                }
+                Text(
+                    "Include this piece when you export a shared library (.dressed-library).",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(16.dp))
                 HorizontalDivider()
                 Spacer(Modifier.height(16.dp))
 
@@ -257,6 +304,13 @@ fun ItemDetailScreen(
             },
         )
     }
+}
+
+private fun WardrobeItemEntity.withOccasionToggled(key: String): WardrobeItemEntity {
+    val set = occasions.toMutableSet()
+    if (key in set) set.remove(key) else set.add(key)
+    val ordered = WardrobeOccasions.ALL.map { it.first }.filter { it in set }
+    return copy(occasions = ordered)
 }
 
 @Composable

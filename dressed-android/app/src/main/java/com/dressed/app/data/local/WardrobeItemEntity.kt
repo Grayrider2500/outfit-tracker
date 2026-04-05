@@ -20,4 +20,6 @@ data class WardrobeItemEntity(
     /** Set when the user marks the item worn (`Wear today` / Mark worn); used for picker rotation and reasons. */
     val lastWornAtEpochMs: Long? = null,
     val addedAtEpochMs: Long,
+    /** When true, item can be included in a `.dressed-library` share pack. */
+    val lendable: Boolean = false,
 )

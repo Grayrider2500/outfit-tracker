@@ -316,6 +316,7 @@ object WardrobeBackupCodec {
             wornCount = wornCount,
             lastWornAtEpochMs = lastWornAtEpochMs,
             addedAtEpochMs = addedAtEpochMs,
+            lendable = false,
         )
 
     private fun WardrobeBackupOutfitDto.toEntity(): OutfitEntity =

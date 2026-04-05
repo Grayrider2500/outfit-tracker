@@ -159,7 +159,7 @@ enum DressedBackup {
                name.lowercased().hasPrefix(photosPrefix),
                name.lowercased().hasSuffix(".jpg") {
                 let dest = photosDir.appendingPathComponent(UUID().uuidString + ".jpg", isDirectory: false)
-                try archive.extract(entry, to: dest)
+                _ = try archive.extract(entry, to: dest)
                 extractedPaths[name.lowercased()] = dest.path
             }
         }

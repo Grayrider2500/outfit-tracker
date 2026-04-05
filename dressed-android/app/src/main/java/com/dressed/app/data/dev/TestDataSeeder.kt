@@ -146,10 +146,12 @@ object TestDataSeeder {
                 colorHex = spec.colorHex,
                 colorName = spec.colorName,
                 seasons = spec.seasons,
+                occasions = emptyList(),
                 photoPath = null,
                 wornCount = worn,
                 lastWornAtEpochMs = if (worn == 0) null else now - ((index % 28) + 1) * 86_400_000L,
                 addedAtEpochMs = now - (seedItemSpecs.size - index) * 60_000L,
+                lendable = false,
             )
         }
     }

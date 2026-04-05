@@ -84,6 +84,7 @@ enum DevTestDataSeeder {
         ("Seed · Minimal commute", [13, 22, 36, 53, 50]),
     ]
 
+    @MainActor
     static func run(modelContext: ModelContext, targetItemCount: Int = seedItemSpecs.count) throws -> String {
 #if DEBUG
         let now = Int64(Date().timeIntervalSince1970 * 1000)
@@ -133,6 +134,7 @@ enum DevTestDataSeeder {
         "\(outfitIdPrefix)\(index)"
     }
 
+    @MainActor
     private static func buildItem(index: Int, spec: SeedItemSpec, nowMs: Int64) -> WardrobeItem {
         let worn = (index * 5 + 2) % 14
         return WardrobeItem(
@@ -150,11 +152,12 @@ enum DevTestDataSeeder {
         )
     }
 
+    @MainActor
     private static func buildOutfit(index: Int, name: String, itemIndexes: [Int], nowMs: Int64) -> Outfit {
         Outfit(
             id: outfitId(index),
             name: name,
-            itemIdsJoined: Outfit.joinItemIds(itemIndexes.map(itemId)),
+            itemIdsJoined: Outfit.joinItemIds(itemIndexes.map { itemId($0) }),
             wornCount: index % 4,
             createdAtEpochMs: nowMs - Int64(seededOutfits.count - index) * 120_000
         )

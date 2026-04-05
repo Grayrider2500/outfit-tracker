@@ -19,6 +19,8 @@ final class WardrobeItem {
     /// Mirrors Android `lastWornAtEpochMs`; set when marking an item worn.
     var lastWornAtEpochMs: Int64?
     var addedAtEpochMs: Int64
+    /// When true, piece can be included in a `.dressed-library` share file.
+    var lendable: Bool = false
 
     init(
         id: String = UUID().uuidString,
@@ -33,6 +35,7 @@ final class WardrobeItem {
         wornCount: Int = 0,
         lastWornAtEpochMs: Int64? = nil,
         addedAtEpochMs: Int64 = Int64(Date().timeIntervalSince1970 * 1000),
+        lendable: Bool = false,
     ) {
         self.id = id
         self.name = name
@@ -46,6 +49,7 @@ final class WardrobeItem {
         self.wornCount = wornCount
         self.lastWornAtEpochMs = lastWornAtEpochMs
         self.addedAtEpochMs = addedAtEpochMs
+        self.lendable = lendable
     }
 }
 
