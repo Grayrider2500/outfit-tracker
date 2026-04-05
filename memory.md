@@ -24,13 +24,15 @@ Live URL: https://grayrider2500.github.io/outfit-tracker/
 - **Firebase:** `com.google.gms.google-services` is applied; **`dressed-android/app/google-services.json` is gitignored** — add locally from Firebase Console (or CI) so builds succeed; never commit real keys to a public repo.
 
 ## Database
-- `DressedDatabase` — current version **3**
+- `DressedDatabase` — current version **5**
 - MIGRATION_1_2: added `sizeLabel` column to `wardrobe_items`
 - MIGRATION_2_3: created `outfits` table
+- MIGRATION_3_4: added `lastWornAtEpochMs` to `wardrobe_items`
+- MIGRATION_4_5: added `occasions` to `wardrobe_items`
 - Entities: `WardrobeItemEntity` (tableName = "wardrobe_items"), `OutfitEntity` (tableName = "outfits")
 
 ## Data Models
-**WardrobeItemEntity**: id, name, category, sizeLabel, colorHex, colorName, seasons (List<String>), photoPath (String?), wornCount, addedAtEpochMs
+**WardrobeItemEntity**: id, name, category, sizeLabel, colorHex, colorName, seasons (List<String>), occasions (List<String>), photoPath (String?), wornCount, lastWornAtEpochMs, addedAtEpochMs
 
 **OutfitEntity**: id, name, itemIds (List<String>), wornCount, createdAtEpochMs
 

@@ -19,6 +19,7 @@ struct AddItemSheet: View {
     @State private var selectedColor = Color(.sRGB, red: 0.55, green: 0.38, blue: 0.83)
     @State private var colorName = ""
     @State private var seasons: Set<String> = []
+    @State private var occasions: Set<String> = []
     @State private var photoPickerItem: PhotosPickerItem?
     @State private var photoData: Data?
     @State private var showCamera = false
@@ -94,6 +95,16 @@ struct AddItemSheet: View {
                         let sel = seasons.contains(entry.key)
                         categoryChip(title: entry.label, selected: sel) {
                             if sel { seasons.remove(entry.key) } else { seasons.insert(entry.key) }
+                        }
+                    }
+                }
+
+                fieldLabel("Occasions (optional)")
+                FlowChipWrap(spacing: 8) {
+                    ForEach(WardrobeCatalog.occasions, id: \.key) { entry in
+                        let sel = occasions.contains(entry.key)
+                        categoryChip(title: entry.label, selected: sel) {
+                            if sel { occasions.remove(entry.key) } else { occasions.insert(entry.key) }
                         }
                     }
                 }
@@ -240,6 +251,7 @@ struct AddItemSheet: View {
         sizeText = item.sizeLabel
         colorName = item.colorName
         seasons = Set(item.seasonsList)
+        occasions = Set(item.occasionsList)
         // Restore the color from hex
         let hex = item.colorHex.trimmingCharacters(in: .whitespacesAndNewlines)
         if hex.hasPrefix("#"), hex.count >= 7,
@@ -281,6 +293,8 @@ struct AddItemSheet: View {
         let finalColorName = resolvedName.isEmpty ? WardrobeColorMath.labelForPickedColor(hex: hex) : resolvedName
         let seasonOrder = ["spring", "summer", "fall", "winter"]
         let seasonsJoined = WardrobeItem.joinSeasons(seasonOrder.filter { seasons.contains($0) })
+        let occasionOrder = WardrobeCatalog.occasions.map { $0.key }
+        let occasionsJoined = WardrobeItem.joinOccasions(occasionOrder.filter { occasions.contains($0) })
 
         if let item = editingItem {
             // Update existing item
@@ -290,6 +304,7 @@ struct AddItemSheet: View {
             item.colorHex = hex
             item.colorName = finalColorName
             item.seasonsJoined = seasonsJoined
+            item.occasionsJoined = occasionsJoined
             // Only save a new photo if user picked a new one
             if photoChanged, let photoData {
                 let oldPath = item.photoPath
@@ -310,6 +325,7 @@ struct AddItemSheet: View {
                 colorHex: hex,
                 colorName: finalColorName,
                 seasonsJoined: seasonsJoined,
+                occasionsJoined: occasionsJoined,
                 photoPath: path,
             )
             modelContext.insert(item)

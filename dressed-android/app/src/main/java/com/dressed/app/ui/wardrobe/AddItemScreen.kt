@@ -55,6 +55,7 @@ import androidx.compose.ui.unit.dp
 import android.net.Uri
 import coil.compose.AsyncImage
 import com.dressed.app.data.model.WardrobeCategories
+import com.dressed.app.data.model.WardrobeOccasions
 import com.dressed.app.data.model.WardrobeSeasons
 import com.dressed.app.data.model.WardrobeSizes
 import com.dressed.app.ui.WardrobeViewModel
@@ -84,6 +85,7 @@ fun AddItemScreen(
     }
 
     val seasons = remember { mutableStateListOf<String>() }
+    val occasions = remember { mutableStateListOf<String>() }
 
     val context = LocalContext.current
 
@@ -353,6 +355,27 @@ fun AddItemScreen(
                 }
             }
 
+            Spacer(Modifier.height(16.dp))
+
+            Text("Occasions (optional)", style = MaterialTheme.typography.labelLarge)
+            Spacer(Modifier.height(8.dp))
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                WardrobeOccasions.ALL.forEach { (key, label) ->
+                    val sel = occasions.contains(key)
+                    FilterChip(
+                        selected = sel,
+                        onClick = {
+                            if (sel) occasions.remove(key) else occasions.add(key)
+                        },
+                        label = { Text(label) },
+                    )
+                }
+            }
+
             errorHint?.let {
                 Spacer(Modifier.height(12.dp))
                 Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
@@ -375,6 +398,7 @@ fun AddItemScreen(
                                 colorHex = hex,
                                 colorName = colorName.trim().ifBlank { labelForPickedColor(hex) },
                                 seasons = seasons.toList(),
+                                occasions = occasions.toList(),
                                 photoUri = photoUri,
                                 onInserted = onSaved,
                             )
