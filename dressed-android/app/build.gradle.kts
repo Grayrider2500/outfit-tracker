@@ -39,7 +39,7 @@ android {
         applicationId = "com.crossmountproducts.dressed"
         minSdk = 23
         targetSdk = 36
-        versionCode = 4
+        versionCode = 5
         versionName = "1.1.0"
         // Release must not embed keys or enable cloud reasoning (Codex review).
         buildConfigField("boolean", "ENABLE_AI_REASONING", "false")

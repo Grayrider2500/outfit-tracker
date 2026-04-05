@@ -2,6 +2,7 @@ package com.dressed.app.ui.wardrobe
 
 import android.content.Context
 import android.graphics.Color as AndroidColor
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -142,12 +143,22 @@ fun AddItemScreen(
             photoUri = uri
             savedPhotoPath = null
             isCopyingPhoto = true
-            photoScope.launch(Dispatchers.IO) {
-                val path = ImageStorage.copyFromUri(context, uri)
-                withContext(Dispatchers.Main) {
-                    savedPhotoPath = path
-                    isCopyingPhoto = false
+            val bytes = try {
+                context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+            } catch (e: Throwable) {
+                Log.e("ImageStorage", "gallery openInputStream failed", e)
+                null
+            }
+            if (bytes != null) {
+                photoScope.launch(Dispatchers.IO) {
+                    val path = ImageStorage.copyFromBytes(context, bytes)
+                    withContext(Dispatchers.Main) {
+                        savedPhotoPath = path
+                        isCopyingPhoto = false
+                    }
                 }
+            } else {
+                isCopyingPhoto = false
             }
         }
     }

@@ -21,6 +21,8 @@ class WardrobeRepository(
 
     suspend fun getAllSnapshot(): List<WardrobeItemEntity> = dao.getAllSnapshot()
 
+    suspend fun getById(id: String): WardrobeItemEntity? = dao.getById(id)
+
     suspend fun insert(item: WardrobeItemEntity) = dao.insert(item)
 
     suspend fun updateItem(item: WardrobeItemEntity) = dao.insert(item)

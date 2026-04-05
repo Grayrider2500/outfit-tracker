@@ -31,7 +31,14 @@ Same scope as before, plus:
 - **iOS outfits sort/filter** parity with Android chip rows.
 - **Docs & store drafts**; **seed data excluded from release builds** (Android flavor sources + iOS `#if DEBUG`).
 - **Borrowable library** Android export: **`FileProvider` + `ACTION_SEND`** share sheet (not `CreateDocument`-only).
-- **Android photo persistence fix** (build 5 needed): `AddItemScreen` now copies photo to app-private storage immediately on selection/capture (`IO` dispatcher) rather than at save time. `addItem` now takes `photoPath: String?` instead of `Uri`. `ImageStorage.copyFromUri` now logs errors via `Log.e` instead of silently returning null. Root cause: Samsung/Android 13+ `PickVisualMedia` URI permission expired before the deferred copy ran.
+- **Android photo persistence fix + edit item** (build 5):
+  - `AddItemScreen` copies photo immediately on selection/capture (`IO` dispatcher); `isCopyingPhoto` guard disables Save while copy runs.
+  - Camera now uses `copyFromFile(context, file)` bypassing FileProvider URI round-trip (unreliable on Samsung).
+  - `ImageStorage.copyFromFile` added; both paths log via `Log.e`.
+  - `ItemDetailScreen`: Edit icon in top bar → `wardrobe_edit/{id}` route.
+  - `WardrobeNav` + `WardrobeSearchNav`: edit routes added.
+  - `WardrobeViewModel.saveEdit`: loads existing entity, upserts copy, deletes old photo file if photo changed.
+  - **Build 5 APK needed** — bump `versionCode` to 5 before distributing.
 
 ## Next up — see `backlog.md`
 

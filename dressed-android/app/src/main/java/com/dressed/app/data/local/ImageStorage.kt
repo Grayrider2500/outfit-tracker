@@ -7,8 +7,10 @@ import android.graphics.BitmapFactory
 import android.graphics.Matrix
 import android.net.Uri
 import androidx.exifinterface.media.ExifInterface
+import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.FileOutputStream
+import java.io.InputStream
 import java.util.UUID
 import kotlin.math.max
 import kotlin.math.roundToInt
@@ -87,6 +89,87 @@ object ImageStorage {
         } finally {
             bitmap?.recycle()
         }
+    }
+
+    /**
+     * Decodes [bytes] (e.g. gallery pick read on the main thread), applies EXIF orientation, scales, writes JPEG.
+     * Does not use ContentResolver.
+     */
+    fun copyFromBytes(context: Context, bytes: ByteArray): String? {
+        var bitmap: Bitmap? = null
+        return try {
+            val boundsOptions = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            BitmapFactory.decodeByteArray(bytes, 0, bytes.size, boundsOptions)
+            val w = boundsOptions.outWidth
+            val h = boundsOptions.outHeight
+            if (w <= 0 || h <= 0) {
+                Log.e("ImageStorage", "copyFromBytes: invalid image dimensions $w x $h")
+                return null
+            }
+            var inSampleSize = 1
+            val longEdge = max(w, h)
+            while (longEdge / inSampleSize > MAX_LONG_EDGE_PX) inSampleSize *= 2
+
+            val decodeOptions = BitmapFactory.Options().apply { this.inSampleSize = inSampleSize }
+            val decoded = BitmapFactory.decodeByteArray(bytes, 0, bytes.size, decodeOptions)
+                ?: run {
+                    Log.e("ImageStorage", "copyFromBytes: decode returned null")
+                    return null
+                }
+
+            val oriented = applyExifOrientationFromStream(ByteArrayInputStream(bytes), decoded)
+            if (oriented !== decoded) decoded.recycle()
+            bitmap = scaleToMaxLongEdge(oriented, MAX_LONG_EDGE_PX)
+            if (bitmap !== oriented) oriented.recycle()
+
+            val dest = File(photosDir(context), "${UUID.randomUUID()}.jpg")
+            val toWrite = bitmap ?: return null
+            val ok = FileOutputStream(dest).use { out ->
+                toWrite.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, out)
+            }
+            if (!ok) {
+                dest.takeIf { it.exists() }?.delete()
+                null
+            } else {
+                dest.absolutePath
+            }
+        } catch (e: Throwable) {
+            Log.e("ImageStorage", "copyFromBytes failed", e)
+            null
+        } finally {
+            bitmap?.recycle()
+        }
+    }
+
+    private fun applyExifOrientationFromStream(stream: InputStream, bitmap: Bitmap): Bitmap {
+        val orientation = try {
+            ExifInterface(stream).getAttributeInt(
+                ExifInterface.TAG_ORIENTATION,
+                ExifInterface.ORIENTATION_UNDEFINED,
+            )
+        } catch (_: Throwable) {
+            ExifInterface.ORIENTATION_UNDEFINED
+        }
+        if (orientation == ExifInterface.ORIENTATION_UNDEFINED ||
+            orientation == ExifInterface.ORIENTATION_NORMAL) return bitmap
+        val matrix = Matrix()
+        when (orientation) {
+            ExifInterface.ORIENTATION_ROTATE_90 -> matrix.postRotate(90f)
+            ExifInterface.ORIENTATION_ROTATE_180 -> matrix.postRotate(180f)
+            ExifInterface.ORIENTATION_ROTATE_270 -> matrix.postRotate(270f)
+            ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> matrix.postScale(-1f, 1f, bitmap.width / 2f, bitmap.height / 2f)
+            ExifInterface.ORIENTATION_FLIP_VERTICAL -> matrix.postScale(1f, -1f, bitmap.width / 2f, bitmap.height / 2f)
+            ExifInterface.ORIENTATION_TRANSPOSE -> {
+                matrix.postRotate(90f)
+                matrix.postScale(-1f, 1f, bitmap.height / 2f, bitmap.width / 2f)
+            }
+            ExifInterface.ORIENTATION_TRANSVERSE -> {
+                matrix.postRotate(270f)
+                matrix.postScale(-1f, 1f, bitmap.height / 2f, bitmap.width / 2f)
+            }
+            else -> return bitmap
+        }
+        return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
     }
 
     private fun applyExifOrientationFromFile(file: File, bitmap: Bitmap): Bitmap {
