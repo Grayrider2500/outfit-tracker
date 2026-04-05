@@ -56,14 +56,18 @@ Code writing is being split: **architecture / debugging / cross-platform sync �
 
 ## Completed This Session
 - Occasion hashtag tags — both platforms (Android DB v5, iOS SwiftData auto-migrated)
-- Borrowable Library Phase 1 — both platforms complete (Cursor)
-- Delete borrowed library — both platforms complete (Cursor)
-  - iOS: swipe-to-delete on list + ⋯ Remove in detail; cascade via `@Relationship(deleteRule: .cascade)`
-  - Android: ⋮ per-card menu + AlertDialog confirmation; cascade via `ForeignKey.CASCADE` on `BorrowedItemEntity`
+- Occasion tag editing on existing items — Android `ItemDetailScreen` + `WardrobeViewModel.updateItem()`; `withOccasionToggled()` helper preserves WardrobeOccasions.ALL order
+- Borrowable Library — both platforms complete (Cursor)
+  - iOS: swipe-to-delete list + ⋯ detail menu; share sheet via `UIActivityViewController`
+  - Android: `LibraryImportOutcome` + `consumePendingOpenImportedLibrary()` pattern avoids re-navigate on rotation; export uses `CreateDocument` (save picker) — **not yet a share sheet**
+- Delete borrowed library — both platforms complete
 
-## Next Up — Cursor Tasks (see backlog.md for full specs)
-1. **Occasion tag editing on existing items** (both platforms) — Item Detail chip picker + save
-2. **Borrowable Library — Android** — verify full feature parity with iOS; mark complete if done
+## Known Android Gap (small Cursor task)
+- **Library export uses `CreateDocument` save picker** instead of a temp file + `ACTION_SEND` share sheet like iOS. For family sharing this adds friction (save → find file → share manually). Fix: write zip to `cacheDir`, launch `ACTION_SEND` intent with a `FileProvider` URI.
+
+## Next Up — Cursor Tasks (see backlog.md)
+1. Android library export → share sheet (see gap above)
+2. Medium priority items — Wear-count on Landing Screen, etc.
 
 ## Borrowable Library — Design Spec
 - **Concept:** "Chris has these items available to borrow" — file-based, no backend

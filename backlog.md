@@ -4,11 +4,11 @@
 
 ## Next Up (Cursor tasks)
 
-1. **Occasion tag editing on existing items** — Add occasions chip picker to Item Detail screen (Android `ItemDetailScreen.kt` + iOS `WardrobeItemDetailView.swift`). Pre-populate from current `item.occasions` / `item.occasionsList`. Android needs `updateItem(entity)` on `WardrobeViewModel` calling `repository.insert(entity)`. iOS writes back to `item.occasionsJoined` and calls `try? modelContext.save()`.
+1. **Android library export — switch to share sheet** — Currently uses `CreateDocument` save picker. Replace with: write zip to `context.cacheDir`, expose via `FileProvider`, launch `ACTION_SEND` intent with `setType("application/zip")` and `putExtra(EXTRA_STREAM, uri)`. Matches iOS `UIActivityViewController` share sheet behaviour. `FileProvider` authority is already declared for camera (`${packageName}.fileprovider`).
 
-2. **Borrowable Library** — ✅ Both platforms complete (Cursor, 2026-04-05)
-   - Export, import, Libraries screen, delete (swipe iOS / menu Android), explainer dialog
-   - Cascade deletes confirmed on both platforms
+2. ~~Occasion tag editing on existing items~~ — ✅ Complete (Android + iOS, 2026-04-05)
+
+3. ~~Borrowable Library~~ — ✅ Both platforms complete (Cursor, 2026-04-05)
 
 ## Medium Priority
 
