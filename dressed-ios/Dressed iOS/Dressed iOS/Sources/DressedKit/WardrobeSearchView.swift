@@ -11,7 +11,6 @@ struct WardrobeSearchView: View {
     @State private var nameQuery = ""
     @State private var filterKey = WardrobeCatalog.allKey
     @State private var seasonKey = WardrobeCatalog.allKey
-    @State private var occasionKey = WardrobeCatalog.allKey
     @State private var sortMode: WardrobeSortMode = .recent
 
     private let navPurple = Color(red: 0.42, green: 0.29, blue: 0.68)
@@ -33,15 +32,11 @@ struct WardrobeSearchView: View {
         if seasonKey != WardrobeCatalog.allKey {
             list = list.filter { $0.seasonsList.contains(seasonKey) }
         }
-        if occasionKey != WardrobeCatalog.allKey {
-            list = list.filter { $0.occasionsList.contains(occasionKey) }
-        }
         return list.sortedForDisplay(sortMode)
     }
 
     private var filtersExcludeAll: Bool {
-        !allItems.isEmpty && displayed.isEmpty &&
-        (seasonKey != WardrobeCatalog.allKey || occasionKey != WardrobeCatalog.allKey || filterKey != WardrobeCatalog.allKey)
+        !allItems.isEmpty && !afterCategory.isEmpty && displayed.isEmpty
     }
 
     var body: some View {
@@ -69,16 +64,6 @@ struct WardrobeSearchView: View {
                     ForEach(WardrobeCatalog.searchSeasonFilters, id: \.key) { entry in
                         filterChip(title: entry.label, selected: seasonKey == entry.key) {
                             seasonKey = entry.key
-                        }
-                    }
-                }
-
-                sectionHeader("OCCASION")
-                    .padding(.top, 16)
-                chipGrid {
-                    ForEach(WardrobeCatalog.searchOccasionFilters, id: \.key) { entry in
-                        filterChip(title: entry.label, selected: occasionKey == entry.key) {
-                            occasionKey = entry.key
                         }
                     }
                 }

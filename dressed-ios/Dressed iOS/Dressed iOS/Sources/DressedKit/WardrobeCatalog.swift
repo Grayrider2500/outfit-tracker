@@ -38,21 +38,6 @@ enum WardrobeCatalog {
         }
     }
 
-    /// Occasion keys + hashtag labels aligned with Android `WardrobeOccasions`.
-    static let occasions: [(key: String, label: String)] = [
-        ("date_night", "#date night"),
-        ("concert",    "#concert"),
-        ("brunch",     "#brunch"),
-        ("work",       "#work"),
-        ("gym",        "#gym"),
-        ("staying_in", "#staying in"),
-    ]
-
-    /// Occasion chips on Search (All + occasions — matches Android OCCASION filter row).
-    static var searchOccasionFilters: [(key: String, label: String)] {
-        [(allKey, "All")] + occasions
-    }
-
     static func label(forCategoryKey key: String) -> String {
         filters.first { $0.key == key }?.label ?? key
     }

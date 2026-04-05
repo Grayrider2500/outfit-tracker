@@ -2,17 +2,22 @@
 
 **Assistants:** repo map and session flow → **`CLAUDE.md`** (root).
 
-## High Priority
+## Next Up (Cursor tasks)
 
-1. **Sort / Filter Outfits** — filter by season or piece count; sort by recently worn vs. created date
+1. **Occasion tag editing on existing items** — Add occasions chip picker to Item Detail screen (Android `ItemDetailScreen.kt` + iOS `WardrobeItemDetailView.swift`). Pre-populate from current `item.occasions` / `item.occasionsList`. Android needs `updateItem(entity)` on `WardrobeViewModel` calling `repository.insert(entity)`. iOS writes back to `item.occasionsJoined` and calls `try? modelContext.save()`.
+
+2. **Borrowable Library feature** — Full spec in `restart.md`. Both platforms.
+   - `lendable` bool on item entity (Android DB migration 5→6)
+   - "Available to lend" toggle on Item Detail
+   - Export Library → `.dressed-library` zip (lendable items only, `type: library`, `sharerName` in manifest)
+   - Import Library → separate `BorrowedLibrary` store, never merges into wardrobe
+   - Libraries screen → read-only grid per imported library
 
 ## Medium Priority
 
-2. **Wear-count on Landing Screen** — quick stats card showing total wears or recently worn items
+1. **Wear-count on Landing Screen** — quick stats card showing total wears or recently worn items
 
-4. **Sort / Filter Outfits** — filter by season or piece count; sort by recently worn vs. created date
-
-5. **Outfit seasons tag** — inherit seasons from constituent pieces or allow manual override
+2. **Outfit seasons tag** — inherit seasons from constituent pieces or allow manual override
 
 6. **Backup / Restore for Outfits** — extend `WardrobeBackupCodec` to also export/import outfit data
 

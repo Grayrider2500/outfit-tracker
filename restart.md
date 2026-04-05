@@ -43,10 +43,35 @@ All core screens implemented and building successfully:
 3. Created `EditOutfitScreen.kt` — pre-populated name + item picker, calls `updateOutfit` on save
 4. `OutfitsScreen` (OutfitsNav) — added `outfits_edit/{id}` route, wired `onEdit` from detail → edit screen
 
+### Session batch (2026-04-05 continued) — pending push
+5. `OutfitsScreen` — Sort / Filter Outfits shipped (Android)
+6. **Occasion hashtag tags** — shipped on **both Android and iOS**:
+   - Tags: `#date night`, `#concert`, `#brunch`, `#work`, `#gym`, `#staying in`
+   - **Android:** `WardrobeOccasions` model, DB migration 4→5, `AddItemScreen` chip picker, `WardrobeSearchScreen` OCCASION filter, backup codec updated
+   - **iOS:** `WardrobeItem.occasionsJoined`, `WardrobeCatalog.occasions`, `AddItemSheet` chip picker, `WardrobeSearchView` OCCASION filter, `BackupRestore` DTO updated
+   - Keys identical on both platforms → cross-platform backup files remain compatible
+
+## Workflow Note
+Code writing is being split: **architecture / debugging / cross-platform sync → here; single-platform UI implementation → Cursor/Codex**. Keep specs in `backlog.md` tight enough that Cursor can execute without ambiguity.
+
+## Next Up — Cursor Tasks (see backlog.md for full specs)
+1. **Occasion tag editing on existing items** (both platforms) — Item Detail chip picker + save
+2. **Borrowable Library** (both platforms) — lendable toggle, export, import, Libraries screen
+
+## Borrowable Library — Design Spec
+- **Concept:** "Chris has these items available to borrow" — file-based, no backend
+- **Sharer:** marks items `lendable = true` via toggle on Item Detail → exports `.dressed-library` zip
+- **File format:** same zip structure as backup; manifest adds `"type": "library"` + `"sharerName": "Chris"`; only `lendable` items included
+- **Borrower:** opens file → imports into a separate `BorrowedLibrary` store (NOT wardrobe) → shown on a dedicated Libraries screen
+- **Read-only:** borrowed items cannot be edited, worn-counted, or added to outfits
+- **Multiple libraries:** borrower can hold libraries from multiple people simultaneously
+- **Refresh:** re-importing a library from the same sharer replaces the old one (match by sharerName or a library ID in the manifest)
+- **Android DB:** `lendable INTEGER NOT NULL DEFAULT 0` on `wardrobe_items` (migration 5→6); new `borrowed_libraries` + `borrowed_items` tables
+- **iOS SwiftData:** `lendable: Bool = false` on `WardrobeItem` (auto-migrates); new `BorrowedLibrary` + `BorrowedItem` models
+
 ## Next Session — Quick Start
 
 1. Read **`memory.md`** and **`backlog.md`**, then **`CLAUDE.md`** for paths.
-2. Run **`git status`**; pull if you work on another machine.
-3. **iOS sanity:** open Picker → Surprise me → confirm **multiple** suggestion cards stack vertically and scroll.
-4. **Android backlog:** outfit detail actions (mark worn / delete / edit) still per **`backlog.md`**.
-5. **Tests:** no unit/UI tests yet.
+2. Run **`git status`**; push pending commits from Android Studio if not done.
+3. Pick up next Cursor task from `backlog.md`.
+4. **Tests:** no unit/UI tests yet.

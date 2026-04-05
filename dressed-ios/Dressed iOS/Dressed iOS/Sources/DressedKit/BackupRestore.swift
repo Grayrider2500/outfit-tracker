@@ -19,7 +19,6 @@ struct WardrobeItemDTO: Codable {
     var colorHex: String
     var colorName: String
     var seasons: [String]
-    var occasions: [String] = []
     var wornCount: Int
     var lastWornAtEpochMs: Int64?
     var addedAtEpochMs: Int64
@@ -198,7 +197,6 @@ enum DressedBackup {
             colorHex: item.colorHex,
             colorName: item.colorName,
             seasons: item.seasonsList,
-            occasions: item.occasionsList,
             wornCount: item.wornCount,
             lastWornAtEpochMs: item.lastWornAtEpochMs,
             addedAtEpochMs: item.addedAtEpochMs,
@@ -261,7 +259,6 @@ enum DressedBackup {
                     colorHex: dto.colorHex,
                     colorName: dto.colorName,
                     seasonsJoined: WardrobeItem.joinSeasons(dto.seasons),
-                    occasionsJoined: WardrobeItem.joinOccasions(dto.occasions),
                     photoPath: photoPath,
                     wornCount: dto.wornCount,
                     lastWornAtEpochMs: dto.lastWornAtEpochMs,
