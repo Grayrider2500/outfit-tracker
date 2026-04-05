@@ -12,13 +12,13 @@
 
 ## Medium Priority
 
-1. **Wear-count on Landing Screen** — quick stats card showing total wears or recently worn items
+~~1. **Wear-count on Landing Screen**~~ — ✅ Cursor spec written (2026-04-05). Stats card (pieces · total wears · outfits) on both Android + iOS landing screens.
 
 2. **Outfit seasons tag** — inherit seasons from constituent pieces or allow manual override
 
-6. **Backup / Restore for Outfits** — extend `WardrobeBackupCodec` to also export/import outfit data
+~~6. **Backup / Restore for Outfits**~~ — ✅ Already complete. Android `WardrobeBackupCodec.writeZipArchive` + both restore modes include outfits; iOS `BackupRestore.swift` has `OutfitDTO` + merge/replace paths.
 
-7. **Item detail: "Worn in outfits" list** — show which outfits an item belongs to on the item detail screen
+~~7. **Item detail: "Worn in outfits" list**~~ — ✅ Cursor spec written (2026-04-05). Shows outfit names on item detail screen on both platforms via `observeOutfitsForItem` (Android) and filtered `@Query` (iOS).
 
 ## Lower Priority
 

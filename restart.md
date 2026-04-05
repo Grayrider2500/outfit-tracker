@@ -63,7 +63,16 @@ Code writing is being split: **architecture / debugging / cross-platform sync �
 - Delete borrowed library — both platforms complete
 
 ## Next Up — Cursor Tasks (see backlog.md)
-Medium priority items — Wear-count on Landing Screen, etc.
+
+Two Cursor specs written this session (specs are in the chat/session history — paste directly into Cursor):
+
+1. **Stats card on Landing Screen** — Android: add `outfitsViewModel` param to `LandingScreen`, collect `items` + `outfits`, render `StatsCard` composable (pieces · total wears · outfits) between divider and first hub button. iOS: add `statsCard` computed view using existing `@Query` arrays, insert after subtitle.
+
+2. **Item detail "Worn in outfits" list** — Android: add `observeOutfitsForItem(itemId): Flow<List<String>>` to `WardrobeViewModel`, collect in `ItemDetailScreen`, render bullet list. iOS: add `@Query var allOutfits` to `WardrobeItemDetailView`, filter by `item.id`, render section.
+
+**⚠️ Pre-distribution reminder:** Push all pending commits from Android Studio before distributing to testers.
+
+Remaining medium priority: **Outfit seasons tag** (inherit from constituent pieces or manual override).
 
 ## Borrowable Library — Design Spec
 - **Concept:** "Chris has these items available to borrow" — file-based, no backend
