@@ -22,6 +22,7 @@ Live URL: https://grayrider2500.github.io/outfit-tracker/
 - `minSdk = 23` (Android 6.0) — lowered from 26 to support Samsung SM-S727VL test device
 - `targetSdk = 36`, `compileSdk = 36`
 - **Firebase:** `com.google.gms.google-services` is applied; **`dressed-android/app/google-services.json` is gitignored** — add locally from Firebase Console (or CI) so builds succeed; never commit real keys to a public repo.
+- **Debug-only seed data:** `com.dressed.app.data.dev.TestDataSeeder` — implementation in **`app/src/debug/java/...`**, **`app/src/release/java/...`** stub throws if called (UI + ViewModel still `BuildConfig.DEBUG`-gated).
 
 ## Database
 - `DressedDatabase` — current version **6**
@@ -88,8 +89,10 @@ Live URL: https://grayrider2500.github.io/outfit-tracker/
 - `WardrobeCategories.emoji(category)` and `.label(category)` for display
 
 ## iOS (SwiftUI sources under `dressed-ios/Dressed iOS/.../Sources/DressedKit/`)
-SwiftUI + SwiftData scaffold inside the **Dressed iOS** Xcode project (see `restart.md` for setup history).
+SwiftUI + SwiftData inside the **Dressed iOS** Xcode project (see `restart.md` for setup history).
 
+- **Outfits list (`OutfitsListView.swift`):** `@Query(sort: \Outfit.createdAtEpochMs, order: .reverse)` unchanged; **`displayedOutfits`** applies in-memory **sort** (newest / most worn / name via `localizedLowercase`) and **filters**: season = any constituent piece’s **`WardrobeItem.seasonsList`** contains key (`fall` chip labeled Autumn); piece-count bands solo (1), 2–3, 4+. Horizontal **`filterBar`** with **`FilterChip`**; **`noResultsState`** when filters empty the list.
+- **Dev/test seed:** **`DevTestDataSeeder.swift`** wrapped in **`#if DEBUG`** only (no seed strings in Release binaries). Landing seed action is `#if DEBUG`.
 - **Picker results UI:** `PickerView.swift` lists suggestions in a **vertical `ForEach`** within the screen `ScrollView` (`resultsList`). A paged **`TabView`** was removed so all 1–3 engine results are visible without horizontal swipe.
 - **Wardrobe grid photos**: `WardrobeItemCard` in `WardrobeListView.swift` needs a **floating-point** aspect ratio (e.g. `.aspectRatio(3.0 / 4.0, contentMode: .fit)`). Literal `3 / 4` is integer division → **0** and hides the image strip.
 - **Where photos are set**: `AddItemSheet` (PhotosPicker / camera) → **`PhotoStorage.saveOptimizedPickedPhotoJPEG`** (or `saveJPEGData` for non-picker paths) → `WardrobeItem.photoPath`. The list screen only displays thumbnails, not a full pick-a-photo hero.

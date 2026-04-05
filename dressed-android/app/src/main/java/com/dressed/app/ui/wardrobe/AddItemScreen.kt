@@ -44,6 +44,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -57,8 +58,12 @@ import coil.compose.AsyncImage
 import com.dressed.app.data.model.WardrobeCategories
 import com.dressed.app.data.model.WardrobeOccasions
 import com.dressed.app.data.model.WardrobeSeasons
+import com.dressed.app.data.local.ImageStorage
 import com.dressed.app.data.model.WardrobeSizes
 import com.dressed.app.ui.WardrobeViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.UUID
 
@@ -88,19 +93,37 @@ fun AddItemScreen(
     val occasions = remember { mutableStateListOf<String>() }
 
     val context = LocalContext.current
+    val photoScope = rememberCoroutineScope()
 
     var photoUri by remember { mutableStateOf<Uri?>(null) }
+    var savedPhotoPath by remember { mutableStateOf<String?>(null) }
     var pendingCameraUri by remember { mutableStateOf<Uri?>(null) }
 
     val pickPhoto = rememberLauncherForActivityResult(
         ActivityResultContracts.PickVisualMedia(),
-    ) { uri -> photoUri = uri }
+    ) { uri ->
+        if (uri != null) {
+            photoUri = uri
+            savedPhotoPath = null
+            photoScope.launch(Dispatchers.IO) {
+                val path = ImageStorage.copyFromUri(context, uri)
+                withContext(Dispatchers.Main) { savedPhotoPath = path }
+            }
+        }
+    }
 
     val takePicture = rememberLauncherForActivityResult(
         ActivityResultContracts.TakePicture(),
     ) { success ->
         if (success) {
-            pendingCameraUri?.let { photoUri = it }
+            pendingCameraUri?.let { uri ->
+                photoUri = uri
+                savedPhotoPath = null
+                photoScope.launch(Dispatchers.IO) {
+                    val path = ImageStorage.copyFromUri(context, uri)
+                    withContext(Dispatchers.Main) { savedPhotoPath = path }
+                }
+            }
         }
         pendingCameraUri = null
     }
@@ -399,7 +422,7 @@ fun AddItemScreen(
                                 colorName = colorName.trim().ifBlank { labelForPickedColor(hex) },
                                 seasons = seasons.toList(),
                                 occasions = occasions.toList(),
-                                photoUri = photoUri,
+                                photoPath = savedPhotoPath,
                                 onInserted = onSaved,
                             )
                         }

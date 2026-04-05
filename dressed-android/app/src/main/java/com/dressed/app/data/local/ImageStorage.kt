@@ -1,5 +1,6 @@
 package com.dressed.app.data.local
 
+import android.util.Log
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -50,7 +51,8 @@ object ImageStorage {
             } else {
                 dest.absolutePath
             }
-        } catch (_: Throwable) {
+        } catch (e: Throwable) {
+            Log.e("ImageStorage", "copyFromUri failed", e)
             null
         } finally {
             bitmap?.recycle()
