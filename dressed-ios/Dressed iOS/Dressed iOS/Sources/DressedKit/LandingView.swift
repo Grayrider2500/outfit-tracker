@@ -21,10 +21,6 @@ struct LandingView: View {
     @Query(sort: \Outfit.createdAtEpochMs) private var allOutfits: [Outfit]
     @Environment(\.modelContext) private var modelContext
 
-    private var pieceCount: Int { allItems.count }
-    private var totalWears: Int { allItems.reduce(0) { $0 + $1.wornCount } }
-    private var outfitCount: Int { allOutfits.count }
-
     // Backup/restore state
     @State private var showingDocumentPicker = false
     @State private var pendingRestore: PendingRestore?
@@ -78,10 +74,6 @@ struct LandingView: View {
                     .tracking(2.8)
                     .foregroundStyle(.white.opacity(0.55))
 
-                statsCard
-                    .padding(.top, 20)
-                    .padding(.horizontal, 24)
-
                 // Nav buttons
                 VStack(spacing: 14) {
                     hubButton(title: "My Wardrobe", icon: "tshirt.fill", subtitle: "Browse & manage pieces", action: onMyWardrobe)
@@ -98,7 +90,7 @@ struct LandingView: View {
                     }
                     hubButton(title: "Suggest outfits", icon: "sparkles", subtitle: "Occasion, weather & mood picks", action: onSuggestOutfits)
                 }
-                .padding(.top, 12)
+                .padding(.top, 32)
                 .padding(.horizontal, 24)
 
                 Spacer(minLength: 0)
@@ -226,40 +218,6 @@ struct LandingView: View {
             errorMessage = error.localizedDescription
             showingErrorAlert = true
         }
-    }
-
-    private var statsCard: some View {
-        HStack(spacing: 0) {
-            statCell(value: pieceCount, label: "PIECES")
-            Divider()
-                .frame(height: 28)
-                .background(Color.white.opacity(0.2))
-            statCell(value: totalWears, label: "TOTAL WEARS")
-            Divider()
-                .frame(height: 28)
-                .background(Color.white.opacity(0.2))
-            statCell(value: outfitCount, label: "OUTFITS")
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 14)
-        .background(.ultraThinMaterial.opacity(0.6), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .stroke(Color.white.opacity(0.18), lineWidth: 1),
-        )
-    }
-
-    private func statCell(value: Int, label: String) -> some View {
-        VStack(spacing: 2) {
-            Text("\(value)")
-                .font(.system(size: 22, weight: .medium))
-                .foregroundStyle(Color(red: 0.94, green: 0.90, blue: 1.0))
-            Text(label)
-                .font(.system(size: 9, weight: .regular))
-                .tracking(1.5)
-                .foregroundStyle(.white.opacity(0.55))
-        }
-        .frame(maxWidth: .infinity)
     }
 
     // MARK: - Menu

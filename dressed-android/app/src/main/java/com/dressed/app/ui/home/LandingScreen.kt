@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -57,12 +56,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dressed.app.BuildConfig
 import com.dressed.app.ui.LibrariesViewModel
 import com.dressed.app.ui.WardrobeViewModel
 import com.dressed.app.ui.library.LibraryExplainerDialog
-import com.dressed.app.ui.outfits.OutfitsViewModel
 import com.dressed.app.ui.theme.WardrobeOnBarText
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -72,7 +69,6 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun LandingScreen(
     viewModel: WardrobeViewModel,
-    outfitsViewModel: OutfitsViewModel,
     librariesViewModel: LibrariesViewModel,
     onMyWardrobe: () -> Unit,
     onSearchFilter: () -> Unit,
@@ -81,12 +77,6 @@ fun LandingScreen(
     onLibraries: () -> Unit,
     onNavigateToBorrowedLibraries: () -> Unit = {},
 ) {
-    val items by viewModel.items.collectAsStateWithLifecycle(initialValue = emptyList())
-    val outfits by outfitsViewModel.outfits.collectAsStateWithLifecycle(initialValue = emptyList())
-    val pieceCount = items.size
-    val totalWears = items.sumOf { it.wornCount }
-    val outfitCount = outfits.size
-
     val gradient = Brush.linearGradient(
         colors = listOf(
             Color(0xFF4A3370),
@@ -199,8 +189,6 @@ fun LandingScreen(
                 )
                 Spacer(Modifier.height(20.dp))
 
-                StatsCard(pieces = pieceCount, wears = totalWears, outfits = outfitCount)
-                Spacer(Modifier.height(12.dp))
                 HubNavButton(
                     mainLabel = "My Wardrobe",
                     subLabel = "Browse & manage pieces",
@@ -409,48 +397,6 @@ fun LandingScreen(
                     onLibraries()
                 }
             },
-        )
-    }
-}
-
-@Composable
-private fun StatsCard(pieces: Int, wears: Int, outfits: Int) {
-    Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = Color(0x268C5AFF),
-        border = BorderStroke(1.dp, Color(0x40B48CFF)),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 14.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            StatCell(value = pieces, label = "PIECES")
-            Box(Modifier.width(1.dp).height(28.dp).background(WardrobeOnBarText.copy(alpha = 0.2f)))
-            StatCell(value = wears, label = "TOTAL WEARS")
-            Box(Modifier.width(1.dp).height(28.dp).background(WardrobeOnBarText.copy(alpha = 0.2f)))
-            StatCell(value = outfits, label = "OUTFITS")
-        }
-    }
-}
-
-@Composable
-private fun StatCell(value: Int, label: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-            text = "$value",
-            color = WardrobeOnBarText,
-            fontSize = 22.sp,
-            fontWeight = FontWeight.Medium,
-        )
-        Text(
-            text = label,
-            color = WardrobeOnBarText.copy(alpha = 0.55f),
-            style = MaterialTheme.typography.labelSmall,
-            letterSpacing = 1.5.sp,
         )
     }
 }
