@@ -18,7 +18,7 @@
 
 ~~6. **Backup / Restore for Outfits**~~ — ✅ Already complete. Android `WardrobeBackupCodec.writeZipArchive` + both restore modes include outfits; iOS `BackupRestore.swift` has `OutfitDTO` + merge/replace paths.
 
-~~7. **Item detail: "Worn in outfits" list**~~ — ✅ Cursor spec written (2026-04-05). Shows outfit names on item detail screen on both platforms via `observeOutfitsForItem` (Android) and filtered `@Query` (iOS).
+~~7. **Item detail: "Worn in outfits" list**~~ — ✅ Done (2026-04-05). Shows outfit names on item detail screen on both platforms via `observeOutfitsForItem` (Android) and filtered `@Query` (iOS).
 
 ## Lower Priority
 

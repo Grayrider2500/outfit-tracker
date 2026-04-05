@@ -24,6 +24,10 @@ struct WardrobeItemDetailView: View {
         allOutfits.filter { $0.itemIdList.contains(itemId) }.count
     }
 
+    private var wornInOutfits: [Outfit] {
+        allOutfits.filter { $0.itemIdList.contains(itemId) }
+    }
+
     var body: some View {
         Group {
             if let item {
@@ -83,6 +87,27 @@ struct WardrobeItemDetailView: View {
                                 Spacer()
                                 statBlock(value: "\(outfitCount)", label: "Outfits")
                                 Spacer()
+                            }
+
+                            if !wornInOutfits.isEmpty {
+                                Divider()
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Text("WORN IN OUTFITS")
+                                        .font(.system(size: 10, weight: .semibold))
+                                        .tracking(1.5)
+                                        .foregroundStyle(.secondary)
+                                    ForEach(wornInOutfits, id: \.id) { outfit in
+                                        HStack(spacing: 8) {
+                                            Image(systemName: "rectangle.stack.fill")
+                                                .font(.caption)
+                                                .foregroundStyle(.secondary)
+                                            Text(outfit.name)
+                                                .font(.subheadline)
+                                        }
+                                    }
+                                }
+                                .padding(.horizontal)
+                                .padding(.vertical, 8)
                             }
 
                             Button {

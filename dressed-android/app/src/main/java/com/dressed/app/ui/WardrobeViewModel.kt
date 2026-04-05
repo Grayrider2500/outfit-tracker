@@ -42,6 +42,12 @@ class WardrobeViewModel(
             outfits.count { outfit -> itemId in outfit.itemIds }
         }
 
+    /** All outfits that include this wardrobe item, by name (for display in item detail). */
+    fun observeOutfitsForItem(itemId: String): Flow<List<String>> =
+        outfitRepository.observeAll().map { outfits ->
+            outfits.filter { itemId in it.itemIds }.map { it.name }
+        }
+
     fun addItem(
         name: String,
         category: String,

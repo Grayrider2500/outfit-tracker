@@ -48,6 +48,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.dressed.app.data.local.WardrobeItemEntity
@@ -66,6 +67,8 @@ fun ItemDetailScreen(
     val item by viewModel.observeItem(itemId).collectAsStateWithLifecycle(initialValue = null)
     val outfitCount by viewModel.observeOutfitCountForItem(itemId)
         .collectAsStateWithLifecycle(initialValue = 0)
+    val outfitNames by viewModel.observeOutfitsForItem(itemId)
+        .collectAsStateWithLifecycle(initialValue = emptyList())
 
     var sawItem by remember { mutableStateOf(false) }
     LaunchedEffect(item) {
@@ -227,6 +230,24 @@ fun ItemDetailScreen(
                                 viewModel.updateItem(current.withOccasionToggled(key))
                             },
                             label = { Text(label) },
+                        )
+                    }
+                }
+
+                if (outfitNames.isNotEmpty()) {
+                    Spacer(Modifier.height(16.dp))
+                    Text(
+                        "WORN IN OUTFITS",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        letterSpacing = 1.5.sp,
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    outfitNames.forEach { name ->
+                        Text(
+                            "• $name",
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(vertical = 2.dp),
                         )
                     }
                 }
