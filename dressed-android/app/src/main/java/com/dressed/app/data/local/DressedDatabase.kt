@@ -46,5 +46,11 @@ abstract class DressedDatabase : RoomDatabase() {
                 db.execSQL("ALTER TABLE wardrobe_items ADD COLUMN lastWornAtEpochMs INTEGER")
             }
         }
+
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE wardrobe_items ADD COLUMN occasions TEXT NOT NULL DEFAULT ''")
+            }
+        }
     }
 }

@@ -2,11 +2,17 @@
 
 **Assistants:** repo map and session flow → **`CLAUDE.md`** (root).
 
+## High Priority
+
+1. **Sort / Filter Outfits** — filter by season or piece count; sort by recently worn vs. created date
+
 ## Medium Priority
 
-1. **Wear-count on Landing Screen** — quick stats card showing total wears or recently worn items
+2. **Wear-count on Landing Screen** — quick stats card showing total wears or recently worn items
 
-2. **Outfit seasons tag** — inherit seasons from constituent pieces or allow manual override
+4. **Sort / Filter Outfits** — filter by season or piece count; sort by recently worn vs. created date
+
+5. **Outfit seasons tag** — inherit seasons from constituent pieces or allow manual override
 
 6. **Backup / Restore for Outfits** — extend `WardrobeBackupCodec` to also export/import outfit data
 
