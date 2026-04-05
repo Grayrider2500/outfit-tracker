@@ -68,12 +68,14 @@ Live URL: https://grayrider2500.github.io/outfit-tracker/
 - `ic_launcher_background` color: `#5A3A96`
 - Both square (`ic_launcher.png`) and round (`ic_launcher_round.png`) variants generated
 
-## Add Item Screen
-- Removed emulator-only "Browse files (Mac → drag onto emulator)" button and warning text
-- Removed `openImageDocument` launcher (was emulator-only workaround)
-- Photo preview tap now opens Gallery picker (PickVisualMedia) — same as Gallery button
-- Camera error message no longer mentions emulator
-- Three photo options remain: tap preview / Gallery button → photo picker; Take Photo → camera
+## Add Item Screen / `ImageStorage`
+- Photo: Gallery (**PickVisualMedia**) + **Take Picture**; **`addItem` / `saveEdit`** take only **persisted `photoPath`** (copy finishes before save).
+- **`isCopyingPhoto`:** Save disabled; label **“Saving photo…”** while copy runs.
+- **Gallery:** **`openInputStream(uri)?.readBytes()`** on the **main** thread in the picker callback (active permission), then **`ImageStorage.copyFromBytes`** on **IO**.
+- **Camera:** **`Pair<Uri, File>`** from **`createCameraCaptureUri`**; **`ImageStorage.copyFromFile`** reads the temp **File** (no extra `ContentResolver` pass on the **`FileProvider`** URI).
+- **`ImageStorage`:** **`copyFromUri`** (other callers), **`copyFromFile`**, **`copyFromBytes`** (bounds, subsample, **`applyExifOrientationFromStream`**, scale, JPEG); errors **`Log.e`**.
+- **Edit:** **`ItemDetailScreen`** Edit → **`wardrobe_edit/{id}`** or **`search_edit/{id}`**; **`AddItemScreen(editingItemId)`** hydrates via **`observeItem`**; **`saveEdit`** + **`repository.getById`**; old **photo** file removed when path changes.
+- Emulator-only file browse removed; camera error copy does not mention emulator.
 
 ## Key Decisions
 - Outfit card style: **Collage** (2×2 grid of item photos, square aspect ratio)

@@ -4,12 +4,12 @@
 
 ## Where we stopped (checkpoint — run `git status` to verify)
 
-**Repo:** `main` branch, **pushed** to **`origin/main`**.
+**Repo:** `main` — **`git fetch`** && **`git status`**; **`git pull`** when behind **`origin/main`**. Avoid ad‑hoc **`git rebase`** onto old bases unless rewriting history on purpose (duplicated picks / conflicts on `restart.md` / `backlog.md`).
 
 ### Android
 - **`google-services.json` is not in git** (security). Listed in `.gitignore`.
 - **`TestDataSeeder`:** full dataset only in **`app/src/debug/`**; **`app/src/release/`** has a tiny stub (`run` throws). `LandingScreen` seed menu remains `BuildConfig.DEBUG`. `WardrobeViewModel.seedDebugTestData` still guards on `BuildConfig.DEBUG`.
-- **`versionCode`:** **5** in `app/build.gradle.kts` (`versionName 1.1.0`).
+- **`versionCode`:** **5** in `app/build.gradle.kts` (`versionName 1.1.0`); bump per release.
 
 ### iOS — submitted to TestFlight (awaiting Apple review)
 Same scope as before, plus:
@@ -34,12 +34,11 @@ Same scope as before, plus:
 - **Android photo persistence fix + edit item** (build 5):
   - `AddItemScreen` copies photo immediately on selection/capture (`IO` dispatcher); `isCopyingPhoto` guard disables Save while copy runs.
   - Camera now uses `copyFromFile(context, file)` bypassing FileProvider URI round-trip (unreliable on Samsung).
-  - Gallery now reads all bytes immediately via `readBytes()` then `copyFromBytes` — fixes Samsung one-shot stream pipe (second `openInputStream` returns null silently).
-  - `ImageStorage.copyFromFile` + `copyFromBytes` added; all paths log via `Log.e`.
+  - **Gallery:** **`readBytes()`** in the picker callback (while active grant) → **`ImageStorage.copyFromBytes`** on IO — fixes Samsung one-shot `ContentResolver` (second `openInputStream` can fail silently).
+  - **`ImageStorage.copyFromFile`** + **`copyFromBytes`**; failures logged with **`Log.e`**.
   - `ItemDetailScreen`: Edit icon in top bar → `wardrobe_edit/{id}` route.
   - `WardrobeNav` + `WardrobeSearchNav`: edit routes added.
   - `WardrobeViewModel.saveEdit`: loads existing entity, upserts copy, deletes old photo file if photo changed.
-
 ## Next up — see `backlog.md`
 
 **Medium priority:** Outfit seasons tag (inherit from pieces or manual).
