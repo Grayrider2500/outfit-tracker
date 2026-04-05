@@ -54,9 +54,13 @@ All core screens implemented and building successfully:
 ## Workflow Note
 Code writing is being split: **architecture / debugging / cross-platform sync → here; single-platform UI implementation → Cursor/Codex**. Keep specs in `backlog.md` tight enough that Cursor can execute without ambiguity.
 
+## Completed This Session
+- Occasion hashtag tags — both platforms (Android DB v5, iOS SwiftData auto-migrated)
+- Borrowable Library Phase 1 — iOS complete (Cursor); Android spec ready in backlog
+
 ## Next Up — Cursor Tasks (see backlog.md for full specs)
 1. **Occasion tag editing on existing items** (both platforms) — Item Detail chip picker + save
-2. **Borrowable Library** (both platforms) — lendable toggle, export, import, Libraries screen
+2. **Borrowable Library — Android** — lendable toggle + DB migration 5→6, export, import, Libraries screen (iOS already done)
 
 ## Borrowable Library — Design Spec
 - **Concept:** "Chris has these items available to borrow" — file-based, no backend

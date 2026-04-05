@@ -24,17 +24,22 @@ Live URL: https://grayrider2500.github.io/outfit-tracker/
 - **Firebase:** `com.google.gms.google-services` is applied; **`dressed-android/app/google-services.json` is gitignored** — add locally from Firebase Console (or CI) so builds succeed; never commit real keys to a public repo.
 
 ## Database
-- `DressedDatabase` — current version **5**
-- MIGRATION_1_2: added `sizeLabel` column to `wardrobe_items`
+- `DressedDatabase` — current version **6**
+- MIGRATION_1_2: added `sizeLabel` to `wardrobe_items`
 - MIGRATION_2_3: created `outfits` table
 - MIGRATION_3_4: added `lastWornAtEpochMs` to `wardrobe_items`
-- MIGRATION_4_5: added `occasions` to `wardrobe_items`
-- Entities: `WardrobeItemEntity` (tableName = "wardrobe_items"), `OutfitEntity` (tableName = "outfits")
+- MIGRATION_4_5: added `occasions TEXT NOT NULL DEFAULT ''` to `wardrobe_items`
+- MIGRATION_5_6: added `lendable INTEGER NOT NULL DEFAULT 0` to `wardrobe_items`; created `borrowed_libraries` and `borrowed_items` tables
+- Entities: `WardrobeItemEntity`, `OutfitEntity`, `BorrowedLibraryEntity`, `BorrowedItemEntity`
 
 ## Data Models
-**WardrobeItemEntity**: id, name, category, sizeLabel, colorHex, colorName, seasons (List<String>), occasions (List<String>), photoPath (String?), wornCount, lastWornAtEpochMs, addedAtEpochMs
+**WardrobeItemEntity**: id, name, category, sizeLabel, colorHex, colorName, seasons (List<String>), occasions (List<String>), lendable (Boolean = false), photoPath (String?), wornCount, lastWornAtEpochMs, addedAtEpochMs
 
 **OutfitEntity**: id, name, itemIds (List<String>), wornCount, createdAtEpochMs
+
+**BorrowedLibraryEntity**: id, sharerName, importedAtEpochMs
+
+**BorrowedItemEntity**: mirrors WardrobeItemEntity fields + libraryId (FK → BorrowedLibraryEntity)
 
 ## Navigation Routes (DressedApp.kt)
 - `landing` → LandingScreen
@@ -42,6 +47,17 @@ Live URL: https://grayrider2500.github.io/outfit-tracker/
 - `search` → WardrobeSearchNav
 - `outfits` → OutfitsNav (nested: `outfits_list`, `outfits_create`, `outfits_detail/{id}`, `outfits_edit/{id}`)
 - `picker` → PickerScreen
+- `libraries` → LibrariesScreen (list of imported BorrowedLibrary cards)
+- `library_detail/{id}` → BorrowedLibraryDetailScreen (read-only item grid)
+
+## Borrowable Library — File Format
+- Extension: `.dressed-library` (ZIP under the hood, same structure as backup)
+- Manifest (`metadata.json`) adds: `"type": "library"`, `"sharerName": "Chris"`
+- Only `lendable = true` items included; photos bundled same as backup
+- Import replaces existing library from same sharerName (matched by sharerName or manifest library ID)
+- Explainer dialog: shown on first visit to Libraries or first Export attempt; dismissed with optional "Don't show again" checkbox; resettable from overflow menu ("About Sharing Libraries")
+- SharedPreferences key (Android): `library_explainer_seen`; `@AppStorage` key (iOS): `library_explainer_seen`
+- Sharer name stored in SharedPreferences (Android) / UserDefaults key `library_sharer_name` (iOS)
 
 ## App Icon
 - Generated PNG icons at all mipmap densities (mdpi→xxxhdpi) using Python/cairosvg
@@ -76,3 +92,5 @@ SwiftUI + SwiftData scaffold inside the **Dressed iOS** Xcode project (see `rest
 - **Picker results UI:** `PickerView.swift` lists suggestions in a **vertical `ForEach`** within the screen `ScrollView` (`resultsList`). A paged **`TabView`** was removed so all 1–3 engine results are visible without horizontal swipe.
 - **Wardrobe grid photos**: `WardrobeItemCard` in `WardrobeListView.swift` needs a **floating-point** aspect ratio (e.g. `.aspectRatio(3.0 / 4.0, contentMode: .fit)`). Literal `3 / 4` is integer division → **0** and hides the image strip.
 - **Where photos are set**: `AddItemSheet` (PhotosPicker / camera) → **`PhotoStorage.saveOptimizedPickedPhotoJPEG`** (or `saveJPEGData` for non-picker paths) → `WardrobeItem.photoPath`. The list screen only displays thumbnails, not a full pick-a-photo hero.
+- **Borrowable Library (iOS):** `Dressed_iOSApp.swift` modelContainer includes `BorrowedLibrary` + `BorrowedItem`. `RootView` handles `.onOpenURL` for `.dressed-library` files. `WardrobeListView` has ⋯ menu for export + about. `LandingView` has Libraries hub button. `LibraryExplainerSheet` is reused across both entry points. `DressedLibraryShare.sharerNameDefaultsKey = "library_sharer_name"`.
+- **UTI / document type:** may need entry in Xcode target Info tab for system to route `.dressed-library` files to the app from Files/Mail.
