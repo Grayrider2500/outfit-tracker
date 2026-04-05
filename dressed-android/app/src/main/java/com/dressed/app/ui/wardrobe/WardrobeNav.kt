@@ -11,6 +11,7 @@ import com.dressed.app.ui.WardrobeViewModel
 private const val ROUTE_LIST = "wardrobe_list"
 private const val ROUTE_ADD = "wardrobe_add"
 private const val ROUTE_DETAIL = "wardrobe_detail/{id}"
+private const val ROUTE_EDIT = "wardrobe_edit/{id}"
 
 @Composable
 fun WardrobeNav(
@@ -36,9 +37,19 @@ fun WardrobeNav(
         composable(ROUTE_ADD) {
             AddItemScreen(
                 onBack = { navController.popBackStack() },
-                onSaved = {
-                    navController.popBackStack()
-                },
+                onSaved = { navController.popBackStack() },
+                viewModel = viewModel,
+            )
+        }
+        composable(
+            route = ROUTE_EDIT,
+            arguments = listOf(navArgument("id") { type = NavType.StringType }),
+        ) { entry ->
+            val id = entry.arguments?.getString("id").orEmpty()
+            AddItemScreen(
+                editingItemId = id,
+                onBack = { navController.popBackStack() },
+                onSaved = { navController.popBackStack() },
                 viewModel = viewModel,
             )
         }
@@ -52,6 +63,7 @@ fun WardrobeNav(
                 viewModel = viewModel,
                 onBack = { navController.popBackStack() },
                 onDeleted = { navController.popBackStack() },
+                onEdit = { navController.navigate("wardrobe_edit/$id") },
             )
         }
     }

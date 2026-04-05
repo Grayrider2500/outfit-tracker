@@ -1,6 +1,7 @@
 package com.dressed.app.ui.wardrobe
 
 import android.content.Context
+import android.graphics.Color as AndroidColor
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -62,6 +63,7 @@ import com.dressed.app.data.local.ImageStorage
 import com.dressed.app.data.model.WardrobeSizes
 import com.dressed.app.ui.WardrobeViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -73,6 +75,7 @@ fun AddItemScreen(
     onBack: () -> Unit,
     onSaved: () -> Unit,
     viewModel: WardrobeViewModel,
+    editingItemId: String? = null,
 ) {
     var name by rememberSaveable { mutableStateOf("") }
     var category by rememberSaveable { mutableStateOf("") }
@@ -84,13 +87,16 @@ fun AddItemScreen(
     var colorName by rememberSaveable { mutableStateOf("") }
     var colorNameExpanded by remember { mutableStateOf(false) }
 
-    // Auto-fill the colour name whenever the wheel changes.
-    LaunchedEffect(hue, saturation, brightness) {
-        colorName = labelForPickedColor(hsvToHex(hue, saturation, brightness))
-    }
-
     val seasons = remember { mutableStateListOf<String>() }
     val occasions = remember { mutableStateListOf<String>() }
+
+    var editLoaded by remember(editingItemId) { mutableStateOf(false) }
+
+    // Auto-fill the colour name whenever the wheel changes (skip until edit screen has hydrated).
+    LaunchedEffect(hue, saturation, brightness) {
+        if (editingItemId != null && !editLoaded) return@LaunchedEffect
+        colorName = labelForPickedColor(hsvToHex(hue, saturation, brightness))
+    }
 
     val context = LocalContext.current
     val photoScope = rememberCoroutineScope()
@@ -99,6 +105,35 @@ fun AddItemScreen(
     var savedPhotoPath by remember { mutableStateOf<String?>(null) }
     var isCopyingPhoto by remember { mutableStateOf(false) }
     var pendingCameraUri by remember { mutableStateOf<Uri?>(null) }
+    var pendingCameraFile by remember { mutableStateOf<File?>(null) }
+
+    LaunchedEffect(editingItemId) {
+        if (editingItemId == null || editLoaded) return@LaunchedEffect
+        viewModel.observeItem(editingItemId).collect { entity ->
+            if (entity == null || editLoaded) return@collect
+            name = entity.name
+            category = entity.category
+            sizeText = entity.sizeLabel
+            colorName = entity.colorName
+            val raw = entity.colorHex.let { if (it.startsWith("#")) it else "#$it" }
+            runCatching {
+                val hsv = FloatArray(3)
+                AndroidColor.colorToHSV(AndroidColor.parseColor(raw), hsv)
+                hue = hsv[0]
+                saturation = hsv[1]
+                brightness = hsv[2]
+            }
+            seasons.clear()
+            seasons.addAll(entity.seasons)
+            occasions.clear()
+            occasions.addAll(entity.occasions)
+            savedPhotoPath = entity.photoPath
+            if (entity.photoPath != null) {
+                photoUri = Uri.fromFile(File(entity.photoPath))
+            }
+            editLoaded = true
+        }
+    }
 
     val pickPhoto = rememberLauncherForActivityResult(
         ActivityResultContracts.PickVisualMedia(),
@@ -121,12 +156,14 @@ fun AddItemScreen(
         ActivityResultContracts.TakePicture(),
     ) { success ->
         if (success) {
-            pendingCameraUri?.let { uri ->
+            val file = pendingCameraFile
+            val uri = pendingCameraUri
+            if (file != null && uri != null) {
                 photoUri = uri
                 savedPhotoPath = null
                 isCopyingPhoto = true
                 photoScope.launch(Dispatchers.IO) {
-                    val path = ImageStorage.copyFromUri(context, uri)
+                    val path = ImageStorage.copyFromFile(context, file)
                     withContext(Dispatchers.Main) {
                         savedPhotoPath = path
                         isCopyingPhoto = false
@@ -135,14 +172,16 @@ fun AddItemScreen(
             }
         }
         pendingCameraUri = null
+        pendingCameraFile = null
     }
 
     var errorHint by remember { mutableStateOf<String?>(null) }
 
     fun startCameraCapture() {
         runCatching {
-            val uri = createCameraCaptureUri(context)
+            val (uri, file) = createCameraCaptureUri(context)
             pendingCameraUri = uri
+            pendingCameraFile = file
             takePicture.launch(uri)
         }.onFailure {
             errorHint = "Could not open camera. Check that the app has camera permission."
@@ -154,7 +193,7 @@ fun AddItemScreen(
             CenterAlignedTopAppBar(
                 title = {
                     Text(
-                        "Add a New Piece",
+                        if (editingItemId != null) "Edit Piece" else "Add a New Piece",
                         color = MaterialTheme.colorScheme.onPrimary,
                     )
                 },
@@ -423,17 +462,32 @@ fun AddItemScreen(
                         else -> {
                             errorHint = null
                             val hex = hsvToHex(hue, saturation, brightness)
-                            viewModel.addItem(
-                                name = n,
-                                category = category,
-                                sizeLabel = sizeText,
-                                colorHex = hex,
-                                colorName = colorName.trim().ifBlank { labelForPickedColor(hex) },
-                                seasons = seasons.toList(),
-                                occasions = occasions.toList(),
-                                photoPath = savedPhotoPath,
-                                onInserted = onSaved,
-                            )
+                            if (editingItemId != null) {
+                                viewModel.saveEdit(
+                                    itemId = editingItemId,
+                                    name = n,
+                                    category = category,
+                                    sizeLabel = sizeText,
+                                    colorHex = hex,
+                                    colorName = colorName.trim().ifBlank { labelForPickedColor(hex) },
+                                    seasons = seasons.toList(),
+                                    occasions = occasions.toList(),
+                                    photoPath = savedPhotoPath,
+                                    onSaved = onSaved,
+                                )
+                            } else {
+                                viewModel.addItem(
+                                    name = n,
+                                    category = category,
+                                    sizeLabel = sizeText,
+                                    colorHex = hex,
+                                    colorName = colorName.trim().ifBlank { labelForPickedColor(hex) },
+                                    seasons = seasons.toList(),
+                                    occasions = occasions.toList(),
+                                    photoPath = savedPhotoPath,
+                                    onInserted = onSaved,
+                                )
+                            }
                         }
                     }
                 },
@@ -451,12 +505,13 @@ fun AddItemScreen(
     }
 }
 
-private fun createCameraCaptureUri(context: Context): Uri {
+private fun createCameraCaptureUri(context: Context): Pair<Uri, File> {
     val dir = File(context.cacheDir, "camera").apply { mkdirs() }
     val file = File.createTempFile("dressed_${UUID.randomUUID()}", ".jpg", dir)
-    return FileProvider.getUriForFile(
+    val uri = FileProvider.getUriForFile(
         context,
         "${context.packageName}.fileprovider",
         file,
     )
+    return Pair(uri, file)
 }

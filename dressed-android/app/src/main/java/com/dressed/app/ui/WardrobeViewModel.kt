@@ -56,11 +56,10 @@ class WardrobeViewModel(
         colorName: String,
         seasons: List<String>,
         occasions: List<String> = emptyList(),
-        photoUri: Uri?,
+        photoPath: String?,
         onInserted: () -> Unit = {},
     ) {
-        viewModelScope.launch {
-            val path = photoUri?.let { ImageStorage.copyFromUri(getApplication(), it) }
+        viewModelScope.launch(Dispatchers.IO) {
             val entity = WardrobeItemEntity(
                 id = UUID.randomUUID().toString(),
                 name = name.trim(),
@@ -70,14 +69,48 @@ class WardrobeViewModel(
                 colorName = colorName,
                 seasons = seasons,
                 occasions = occasions,
-                photoPath = path,
+                photoPath = photoPath,
                 wornCount = 0,
                 lastWornAtEpochMs = null,
                 addedAtEpochMs = System.currentTimeMillis(),
                 lendable = false,
             )
             repository.insert(entity)
-            onInserted()
+            withContext(Dispatchers.Main) { onInserted() }
+        }
+    }
+
+    fun saveEdit(
+        itemId: String,
+        name: String,
+        category: String,
+        sizeLabel: String,
+        colorHex: String,
+        colorName: String,
+        seasons: List<String>,
+        occasions: List<String>,
+        photoPath: String?,
+        onSaved: () -> Unit = {},
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val existing = repository.getById(itemId) ?: return@launch
+            val oldPath = existing.photoPath
+            repository.insert(
+                existing.copy(
+                    name = name.trim(),
+                    category = category,
+                    sizeLabel = sizeLabel.trim(),
+                    colorHex = colorHex,
+                    colorName = colorName,
+                    seasons = seasons,
+                    occasions = occasions,
+                    photoPath = photoPath,
+                ),
+            )
+            if (oldPath != null && oldPath != photoPath) {
+                ImageStorage.deleteIfExists(oldPath)
+            }
+            withContext(Dispatchers.Main) { onSaved() }
         }
     }
 
