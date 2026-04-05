@@ -70,6 +70,18 @@ Cursor tasks status:
 
 2. ✅ **Item detail "Worn in outfits" list** — DONE (2026-04-05). Android: `observeOutfitsForItem` on `WardrobeViewModel` + collected in `ItemDetailScreen`. iOS: `wornInOutfits` filter in `WardrobeItemDetailView`. Both compile clean.
 
+3. ✅ **iOS Outfits sort/filter parity** — DONE (2026-04-05). `OutfitsListView` now has `outfitSortOptions` / `outfitSeasonFilters` / `outfitSizeFilters`, `displayedOutfits` computed property, `filterBar` + `FilterChip`, `noResultsState`. Matches Android `OutfitsListScreen` exactly. Xcodebuild clean.
+
+## Distribution Status — v1.1.0 build 4
+
+All pre-distribution checklist items cleared (Codex review found no blockers). App is ready to package.
+
+**Upgrade path for existing users:** install new APK/IPA over existing app — Room migrations run automatically (v1→v6), data preserved. Recommend user does a backup first as insurance.
+
+**Remaining backlog (post-tester feedback):**
+- Outfit seasons tag (inherit from pieces or manual)
+- Android `.dressed-library` mime-type polish (currently `application/zip` + filename sniff; low risk, post-feedback fix)
+
 Remaining medium priority: **Outfit seasons tag** (inherit from constituent pieces or manual override).
 
 ## Borrowable Library — Design Spec

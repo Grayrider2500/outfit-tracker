@@ -7,7 +7,7 @@ import com.dressed.app.data.local.WardrobeItemEntity
 import com.dressed.app.data.model.WardrobeCategories
 
 /**
- * Deterministic dev/test wardrobe for one professional woman.
+ * Deterministic dev/test wardrobe for one professional woman (debug builds only).
  * Safe to run multiple times: skips rows whose ids already exist.
  */
 object TestDataSeeder {

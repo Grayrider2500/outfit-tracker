@@ -1,7 +1,9 @@
+#if DEBUG
+
 import Foundation
 import SwiftData
 
-/// Deterministic dev wardrobe for one professional woman. Debug builds only from UI.
+/// Deterministic dev wardrobe for one professional woman. Compiled only for debug builds.
 enum DevTestDataSeeder {
     static let itemIdPrefix = "devseed-item-"
     static let outfitIdPrefix = "devseed-outfit-"
@@ -85,8 +87,8 @@ enum DevTestDataSeeder {
     ]
 
     @MainActor
-    static func run(modelContext: ModelContext, targetItemCount: Int = seedItemSpecs.count) throws -> String {
-#if DEBUG
+    static func run(modelContext: ModelContext, targetItemCount: Int? = nil) throws -> String {
+        let itemCap = targetItemCount ?? seedItemSpecs.count
         let now = Int64(Date().timeIntervalSince1970 * 1000)
         var existingItemIds = Set(try modelContext.fetch(FetchDescriptor<WardrobeItem>()).map(\.id))
         var existingOutfitIds = Set(try modelContext.fetch(FetchDescriptor<Outfit>()).map(\.id))
@@ -96,7 +98,7 @@ enum DevTestDataSeeder {
         var outfitsAdded = 0
         var outfitsSkipped = 0
 
-        for (index, spec) in seedItemSpecs.prefix(min(targetItemCount, seedItemSpecs.count)).enumerated() {
+        for (index, spec) in seedItemSpecs.prefix(min(itemCap, seedItemSpecs.count)).enumerated() {
             let item = buildItem(index: index, spec: spec, nowMs: now)
             if existingItemIds.contains(item.id) {
                 itemsSkipped += 1
@@ -120,12 +122,8 @@ enum DevTestDataSeeder {
 
         try modelContext.save()
         return "Added \(itemsAdded) items, \(outfitsAdded) outfits. Skipped \(itemsSkipped) items, \(outfitsSkipped) outfits (already in database)."
-#else
-        return "Not available in release builds."
-#endif
     }
 
-#if DEBUG
     private static func itemId(_ index: Int) -> String {
         String(format: "%@%03d", itemIdPrefix, index)
     }
@@ -162,5 +160,6 @@ enum DevTestDataSeeder {
             createdAtEpochMs: nowMs - Int64(seededOutfits.count - index) * 120_000
         )
     }
-#endif
 }
+
+#endif

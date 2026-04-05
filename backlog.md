@@ -12,7 +12,8 @@
 
 ## Medium Priority
 
-~~1. **Wear-count on Landing Screen**~~ — ✅ Done (2026-04-05). Stats card (pieces · total wears · outfits) on both Android + iOS landing screens.
+~~1. **Wear-count on Landing Screen**~~ — ✅ Done (2026-04-05).
+~~0. **iOS Outfits sort/filter parity**~~ — ✅ Done (2026-04-05). `OutfitsListView` now matches Android chip rows exactly. Stats card (pieces · total wears · outfits) on both Android + iOS landing screens.
 
 2. **Outfit seasons tag** — inherit seasons from constituent pieces or allow manual override
 
