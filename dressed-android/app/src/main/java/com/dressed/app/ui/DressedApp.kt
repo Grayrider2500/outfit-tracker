@@ -59,6 +59,7 @@ fun DressedApp(
         composable(ROUTE_LANDING) {
             LandingScreen(
                 viewModel = viewModel,
+                outfitsViewModel = outfitsViewModel,
                 librariesViewModel = librariesViewModel,
                 onMyWardrobe = { rootNav.navigate(ROUTE_WARDROBE) },
                 onSearchFilter = { rootNav.navigate(ROUTE_SEARCH) },

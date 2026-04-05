@@ -1,6 +1,27 @@
 import SwiftData
 import SwiftUI
 
+private let outfitSortOptions: [(key: String, label: String)] = [
+    (key: "newest", label: "Newest"),
+    (key: "worn", label: "Most Worn"),
+    (key: "name", label: "A–Z"),
+]
+
+private let outfitSeasonFilters: [(key: String, label: String)] = [
+    (key: "all", label: "All seasons"),
+    (key: "spring", label: "Spring"),
+    (key: "summer", label: "Summer"),
+    (key: "fall", label: "Autumn"),
+    (key: "winter", label: "Winter"),
+]
+
+private let outfitSizeFilters: [(key: String, label: String)] = [
+    (key: "any", label: "Any size"),
+    (key: "1", label: "Solo"),
+    (key: "2-3", label: "2–3 pcs"),
+    (key: "4+", label: "4+ pcs"),
+]
+
 /// Outfits grid + create flow, aligned with Android `OutfitsNav` / `OutfitsListScreen`.
 struct OutfitsListView: View {
     var onNavigateHome: () -> Void
@@ -10,11 +31,39 @@ struct OutfitsListView: View {
     @Query(sort: \WardrobeItem.addedAtEpochMs, order: .reverse) private var allItems: [WardrobeItem]
 
     @State private var showCreate = false
+    @State private var sortMode = "newest"
+    @State private var seasonFilter = "all"
+    @State private var sizeFilter = "any"
 
     private let navPurple = Color(red: 0.42, green: 0.29, blue: 0.68)
 
     private var itemsById: [String: WardrobeItem] {
         Dictionary(uniqueKeysWithValues: allItems.map { ($0.id, $0) })
+    }
+
+    private var displayedOutfits: [Outfit] {
+        var list = outfits
+
+        if seasonFilter != "all" {
+            list = list.filter { outfit in
+                outfit.itemIdList.contains { id in
+                    itemsById[id]?.seasonsList.contains(seasonFilter) == true
+                }
+            }
+        }
+
+        switch sizeFilter {
+        case "1": list = list.filter { $0.itemIdList.count == 1 }
+        case "2-3": list = list.filter { (2 ... 3).contains($0.itemIdList.count) }
+        case "4+": list = list.filter { $0.itemIdList.count >= 4 }
+        default: break
+        }
+
+        switch sortMode {
+        case "worn": return list.sorted(by: { $0.wornCount > $1.wornCount })
+        case "name": return list.sorted(by: { $0.name.localizedLowercase < $1.name.localizedLowercase })
+        default: return list.sorted(by: { $0.createdAtEpochMs > $1.createdAtEpochMs })
+        }
     }
 
     private let columns = [
@@ -27,22 +76,29 @@ struct OutfitsListView: View {
             if outfits.isEmpty {
                 emptyState
             } else {
-                ScrollView {
-                    LazyVGrid(columns: columns, spacing: 14) {
-                        ForEach(outfits, id: \.id) { outfit in
-                            let resolved = outfit.itemIdList.compactMap { itemsById[$0] }
-                            Button {
-                                guard !outfit.id.isEmpty else { return }
-                                onSelectOutfit(outfit.id)
-                            } label: {
-                                OutfitCollageCard(outfit: outfit, items: resolved)
+                VStack(spacing: 0) {
+                    filterBar
+                    if displayedOutfits.isEmpty {
+                        noResultsState
+                    } else {
+                        ScrollView {
+                            LazyVGrid(columns: columns, spacing: 14) {
+                                ForEach(displayedOutfits, id: \.id) { outfit in
+                                    let resolved = outfit.itemIdList.compactMap { itemsById[$0] }
+                                    Button {
+                                        guard !outfit.id.isEmpty else { return }
+                                        onSelectOutfit(outfit.id)
+                                    } label: {
+                                        OutfitCollageCard(outfit: outfit, items: resolved)
+                                    }
+                                    .buttonStyle(.plain)
+                                }
                             }
-                            .buttonStyle(.plain)
+                            .padding(.horizontal, 16)
+                            .padding(.top, 12)
+                            .padding(.bottom, 24)
                         }
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.top, 12)
-                    .padding(.bottom, 24)
                 }
             }
         }
@@ -87,6 +143,47 @@ struct OutfitsListView: View {
                 }
             }
         }
+    }
+
+    private var filterBar: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(outfitSortOptions, id: \.key) { opt in
+                    FilterChip(label: opt.label, selected: sortMode == opt.key) {
+                        sortMode = opt.key
+                    }
+                }
+                Divider()
+                    .frame(height: 20)
+                ForEach(outfitSeasonFilters, id: \.key) { opt in
+                    FilterChip(label: opt.label, selected: seasonFilter == opt.key) {
+                        seasonFilter = opt.key
+                    }
+                }
+                Divider()
+                    .frame(height: 20)
+                ForEach(outfitSizeFilters, id: \.key) { opt in
+                    FilterChip(label: opt.label, selected: sizeFilter == opt.key) {
+                        sizeFilter = opt.key
+                    }
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+        }
+        .background(Color(.systemGroupedBackground))
+    }
+
+    private var noResultsState: some View {
+        VStack(spacing: 8) {
+            Text("No outfits match")
+                .font(.title3.weight(.semibold))
+            Text("Try adjusting the sort or filter.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(24)
     }
 
     private var emptyState: some View {
@@ -198,6 +295,26 @@ private struct OutfitCollageCard: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .clipped()
+    }
+}
+
+private struct FilterChip: View {
+    let label: String
+    let selected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text(label)
+                .font(.subheadline)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(selected ? Color(red: 0.42, green: 0.29, blue: 0.68) : Color(.secondarySystemGroupedBackground))
+                .foregroundStyle(selected ? .white : .primary)
+                .clipShape(Capsule())
+                .overlay(Capsule().stroke(selected ? Color.clear : Color(.separator), lineWidth: 1))
+        }
+        .buttonStyle(.plain)
     }
 }
 
