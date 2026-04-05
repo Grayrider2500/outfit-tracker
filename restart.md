@@ -56,11 +56,14 @@ Code writing is being split: **architecture / debugging / cross-platform sync �
 
 ## Completed This Session
 - Occasion hashtag tags — both platforms (Android DB v5, iOS SwiftData auto-migrated)
-- Borrowable Library Phase 1 — iOS complete (Cursor); Android spec ready in backlog
+- Borrowable Library Phase 1 — both platforms complete (Cursor)
+- Delete borrowed library — both platforms complete (Cursor)
+  - iOS: swipe-to-delete on list + ⋯ Remove in detail; cascade via `@Relationship(deleteRule: .cascade)`
+  - Android: ⋮ per-card menu + AlertDialog confirmation; cascade via `ForeignKey.CASCADE` on `BorrowedItemEntity`
 
 ## Next Up — Cursor Tasks (see backlog.md for full specs)
 1. **Occasion tag editing on existing items** (both platforms) — Item Detail chip picker + save
-2. **Borrowable Library — Android** — lendable toggle + DB migration 5→6, export, import, Libraries screen (iOS already done)
+2. **Borrowable Library — Android** — verify full feature parity with iOS; mark complete if done
 
 ## Borrowable Library — Design Spec
 - **Concept:** "Chris has these items available to borrow" — file-based, no backend
