@@ -62,12 +62,8 @@ Code writing is being split: **architecture / debugging / cross-platform sync �
   - Android: `LibraryImportOutcome` + `consumePendingOpenImportedLibrary()` pattern avoids re-navigate on rotation; export uses `CreateDocument` (save picker) — **not yet a share sheet**
 - Delete borrowed library — both platforms complete
 
-## Known Android Gap (small Cursor task)
-- **Library export uses `CreateDocument` save picker** instead of a temp file + `ACTION_SEND` share sheet like iOS. For family sharing this adds friction (save → find file → share manually). Fix: write zip to `cacheDir`, launch `ACTION_SEND` intent with a `FileProvider` URI.
-
 ## Next Up — Cursor Tasks (see backlog.md)
-1. Android library export → share sheet (see gap above)
-2. Medium priority items — Wear-count on Landing Screen, etc.
+Medium priority items — Wear-count on Landing Screen, etc.
 
 ## Borrowable Library — Design Spec
 - **Concept:** "Chris has these items available to borrow" — file-based, no backend

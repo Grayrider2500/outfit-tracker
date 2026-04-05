@@ -4,11 +4,11 @@
 
 ## Next Up (Cursor tasks)
 
-1. **Android library export — switch to share sheet** — Currently uses `CreateDocument` save picker. Replace with: write zip to `context.cacheDir`, expose via `FileProvider`, launch `ACTION_SEND` intent with `setType("application/zip")` and `putExtra(EXTRA_STREAM, uri)`. Matches iOS `UIActivityViewController` share sheet behaviour. `FileProvider` authority is already declared for camera (`${packageName}.fileprovider`).
+~~Android library export — switch to share sheet~~ — ✅ Complete (2026-04-05). `cacheDir` + `FileProvider` + `ACTION_SEND` share sheet, matching iOS.
 
-2. ~~Occasion tag editing on existing items~~ — ✅ Complete (Android + iOS, 2026-04-05)
+~~Occasion tag editing on existing items~~ — ✅ Complete (Android + iOS, 2026-04-05)
 
-3. ~~Borrowable Library~~ — ✅ Both platforms complete (Cursor, 2026-04-05)
+~~Borrowable Library~~ — ✅ Both platforms complete (Cursor, 2026-04-05)
 
 ## Medium Priority
 
