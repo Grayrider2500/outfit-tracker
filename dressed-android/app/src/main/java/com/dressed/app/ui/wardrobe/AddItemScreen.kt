@@ -97,6 +97,7 @@ fun AddItemScreen(
 
     var photoUri by remember { mutableStateOf<Uri?>(null) }
     var savedPhotoPath by remember { mutableStateOf<String?>(null) }
+    var isCopyingPhoto by remember { mutableStateOf(false) }
     var pendingCameraUri by remember { mutableStateOf<Uri?>(null) }
 
     val pickPhoto = rememberLauncherForActivityResult(
@@ -105,9 +106,13 @@ fun AddItemScreen(
         if (uri != null) {
             photoUri = uri
             savedPhotoPath = null
+            isCopyingPhoto = true
             photoScope.launch(Dispatchers.IO) {
                 val path = ImageStorage.copyFromUri(context, uri)
-                withContext(Dispatchers.Main) { savedPhotoPath = path }
+                withContext(Dispatchers.Main) {
+                    savedPhotoPath = path
+                    isCopyingPhoto = false
+                }
             }
         }
     }
@@ -119,9 +124,13 @@ fun AddItemScreen(
             pendingCameraUri?.let { uri ->
                 photoUri = uri
                 savedPhotoPath = null
+                isCopyingPhoto = true
                 photoScope.launch(Dispatchers.IO) {
                     val path = ImageStorage.copyFromUri(context, uri)
-                    withContext(Dispatchers.Main) { savedPhotoPath = path }
+                    withContext(Dispatchers.Main) {
+                        savedPhotoPath = path
+                        isCopyingPhoto = false
+                    }
                 }
             }
         }
@@ -428,9 +437,14 @@ fun AddItemScreen(
                         }
                     }
                 },
+                enabled = !isCopyingPhoto,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text("Save to Wardrobe")
+                if (isCopyingPhoto) {
+                    Text("Saving photo…")
+                } else {
+                    Text("Save to Wardrobe")
+                }
             }
             Spacer(Modifier.height(24.dp))
         }

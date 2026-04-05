@@ -9,7 +9,7 @@
 ### Android
 - **`google-services.json` is not in git** (security). Listed in `.gitignore`.
 - **`TestDataSeeder`:** full dataset only in **`app/src/debug/`**; **`app/src/release/`** has a tiny stub (`run` throws). `LandingScreen` seed menu remains `BuildConfig.DEBUG`. `WardrobeViewModel.seedDebugTestData` still guards on `BuildConfig.DEBUG`.
-- **`versionCode`:** bump to **5** for the photo-fix build before distributing.
+- **`versionCode`:** **4** in `app/build.gradle.kts` (bump as needed per release).
 
 ### iOS — fully functional
 Same scope as before, plus:
@@ -27,11 +27,10 @@ Same scope as before, plus:
 ## Completed recently (already on `main`)
 
 - Landing **stats** card (both platforms).
-- Item detail **”Worn in outfits”** list (both platforms).
+- Item detail **“Worn in outfits”** list (both platforms).
 - **iOS outfits sort/filter** parity with Android chip rows.
 - **Docs & store drafts**; **seed data excluded from release builds** (Android flavor sources + iOS `#if DEBUG`).
 - **Borrowable library** Android export: **`FileProvider` + `ACTION_SEND`** share sheet (not `CreateDocument`-only).
-- **Android photo persistence fix** (build 5 needed): `AddItemScreen` now copies photo to app-private storage immediately on selection/capture (`IO` dispatcher) rather than at save time. `addItem` now takes `photoPath: String?` instead of `Uri`. `ImageStorage.copyFromUri` now logs errors via `Log.e` instead of silently returning null. Root cause: Samsung/Android 13+ `PickVisualMedia` URI permission expired before the deferred copy ran.
 
 ## Next up — see `backlog.md`
 

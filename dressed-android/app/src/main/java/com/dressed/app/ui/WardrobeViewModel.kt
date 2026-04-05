@@ -15,6 +15,7 @@ import com.dressed.app.data.backup.LibraryShareCodec
 import com.dressed.app.data.backup.WardrobeBackupCodec
 import com.dressed.app.data.library.LibraryPreferences
 import com.dressed.app.data.dev.TestDataSeeder
+import com.dressed.app.data.local.ImageStorage
 import com.dressed.app.data.local.WardrobeItemEntity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -55,10 +56,11 @@ class WardrobeViewModel(
         colorName: String,
         seasons: List<String>,
         occasions: List<String> = emptyList(),
-        photoPath: String?,
+        photoUri: Uri?,
         onInserted: () -> Unit = {},
     ) {
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch {
+            val path = photoUri?.let { ImageStorage.copyFromUri(getApplication(), it) }
             val entity = WardrobeItemEntity(
                 id = UUID.randomUUID().toString(),
                 name = name.trim(),
@@ -68,14 +70,14 @@ class WardrobeViewModel(
                 colorName = colorName,
                 seasons = seasons,
                 occasions = occasions,
-                photoPath = photoPath,
+                photoPath = path,
                 wornCount = 0,
                 lastWornAtEpochMs = null,
                 addedAtEpochMs = System.currentTimeMillis(),
                 lendable = false,
             )
             repository.insert(entity)
-            withContext(Dispatchers.Main) { onInserted() }
+            onInserted()
         }
     }
 
