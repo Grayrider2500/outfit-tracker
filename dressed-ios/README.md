@@ -1,11 +1,11 @@
 # Dressed — iOS (SwiftUI)
 
-Native SwiftUI sibling of the Android app (`dressed-android/`). Same product idea: wardrobe pieces, search, outfits, local-first data.
+Native **SwiftUI + SwiftData** sibling of the Android app (`dressed-android/`). Same product: **local-first** wardrobe, outfits, search, wear tracking, **ZIP backup/restore**, and **borrowable `.dressed-library`** import/export—not a bare scaffold; feature set is tracked against Android in **`memory.md`** and **`backlog.md`**.
 
 ## Requirements
 
 - **Xcode 15+** (SwiftData targets **iOS 17+**)
-- Apple Developer account when you are ready for devices / App Store
+- Apple Developer account for devices / TestFlight / App Store
 
 ## Create the Xcode project (one-time)
 
@@ -14,19 +14,18 @@ Native SwiftUI sibling of the Android app (`dressed-android/`). Same product ide
 3. Set:
    - **Product Name:** `Dressed` (or `Dressed iOS`)
    - **Team:** your team  
-   - **Organization Identifier:** e.g. `com.yourname` (you get `com.yourname.Dressed`)  
+   - **Organization Identifier:** e.g. `com.yourname`  
    - **Interface:** **SwiftUI**  
    - **Storage:** **SwiftData** ✓  
    - **Language:** Swift  
-4. Save the project **inside this folder**  
-   - Choose **`outfit-tracker/dressed-ios/`** and create the project there (Xcode will add `Dressed.xcodeproj` next to the `Dressed/` source folder that Xcode generates).
+4. Save the project **inside** `outfit-tracker/dressed-ios/` (alongside this README).
 5. **Add the repo’s shared sources to the app target**  
-   - If Xcode created only the default template: drag the **`Sources/DressedKit`** folder from Finder into the Xcode project navigator, check **Copy items if needed** *off* (keep files in place), and ensure the **Dressed** app target is checked.  
-   - **Or** merge manually: copy the contents of `Sources/DressedKit/` into your generated app group and resolve any duplicate `*App.swift` (keep one `@main`).
-6. In **Deployment Info**, set **Minimum Deployments** to **iOS 17.0** (or newer).
-7. **Replace** the template `@main` `App` struct with the one in **`Sources/DressedKit/DressedApp.swift`** (or point `WindowGroup` at `RootView()` and use our `modelContainer` setup there).
+   - Drag **`Sources/DressedKit`** (or the concrete path used in this repo, e.g. **`Dressed iOS/Dressed iOS/Sources/DressedKit`**) into the navigator; **Copy items if needed** *off*; enable the app **target membership**.  
+   - Resolve duplicate `*App.swift` / `@main` so a single entry uses **`RootView()`** and the same **`modelContainer`** models as in `DressedApp.swift` / `RootView.swift`.
+6. **Deployment Info:** **iOS 17.0** (or newer).
+7. **Build** (⌘B). Fix **target membership** for any stray files.
 
-**Minimal merge:** Keep Xcode’s generated app entry file but change it to:
+**Minimal app entry** (if you merge by hand):
 
 ```swift
 import SwiftUI
@@ -38,42 +37,40 @@ struct DressedApp: App {
         WindowGroup {
             RootView()
         }
-        .modelContainer(for: [WardrobeItem.self, Outfit.self])
+        .modelContainer(for: [WardrobeItem.self, Outfit.self, BorrowedLibrary.self, BorrowedItem.self])
     }
 }
 ```
 
-Delete the default `ContentView.swift` if everything is driven from `RootView` / `LandingView`.
-
-8. **Build** (⌘B). Fix target membership if any file is missing from the **Dressed** target (File inspector → Target Membership).
+Use the project’s actual `modelContainer` line if additional models are registered.
 
 ### Photo library (PhotosPicker)
 
-Add a usage description so the system can show the access prompt:
+In the app target → **Info**, add **Privacy — Photo Library Usage Description** (`NSPhotoLibraryUsageDescription`), e.g. *“Dressed needs photo access to attach pictures of your clothing.”*
 
-- In the app target → **Info** → add **Privacy — Photo Library Usage Description** (`NSPhotoLibraryUsageDescription`), e.g. *“Dressed needs photo access to attach pictures of your clothing.”*
+### Open `.dressed-library` files
 
-(If you use limited library / browsing APIs only, Apple may still require this string on some OS versions.)
+Document types / exported UTI for the library extension may need to be set in **Info** so **Files** / **Mail** can open shares into the app (see Xcode **Document Types** / **Imported Type Identifiers** as you solidify the extension).
 
 ## Layout of this folder
 
 | Path | Purpose |
 |------|---------|
-| `Sources/DressedKit/` | Shared SwiftUI + SwiftData code (add to app target) |
+| `Sources/DressedKit/` (under the Xcode project group) | SwiftUI + SwiftData: landing, wardrobe, search, outfits, picker, backup, libraries |
+| `STORE_LISTING.md` | Draft **App Store** copy (subtitle, keywords, description) |
 | `README.md` | This file |
 
-**Key sources:** `WardrobeListView` (2-column grid, category chips, total count, add sheet), `AddItemSheet` (PhotosPicker, category/size/color/season, HSV sliders), `WardrobeCatalog` / `WardrobeColorMath` (parity with Android enums and color naming), `PhotoStorage` (saves JPEG data under Documents).
+**Notable modules (high level):** `RootView` / `LandingView` (stats, backup & library entry), `WardrobeListView` + `AddItemSheet`, `WardrobeItemDetailView` (wear, lend toggle, **worn-in-outfits** list), search and outfit flows, `DressedBackup` / import-export, `DressedLibraryShare`, borrowed library screens, `PickerView` (suggestions + debug-only API explanation path), `WardrobeCatalog` / color helpers aligned with Android.
 
-After Xcode creates the project, you may have **`Dressed/`** (blue folder) from the template alongside **`Sources/`** — that is normal; consolidate into one structure over time.
+After Xcode creates the project, a template **`Dressed/`** group may sit next to **`Sources/`**; consolidate over time.
 
-## Parity with Android
+## Parity with Android (current)
 
-- Models mirror `WardrobeItemEntity` / `OutfitEntity` (see `memory.md` in repo root).
-- `seasons` / `itemIds` are stored as comma-separated strings to stay close to Room converters and future JSON backup alignment.
-- **Wardrobe:** list + add-item sheet are implemented; item detail and Search / Outfits screens remain placeholders.
+- Models mirror **Room** entities: wardrobe items, outfits, seasons/`itemIds` as stored strings compatible with backup codecs.  
+- **Borrowed libraries:** SwiftData models + import path; sharer name / explainer prefs mirror Android.  
+- **Seed / test data:** **`DevTestDataSeeder`** is wrapped in **`#if DEBUG`** only—**not** compiled into **Release** / App Store–style builds. The landing menu seed action is also `#if DEBUG`.  
+- Remaining gaps vs Android: see **`backlog.md`** at repo root.
 
-## Next steps
+## Store copy
 
-- Implement Wardrobe list + Add item (photos: `PhotosPicker`, colors, categories — match Android).
-- Search and outfit collage flow per `backlog.md` / Android.
-- Optional: align backup JSON with `WardrobeBackupCodec` for cross-platform restore.
+Draft marketing text for the App Store lives in **`STORE_LISTING.md`** in this folder.

@@ -7,7 +7,9 @@ Guidance for **Claude Code** and other AI assistants working in this repository.
 | Path | What it is |
 |------|------------|
 | **`dressed-android/`** | **Primary product:** Android app (Jetpack Compose, Room, Material 3). Entry: `app/src/main/java/com/dressed/app/`. |
-| **`dressed-ios/`** | **iOS/WIP:** SwiftUI + SwiftData sources in `Sources/DressedKit/`. Create the Xcode project locally (see `dressed-ios/README.md`); no `.xcodeproj` is committed. |
+| **`dressed-ios/`** | **iOS:** SwiftUI + SwiftData (`Sources/DressedKit/`). Xcode project under `dressed-ios/Dressed iOS/`; setup notes in `dressed-ios/README.md`. |
+| **`dressed-android/STORE_LISTING.md`** | Draft **Google Play** short/full description. |
+| **`dressed-ios/STORE_LISTING.md`** | Draft **App Store** subtitle/keywords/description. |
 | **`index.html`** | **Web prototype:** single-file wardrobe + outfits UI, `localStorage`, no build. |
 | **`dressed-mockup.html`** | **Design reference** aligned with the Android app (layout / flows for review). |
 | **`memory.md`** | Long-lived **Android** facts: architecture, DB version, migrations, decisions. |
