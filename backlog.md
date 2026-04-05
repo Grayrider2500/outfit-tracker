@@ -11,6 +11,9 @@
 - **iOS Outfits sort/filter parity** — `OutfitsListView` matches Android chip rows (`displayedOutfits`, `filterBar`, `FilterChip`).
 - **Item detail: “Worn in outfits”** (both platforms).
 - Backup/restore including outfits (both platforms).
+- **Android photo persistence fix** (build 5) — gallery reads bytes once on main thread (`copyFromBytes`); camera uses `copyFromFile`; fixes Samsung one-shot stream pipe.
+- **Android edit item** (build 5) — Edit icon on `ItemDetailScreen`; `AddItemScreen(editingItemId)`; `saveEdit` in ViewModel; edit routes in `WardrobeNav` + `WardrobeSearchNav`.
+- **versionCode 5 / versionName 1.1.0** — signed APK distributed to testers.
 
 ## Medium priority
 
