@@ -1,6 +1,8 @@
 package com.dressed.app.ui.wardrobe
 
 import android.content.Context
+import android.graphics.Color as AndroidColor
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -44,6 +46,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -55,9 +58,15 @@ import androidx.compose.ui.unit.dp
 import android.net.Uri
 import coil.compose.AsyncImage
 import com.dressed.app.data.model.WardrobeCategories
+import com.dressed.app.data.model.WardrobeOccasions
 import com.dressed.app.data.model.WardrobeSeasons
+import com.dressed.app.data.local.ImageStorage
 import com.dressed.app.data.model.WardrobeSizes
 import com.dressed.app.ui.WardrobeViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.UUID
 
@@ -67,6 +76,7 @@ fun AddItemScreen(
     onBack: () -> Unit,
     onSaved: () -> Unit,
     viewModel: WardrobeViewModel,
+    editingItemId: String? = null,
 ) {
     var name by rememberSaveable { mutableStateOf("") }
     var category by rememberSaveable { mutableStateOf("") }
@@ -78,37 +88,111 @@ fun AddItemScreen(
     var colorName by rememberSaveable { mutableStateOf("") }
     var colorNameExpanded by remember { mutableStateOf(false) }
 
-    // Auto-fill the colour name whenever the wheel changes.
+    val seasons = remember { mutableStateListOf<String>() }
+    val occasions = remember { mutableStateListOf<String>() }
+
+    var editLoaded by remember(editingItemId) { mutableStateOf(false) }
+
+    // Auto-fill the colour name whenever the wheel changes (skip until edit screen has hydrated).
     LaunchedEffect(hue, saturation, brightness) {
+        if (editingItemId != null && !editLoaded) return@LaunchedEffect
         colorName = labelForPickedColor(hsvToHex(hue, saturation, brightness))
     }
 
-    val seasons = remember { mutableStateListOf<String>() }
-
     val context = LocalContext.current
+    val photoScope = rememberCoroutineScope()
 
     var photoUri by remember { mutableStateOf<Uri?>(null) }
+    var savedPhotoPath by remember { mutableStateOf<String?>(null) }
+    var isCopyingPhoto by remember { mutableStateOf(false) }
     var pendingCameraUri by remember { mutableStateOf<Uri?>(null) }
+    var pendingCameraFile by remember { mutableStateOf<File?>(null) }
+
+    LaunchedEffect(editingItemId) {
+        if (editingItemId == null || editLoaded) return@LaunchedEffect
+        viewModel.observeItem(editingItemId).collect { entity ->
+            if (entity == null || editLoaded) return@collect
+            name = entity.name
+            category = entity.category
+            sizeText = entity.sizeLabel
+            colorName = entity.colorName
+            val raw = entity.colorHex.let { if (it.startsWith("#")) it else "#$it" }
+            runCatching {
+                val hsv = FloatArray(3)
+                AndroidColor.colorToHSV(AndroidColor.parseColor(raw), hsv)
+                hue = hsv[0]
+                saturation = hsv[1]
+                brightness = hsv[2]
+            }
+            seasons.clear()
+            seasons.addAll(entity.seasons)
+            occasions.clear()
+            occasions.addAll(entity.occasions)
+            savedPhotoPath = entity.photoPath
+            if (entity.photoPath != null) {
+                photoUri = Uri.fromFile(File(entity.photoPath))
+            }
+            editLoaded = true
+        }
+    }
 
     val pickPhoto = rememberLauncherForActivityResult(
         ActivityResultContracts.PickVisualMedia(),
-    ) { uri -> photoUri = uri }
+    ) { uri ->
+        if (uri != null) {
+            photoUri = uri
+            savedPhotoPath = null
+            isCopyingPhoto = true
+            val bytes = try {
+                context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+            } catch (e: Throwable) {
+                Log.e("ImageStorage", "gallery openInputStream failed", e)
+                null
+            }
+            if (bytes != null) {
+                photoScope.launch(Dispatchers.IO) {
+                    val path = ImageStorage.copyFromBytes(context, bytes)
+                    withContext(Dispatchers.Main) {
+                        savedPhotoPath = path
+                        isCopyingPhoto = false
+                    }
+                }
+            } else {
+                isCopyingPhoto = false
+            }
+        }
+    }
 
     val takePicture = rememberLauncherForActivityResult(
         ActivityResultContracts.TakePicture(),
     ) { success ->
         if (success) {
-            pendingCameraUri?.let { photoUri = it }
+            val file = pendingCameraFile
+            val uri = pendingCameraUri
+            if (file != null && uri != null) {
+                photoUri = uri
+                savedPhotoPath = null
+                isCopyingPhoto = true
+                photoScope.launch(Dispatchers.IO) {
+                    val path = ImageStorage.copyFromFile(context, file)
+                    withContext(Dispatchers.Main) {
+                        savedPhotoPath = path
+                        isCopyingPhoto = false
+                    }
+                }
+            }
         }
         pendingCameraUri = null
+        pendingCameraFile = null
     }
 
     var errorHint by remember { mutableStateOf<String?>(null) }
 
     fun startCameraCapture() {
         runCatching {
-            val uri = createCameraCaptureUri(context)
+            val (uri, file) = createCameraCaptureUri(context)
             pendingCameraUri = uri
+            pendingCameraFile = file
             takePicture.launch(uri)
         }.onFailure {
             errorHint = "Could not open camera. Check that the app has camera permission."
@@ -120,7 +204,7 @@ fun AddItemScreen(
             CenterAlignedTopAppBar(
                 title = {
                     Text(
-                        "Add a New Piece",
+                        if (editingItemId != null) "Edit Piece" else "Add a New Piece",
                         color = MaterialTheme.colorScheme.onPrimary,
                     )
                 },
@@ -353,6 +437,27 @@ fun AddItemScreen(
                 }
             }
 
+            Spacer(Modifier.height(16.dp))
+
+            Text("Occasions (optional)", style = MaterialTheme.typography.labelLarge)
+            Spacer(Modifier.height(8.dp))
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                WardrobeOccasions.ALL.forEach { (key, label) ->
+                    val sel = occasions.contains(key)
+                    FilterChip(
+                        selected = sel,
+                        onClick = {
+                            if (sel) occasions.remove(key) else occasions.add(key)
+                        },
+                        label = { Text(label) },
+                    )
+                }
+            }
+
             errorHint?.let {
                 Spacer(Modifier.height(12.dp))
                 Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
@@ -368,34 +473,56 @@ fun AddItemScreen(
                         else -> {
                             errorHint = null
                             val hex = hsvToHex(hue, saturation, brightness)
-                            viewModel.addItem(
-                                name = n,
-                                category = category,
-                                sizeLabel = sizeText,
-                                colorHex = hex,
-                                colorName = colorName.trim().ifBlank { labelForPickedColor(hex) },
-                                seasons = seasons.toList(),
-                                photoUri = photoUri,
-                                onInserted = onSaved,
-                            )
+                            if (editingItemId != null) {
+                                viewModel.saveEdit(
+                                    itemId = editingItemId,
+                                    name = n,
+                                    category = category,
+                                    sizeLabel = sizeText,
+                                    colorHex = hex,
+                                    colorName = colorName.trim().ifBlank { labelForPickedColor(hex) },
+                                    seasons = seasons.toList(),
+                                    occasions = occasions.toList(),
+                                    photoPath = savedPhotoPath,
+                                    onSaved = onSaved,
+                                )
+                            } else {
+                                viewModel.addItem(
+                                    name = n,
+                                    category = category,
+                                    sizeLabel = sizeText,
+                                    colorHex = hex,
+                                    colorName = colorName.trim().ifBlank { labelForPickedColor(hex) },
+                                    seasons = seasons.toList(),
+                                    occasions = occasions.toList(),
+                                    photoPath = savedPhotoPath,
+                                    onInserted = onSaved,
+                                )
+                            }
                         }
                     }
                 },
+                enabled = !isCopyingPhoto,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text("Save to Wardrobe")
+                if (isCopyingPhoto) {
+                    Text("Saving photo…")
+                } else {
+                    Text("Save to Wardrobe")
+                }
             }
             Spacer(Modifier.height(24.dp))
         }
     }
 }
 
-private fun createCameraCaptureUri(context: Context): Uri {
+private fun createCameraCaptureUri(context: Context): Pair<Uri, File> {
     val dir = File(context.cacheDir, "camera").apply { mkdirs() }
     val file = File.createTempFile("dressed_${UUID.randomUUID()}", ".jpg", dir)
-    return FileProvider.getUriForFile(
+    val uri = FileProvider.getUriForFile(
         context,
         "${context.packageName}.fileprovider",
         file,
     )
+    return Pair(uri, file)
 }

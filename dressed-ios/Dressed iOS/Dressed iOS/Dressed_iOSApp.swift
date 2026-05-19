@@ -7,6 +7,6 @@ struct Dressed_iOSApp: App {
         WindowGroup {
             RootView()
         }
-        .modelContainer(for: [WardrobeItem.self, Outfit.self])
+        .modelContainer(for: [WardrobeItem.self, Outfit.self, BorrowedLibrary.self, BorrowedItem.self])
     }
 }

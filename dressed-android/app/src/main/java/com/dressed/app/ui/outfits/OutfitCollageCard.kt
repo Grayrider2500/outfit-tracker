@@ -25,7 +25,7 @@ import coil.compose.AsyncImage
 import com.dressed.app.data.local.OutfitEntity
 import com.dressed.app.data.local.WardrobeItemEntity
 import com.dressed.app.data.model.WardrobeCategories
-import java.io.File
+import com.dressed.app.ui.wardrobe.coilPhotoFileOrNull
 
 @Composable
 internal fun OutfitCollageCard(
@@ -136,6 +136,131 @@ internal fun OutfitCollageCard(
     }
 }
 
+/** Display order for picker summaries (aligns with iOS collage / silhouette flow). */
+internal fun pickerDisplayOrder(category: String): Int = when (category) {
+    WardrobeCategories.TOPS, WardrobeCategories.DRESSES -> 0
+    WardrobeCategories.BOTTOMS -> 1
+    WardrobeCategories.OUTERWEAR -> 2
+    WardrobeCategories.SHOES -> 3
+    WardrobeCategories.ACCESSORIES -> 4
+    else -> 5
+}
+
+internal fun pickerItemsSortedForDisplay(items: List<WardrobeItemEntity>): List<WardrobeItemEntity> =
+    items.sortedWith(
+        compareBy(
+            { pickerDisplayOrder(it.category) },
+            { it.name.lowercase() },
+            { it.id },
+        ),
+    )
+
+/** Short line like "Navy Chinos + White Sneakers" for suggestion cards ([maxPieces] main items). */
+internal fun pickerMainPiecesSummaryLine(items: List<WardrobeItemEntity>, maxPieces: Int = 3): String {
+    val parts = pickerItemsSortedForDisplay(items).take(maxPieces).map { item ->
+        val c = item.colorName.trim()
+        val n = item.name.trim()
+        when {
+            c.isNotEmpty() && n.isNotEmpty() -> "$c $n"
+            n.isNotEmpty() -> n
+            c.isNotEmpty() -> c
+            else -> WardrobeCategories.label(item.category)
+        }
+    }
+    return parts.joinToString(" + ")
+}
+
+/** Picker / suggestion card (no [OutfitEntity] yet). Reuses the same collage layout as [OutfitCollageCard]. */
+@Composable
+internal fun SuggestionOutfitCollageCard(
+    title: String,
+    items: List<WardrobeItemEntity>,
+    subtitle: String?,
+    onClick: () -> Unit,
+) {
+    val collageItems = items.take(4)
+    Card(
+        onClick = onClick,
+        shape = RoundedCornerShape(14.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+    ) {
+        Column {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(1f)
+                    .clip(RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp)),
+            ) {
+                when {
+                    collageItems.isEmpty() -> EmptyCollageCell(modifier = Modifier.fillMaxSize())
+                    collageItems.size == 1 -> CollageCell(collageItems[0], Modifier.fillMaxSize())
+                    else -> {
+                        Column(modifier = Modifier.fillMaxSize()) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f),
+                            ) {
+                                CollageCell(
+                                    collageItems[0],
+                                    Modifier.weight(1f).fillMaxSize(),
+                                )
+                                CollageCell(
+                                    collageItems.getOrNull(1),
+                                    Modifier.weight(1f).fillMaxSize(),
+                                )
+                            }
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f),
+                            ) {
+                                CollageCell(
+                                    collageItems.getOrNull(2),
+                                    Modifier.weight(1f).fillMaxSize(),
+                                )
+                                CollageCell(
+                                    collageItems.getOrNull(3),
+                                    Modifier.weight(1f).fillMaxSize(),
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+            Column(modifier = Modifier.padding(10.dp, 10.dp)) {
+                val summary = pickerMainPiecesSummaryLine(items)
+                if (summary.isNotBlank()) {
+                    Text(
+                        text = summary,
+                        style = MaterialTheme.typography.titleSmall,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.labelLarge,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(top = if (summary.isNotBlank()) 4.dp else 0.dp),
+                )
+                if (!subtitle.isNullOrBlank()) {
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 4.dp),
+                    )
+                }
+            }
+        }
+    }
+}
+
 @Composable
 private fun CollageCell(
     item: WardrobeItemEntity?,
@@ -149,9 +274,10 @@ private fun CollageCell(
     ) {
         if (item == null) return@Box
 
-        if (item.photoPath != null) {
+        val photoFile = coilPhotoFileOrNull(item.photoPath)
+        if (photoFile != null) {
             AsyncImage(
-                model = File(item.photoPath),
+                model = photoFile,
                 contentDescription = item.name,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),

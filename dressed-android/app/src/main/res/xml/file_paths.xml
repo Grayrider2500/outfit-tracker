@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths>
     <cache-path name="camera_capture" path="camera/" />
+    <!-- Root of app cache (${context.cacheDir}) for short-lived .dressed-library share files -->
+    <cache-path name="cache_root" path="." />
 </paths>

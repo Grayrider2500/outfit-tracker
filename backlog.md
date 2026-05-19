@@ -2,36 +2,31 @@
 
 **Assistants:** repo map and session flow → **`CLAUDE.md`** (root).
 
-## High Priority
+## Done (reference)
 
-1. **Outfit Detail Screen** (`OutfitDetailScreen.kt`)
-   - Show full collage + outfit name
-   - "Mark as Worn" button (calls `outfitsViewModel.markWorn(id)`)
-   - Delete outfit option (with confirmation dialog)
-   - Wire click in `OutfitCollageCard` → navigate to detail
+- Android library export — share sheet (`FileProvider` + `ACTION_SEND`).
+- Occasion tag editing on existing items (Android + iOS).
+- Borrowable Library (both platforms).
+- Wear-count / **stats card** on landing (both platforms).
+- **iOS Outfits sort/filter parity** — `OutfitsListView` matches Android chip rows (`displayedOutfits`, `filterBar`, `FilterChip`).
+- **Item detail: “Worn in outfits”** (both platforms).
+- Backup/restore including outfits (both platforms).
+- **Android photo persistence fix** (build 5) — gallery reads bytes once on main thread (`copyFromBytes`); camera uses `copyFromFile`; fixes Samsung one-shot stream pipe.
+- **Android edit item** (build 5) — Edit icon on `ItemDetailScreen`; `AddItemScreen(editingItemId)`; `saveEdit` in ViewModel; edit routes in `WardrobeNav` + `WardrobeSearchNav`.
+- **versionCode 5 / versionName 1.1.0** — signed APK distributed to testers.
 
-2. **Edit Outfit** — ability to rename or change which pieces are in an outfit
+## Medium priority
 
-## Medium Priority
+1. **Outfit seasons tag** — inherit seasons from constituent pieces or allow manual override.
 
-3. **Wear-count on Landing Screen** — quick stats card showing total wears or recently worn items
+## Lower priority
 
-4. **Sort / Filter Outfits** — filter by season or piece count; sort by recently worn vs. created date
+2. **Search across outfits** — extend search or add dedicated outfits search.
 
-5. **Outfit seasons tag** — inherit seasons from constituent pieces or allow manual override
+3. **Outfit photo** — user-taken or uploaded full-outfit photo in addition to collage.
 
-6. **Backup / Restore for Outfits** — extend `WardrobeBackupCodec` to also export/import outfit data
+4. **Dark mode polish** — verify outfit screens in dark theme.
 
-7. **Item detail: "Worn in outfits" list** — show which outfits an item belongs to on the item detail screen
+5. **Accessibility** — content descriptions on collage cells; semantic roles on picker rows.
 
-## Lower Priority
-
-8. **Search across outfits** — extend search or add dedicated outfits search
-
-9. **Outfit photo** — allow user to take/upload a full outfit photo instead of / in addition to the collage
-
-10. **Dark mode polish** — verify all new outfit screens render correctly in dark theme
-
-11. **Accessibility** — content descriptions on collage cells; semantic roles on picker row
-
-12. **Onboarding tooltips** — first-launch hint cards pointing to + FAB on Wardrobe and Outfits screens
+6. **Onboarding tooltips** — first-launch hints for Wardrobe / Outfits FABs.

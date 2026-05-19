@@ -19,6 +19,8 @@ class OutfitsViewModel(
 
     val outfits: Flow<List<OutfitEntity>> = repository.observeAll()
 
+    fun observeOutfit(id: String): Flow<OutfitEntity?> = repository.observeById(id)
+
     fun addOutfit(
         name: String,
         itemIds: List<String>,
@@ -43,6 +45,14 @@ class OutfitsViewModel(
 
     fun deleteOutfit(id: String) {
         viewModelScope.launch { repository.deleteById(id) }
+    }
+
+    /** Replace an existing outfit's name and item list (wornCount and createdAt are preserved). */
+    fun updateOutfit(updated: OutfitEntity, onUpdated: () -> Unit = {}) {
+        viewModelScope.launch {
+            repository.insert(updated)
+            onUpdated()
+        }
     }
 
     companion object {

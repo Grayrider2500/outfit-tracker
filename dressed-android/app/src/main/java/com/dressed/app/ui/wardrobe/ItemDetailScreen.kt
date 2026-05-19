@@ -4,6 +4,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -17,6 +19,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -26,8 +29,10 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
@@ -44,22 +49,28 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.dressed.app.data.local.WardrobeItemEntity
 import com.dressed.app.data.model.WardrobeCategories
+import com.dressed.app.data.model.WardrobeOccasions
 import com.dressed.app.ui.WardrobeViewModel
-import java.io.File
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun ItemDetailScreen(
     itemId: String,
     viewModel: WardrobeViewModel,
     onBack: () -> Unit,
     onDeleted: () -> Unit,
+    onEdit: () -> Unit,
 ) {
     val item by viewModel.observeItem(itemId).collectAsStateWithLifecycle(initialValue = null)
+    val outfitCount by viewModel.observeOutfitCountForItem(itemId)
+        .collectAsStateWithLifecycle(initialValue = 0)
+    val outfitNames by viewModel.observeOutfitsForItem(itemId)
+        .collectAsStateWithLifecycle(initialValue = emptyList())
 
     var sawItem by remember { mutableStateOf(false) }
     LaunchedEffect(item) {
@@ -127,10 +138,20 @@ fun ItemDetailScreen(
                         )
                     }
                 },
+                actions = {
+                    IconButton(onClick = onEdit) {
+                        Icon(
+                            Icons.Filled.Edit,
+                            contentDescription = "Edit",
+                            tint = MaterialTheme.colorScheme.onPrimary,
+                        )
+                    }
+                },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     titleContentColor = MaterialTheme.colorScheme.onPrimary,
                     navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
+                    actionIconContentColor = MaterialTheme.colorScheme.onPrimary,
                 ),
             )
         },
@@ -149,9 +170,10 @@ fun ItemDetailScreen(
                     .clip(RoundedCornerShape(12.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
             ) {
-                if (current.photoPath != null) {
+                val photoFile = coilPhotoFileOrNull(current.photoPath)
+                if (photoFile != null) {
                     AsyncImage(
-                        model = File(current.photoPath),
+                        model = photoFile,
                         contentDescription = current.name,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize(),
@@ -204,7 +226,67 @@ fun ItemDetailScreen(
                     )
                 }
 
+                Spacer(Modifier.height(16.dp))
+                Text("Occasions", style = MaterialTheme.typography.labelLarge)
+                Spacer(Modifier.height(8.dp))
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    WardrobeOccasions.ALL.forEach { (key, label) ->
+                        val selected = current.occasions.contains(key)
+                        FilterChip(
+                            selected = selected,
+                            onClick = {
+                                viewModel.updateItem(current.withOccasionToggled(key))
+                            },
+                            label = { Text(label) },
+                        )
+                    }
+                }
+
+                if (outfitNames.isNotEmpty()) {
+                    Spacer(Modifier.height(16.dp))
+                    Text(
+                        "WORN IN OUTFITS",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        letterSpacing = 1.5.sp,
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    outfitNames.forEach { name ->
+                        Text(
+                            "• $name",
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(vertical = 2.dp),
+                        )
+                    }
+                }
+
                 Spacer(Modifier.height(20.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text(
+                        "Available to lend",
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    Switch(
+                        checked = current.lendable,
+                        onCheckedChange = { on ->
+                            viewModel.updateItem(current.copy(lendable = on))
+                        },
+                    )
+                }
+                Text(
+                    "Include this piece when you export a shared library (.dressed-library).",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(16.dp))
                 HorizontalDivider()
                 Spacer(Modifier.height(16.dp))
 
@@ -213,7 +295,7 @@ fun ItemDetailScreen(
                     horizontalArrangement = Arrangement.SpaceEvenly,
                 ) {
                     StatBlock(value = "${current.wornCount}", label = "Times Worn")
-                    StatBlock(value = "0", label = "Outfits")
+                    StatBlock(value = "$outfitCount", label = "Outfits")
                 }
 
                 Spacer(Modifier.height(24.dp))
@@ -255,6 +337,13 @@ fun ItemDetailScreen(
             },
         )
     }
+}
+
+private fun WardrobeItemEntity.withOccasionToggled(key: String): WardrobeItemEntity {
+    val set = occasions.toMutableSet()
+    if (key in set) set.remove(key) else set.add(key)
+    val ordered = WardrobeOccasions.ALL.map { it.first }.filter { it in set }
+    return copy(occasions = ordered)
 }
 
 @Composable

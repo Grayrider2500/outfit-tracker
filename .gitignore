@@ -1,3 +1,7 @@
 .idea/
 *.iml
 .DS_Store
+
+# Firebase / Google client configs (secrets) — never commit; add locally
+google-services.json
+GoogleService-Info.plist

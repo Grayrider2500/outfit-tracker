@@ -10,6 +10,7 @@ import com.dressed.app.ui.WardrobeViewModel
 
 private const val ROUTE_SEARCH = "search_home"
 private const val ROUTE_DETAIL = "search_detail/{id}"
+private const val ROUTE_EDIT = "search_edit/{id}"
 
 @Composable
 fun WardrobeSearchNav(
@@ -39,6 +40,19 @@ fun WardrobeSearchNav(
                 viewModel = viewModel,
                 onBack = { navController.popBackStack() },
                 onDeleted = { navController.popBackStack() },
+                onEdit = { navController.navigate("search_edit/$id") },
+            )
+        }
+        composable(
+            route = ROUTE_EDIT,
+            arguments = listOf(navArgument("id") { type = NavType.StringType }),
+        ) { entry ->
+            val id = entry.arguments?.getString("id").orEmpty()
+            AddItemScreen(
+                editingItemId = id,
+                onBack = { navController.popBackStack() },
+                onSaved = { navController.popBackStack() },
+                viewModel = viewModel,
             )
         }
     }

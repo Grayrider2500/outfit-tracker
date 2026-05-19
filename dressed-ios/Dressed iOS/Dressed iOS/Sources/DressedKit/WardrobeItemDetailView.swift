@@ -12,6 +12,7 @@ struct WardrobeItemDetailView: View {
     @Query(sort: \Outfit.createdAtEpochMs) private var allOutfits: [Outfit]
 
     @State private var showDeleteConfirm = false
+    @State private var showEditSheet = false
 
     private let navPurple = Color(red: 0.42, green: 0.29, blue: 0.68)
 
@@ -21,6 +22,10 @@ struct WardrobeItemDetailView: View {
 
     private var outfitCount: Int {
         allOutfits.filter { $0.itemIdList.contains(itemId) }.count
+    }
+
+    private var wornInOutfits: [Outfit] {
+        allOutfits.filter { $0.itemIdList.contains(itemId) }
     }
 
     var body: some View {
@@ -61,6 +66,18 @@ struct WardrobeItemDetailView: View {
                                     .padding(.top, 8)
                             }
 
+                            Toggle("Available to lend", isOn: Binding(
+                                get: { item.lendable },
+                                set: { newVal in
+                                    item.lendable = newVal
+                                    try? modelContext.save()
+                                },
+                            ))
+                            .padding(.top, 12)
+                            Text("Include this piece in a .dressed-library share file.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+
                             Divider()
                                 .padding(.vertical, 20)
 
@@ -72,6 +89,27 @@ struct WardrobeItemDetailView: View {
                                 Spacer()
                             }
 
+                            if !wornInOutfits.isEmpty {
+                                Divider()
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Text("WORN IN OUTFITS")
+                                        .font(.system(size: 10, weight: .semibold))
+                                        .tracking(1.5)
+                                        .foregroundStyle(.secondary)
+                                    ForEach(wornInOutfits, id: \.id) { outfit in
+                                        HStack(spacing: 8) {
+                                            Image(systemName: "rectangle.stack.fill")
+                                                .font(.caption)
+                                                .foregroundStyle(.secondary)
+                                            Text(outfit.name)
+                                                .font(.subheadline)
+                                        }
+                                    }
+                                }
+                                .padding(.horizontal)
+                                .padding(.vertical, 8)
+                            }
+
                             Button {
                                 markWorn(item)
                             } label: {
@@ -81,6 +119,16 @@ struct WardrobeItemDetailView: View {
                             .buttonStyle(.borderedProminent)
                             .tint(navPurple)
                             .padding(.top, 24)
+
+                            Button {
+                                showEditSheet = true
+                            } label: {
+                                Label("Edit Piece", systemImage: "pencil")
+                                    .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(.bordered)
+                            .tint(navPurple)
+                            .padding(.top, 12)
 
                             Button(role: .destructive) {
                                 showDeleteConfirm = true
@@ -131,17 +179,37 @@ struct WardrobeItemDetailView: View {
         } message: {
             Text("This cannot be undone.")
         }
+        .sheet(isPresented: $showEditSheet) {
+            if let item {
+                NavigationStack {
+                    AddItemSheet(editingItem: item)
+                }
+            }
+        }
     }
 
     private func markWorn(_ item: WardrobeItem) {
         item.wornCount += 1
+        item.lastWornAtEpochMs = Int64(Date().timeIntervalSince1970 * 1000)
         try? modelContext.save()
     }
 
     private func deleteItem(_ item: WardrobeItem) {
-        PhotoStorage.deleteFileIfExists(at: item.photoPath)
-        modelContext.delete(item)
-        try? modelContext.save()
+        let id = item.id
+        let photoPath = item.photoPath
+        do {
+            try modelContext.transaction {
+                for outfit in allOutfits where outfit.itemIdList.contains(id) {
+                    outfit.itemIdsJoined = Outfit.joinItemIds(
+                        outfit.itemIdList.filter { $0 != id },
+                    )
+                }
+                modelContext.delete(item)
+            }
+            PhotoStorage.deleteFileIfExists(at: photoPath)
+        } catch {
+            // Keep UI responsive; DB state is unchanged if transaction failed.
+        }
         onBack()
     }
 

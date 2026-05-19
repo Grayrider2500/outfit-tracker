@@ -9,6 +9,9 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface OutfitDao {
 
+    @Query("SELECT * FROM outfits")
+    suspend fun getAllSnapshot(): List<OutfitEntity>
+
     @Query("SELECT * FROM outfits ORDER BY createdAtEpochMs DESC")
     fun observeAll(): Flow<List<OutfitEntity>>
 
@@ -20,6 +23,9 @@ interface OutfitDao {
 
     @Query("UPDATE outfits SET wornCount = wornCount + 1 WHERE id = :id")
     suspend fun incrementWearCount(id: String)
+
+    @Query("DELETE FROM outfits")
+    suspend fun deleteAll(): Int
 
     @Query("DELETE FROM outfits WHERE id = :id")
     suspend fun deleteById(id: String): Int

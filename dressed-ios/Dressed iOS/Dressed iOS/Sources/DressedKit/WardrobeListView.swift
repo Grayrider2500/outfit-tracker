@@ -11,6 +11,16 @@ struct WardrobeListView: View {
 
     @State private var filterKey = WardrobeCatalog.allKey
     @State private var showAdd = false
+    @AppStorage("library_explainer_seen") private var libraryExplainerSeen = false
+    @State private var showLibraryExplainer = false
+    @State private var libraryExplainerDontShowAgain = false
+    @State private var explainerLeadsToExport = true
+    @State private var showSharerNameAlert = false
+    @State private var sharerNameInput = ""
+    @State private var shareLibraryURL: URL?
+    @State private var showingLibraryShareSheet = false
+    @State private var exportErrorAlert = false
+    @State private var exportErrorMessage = ""
 
     private var afterCategory: [WardrobeItem] {
         if filterKey == WardrobeCatalog.allKey {
@@ -78,13 +88,34 @@ struct WardrobeListView: View {
                 }
             }
             ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    showAdd = true
-                } label: {
-                    Image(systemName: "plus")
-                        .foregroundStyle(.white)
+                HStack(spacing: 4) {
+                    Menu {
+                        Button {
+                            beginExportSharedLibrary()
+                        } label: {
+                            Label("Export shared library…", systemImage: "square.and.arrow.up")
+                        }
+                        Button {
+                            libraryExplainerSeen = false
+                            explainerLeadsToExport = false
+                            libraryExplainerDontShowAgain = false
+                            showLibraryExplainer = true
+                        } label: {
+                            Label("About sharing libraries", systemImage: "info.circle")
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                            .foregroundStyle(.white)
+                    }
+                    .accessibilityLabel("More options")
+                    Button {
+                        showAdd = true
+                    } label: {
+                        Image(systemName: "plus")
+                            .foregroundStyle(.white)
+                    }
+                    .accessibilityLabel("Add piece")
                 }
-                .accessibilityLabel("Add piece")
             }
         }
         .toolbarBackground(navPurple, for: .navigationBar)
@@ -95,6 +126,85 @@ struct WardrobeListView: View {
                     showAdd = false
                 }
             }
+        }
+        .sheet(isPresented: $showLibraryExplainer) {
+            LibraryExplainerSheet(
+                isPresented: $showLibraryExplainer,
+                dontShowAgain: $libraryExplainerDontShowAgain,
+                onContinue: {
+                    if libraryExplainerDontShowAgain {
+                        libraryExplainerSeen = true
+                    }
+                    showLibraryExplainer = false
+                    if explainerLeadsToExport {
+                        proceedExportAfterExplainer()
+                    }
+                },
+            )
+        }
+        .sheet(isPresented: $showingLibraryShareSheet, onDismiss: {
+            if let url = shareLibraryURL {
+                try? FileManager.default.removeItem(at: url)
+                shareLibraryURL = nil
+            }
+        }) {
+            if let url = shareLibraryURL {
+                ShareSheet(activityItems: [url])
+            }
+        }
+        .alert("Your name on the library file", isPresented: $showSharerNameAlert) {
+            TextField("e.g. Chris", text: $sharerNameInput)
+            Button("Cancel", role: .cancel) {}
+            Button("Continue") {
+                let trimmed = sharerNameInput.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !trimmed.isEmpty else { return }
+                UserDefaults.standard.set(trimmed, forKey: DressedLibraryShare.sharerNameDefaultsKey)
+                showSharerNameAlert = false
+                exportAndShareLibrary(sharerName: trimmed)
+            }
+        } message: {
+            Text("This name appears on the file so friends know who shared it.")
+        }
+        .alert("Could not export library", isPresented: $exportErrorAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(exportErrorMessage)
+        }
+    }
+
+    private func storedSharerName() -> String {
+        UserDefaults.standard.string(forKey: DressedLibraryShare.sharerNameDefaultsKey)?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+    }
+
+    private func beginExportSharedLibrary() {
+        explainerLeadsToExport = true
+        if !libraryExplainerSeen {
+            libraryExplainerDontShowAgain = false
+            showLibraryExplainer = true
+        } else {
+            proceedExportAfterExplainer()
+        }
+    }
+
+    private func proceedExportAfterExplainer() {
+        let name = storedSharerName()
+        if name.isEmpty {
+            sharerNameInput = ""
+            showSharerNameAlert = true
+        } else {
+            exportAndShareLibrary(sharerName: name)
+        }
+    }
+
+    private func exportAndShareLibrary(sharerName: String) {
+        do {
+            let url = try DressedLibraryShare.exportZipFile(items: allItems, sharerName: sharerName)
+            shareLibraryURL = url
+            showingLibraryShareSheet = true
+        } catch {
+            exportErrorMessage = error.localizedDescription
+            exportErrorAlert = true
         }
     }
 
@@ -151,6 +261,16 @@ struct WardrobeListView: View {
     }
 }
 
+private struct ShareSheet: UIViewControllerRepresentable {
+    var activityItems: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
+}
+
 // MARK: - Card
 
 private struct WardrobeItemCard: View {
@@ -161,15 +281,11 @@ private struct WardrobeItemCard: View {
             ZStack {
                 Rectangle()
                     .fill(Color(.secondarySystemGroupedBackground))
-                if let path = item.photoPath, FileManager.default.fileExists(atPath: path),
-                   let ui = UIImage(contentsOfFile: path) {
-                    Image(uiImage: ui)
-                        .resizable()
-                        .scaledToFill()
-                } else {
-                    Text(WardrobeCatalog.emoji(forCategoryKey: item.category))
-                        .font(.system(size: 44))
-                }
+                CachedLocalPhotoImage(
+                    photoPath: item.photoPath,
+                    categoryKey: item.category,
+                    emojiSize: 44,
+                )
             }
             // Floating-point ratio required — `3 / 4` is integer 0 in Swift and collapses the image.
             .aspectRatio(3.0 / 4.0, contentMode: .fit)

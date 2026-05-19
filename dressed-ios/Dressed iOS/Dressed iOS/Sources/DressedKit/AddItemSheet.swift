@@ -3,11 +3,13 @@ import SwiftData
 import SwiftUI
 import UIKit
 
-/// Add piece flow aligned with Android `AddItemScreen` (scroll form + PhotosPicker + HSV + seasons).
+/// Add or edit piece flow aligned with Android `AddItemScreen` (scroll form + PhotosPicker + HSV + seasons).
 struct AddItemSheet: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
 
+    /// When non-nil, we're editing an existing piece instead of creating one.
+    var editingItem: WardrobeItem?
     /// Called after a successful save (in addition to dismissing).
     var onSaved: () -> Void = {}
 
@@ -17,11 +19,15 @@ struct AddItemSheet: View {
     @State private var selectedColor = Color(.sRGB, red: 0.55, green: 0.38, blue: 0.83)
     @State private var colorName = ""
     @State private var seasons: Set<String> = []
+    @State private var occasions: Set<String> = []
     @State private var photoPickerItem: PhotosPickerItem?
     @State private var photoData: Data?
     @State private var showCamera = false
     @State private var errorHint: String?
+    @State private var didLoadEditingItem = false
+    @State private var photoChanged = false
 
+    private var isEditing: Bool { editingItem != nil }
     private let navPurple = Color(red: 0.42, green: 0.29, blue: 0.68)
 
     var body: some View {
@@ -93,6 +99,16 @@ struct AddItemSheet: View {
                     }
                 }
 
+                fieldLabel("Occasions (optional)")
+                FlowChipWrap(spacing: 8) {
+                    ForEach(WardrobeCatalog.occasions, id: \.key) { entry in
+                        let sel = occasions.contains(entry.key)
+                        categoryChip(title: entry.label, selected: sel) {
+                            if sel { occasions.remove(entry.key) } else { occasions.insert(entry.key) }
+                        }
+                    }
+                }
+
                 if let errorHint {
                     Text(errorHint)
                         .font(.caption)
@@ -102,7 +118,7 @@ struct AddItemSheet: View {
                 Button {
                     save()
                 } label: {
-                    Text("Save to Wardrobe")
+                    Text(isEditing ? "Save Changes" : "Save to Wardrobe")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
@@ -111,14 +127,20 @@ struct AddItemSheet: View {
             }
             .padding(20)
         }
-        .onAppear { syncColorName() }
+        .onAppear {
+            loadEditingItemIfNeeded()
+            syncColorName()
+        }
         .onChange(of: selectedColor) { _, _ in syncColorName() }
         .onChange(of: photoPickerItem) { _, new in
             Task {
-                photoData = try? await new?.loadTransferable(type: Data.self)
+                if let data = try? await new?.loadTransferable(type: Data.self) {
+                    photoData = data
+                    photoChanged = true
+                }
             }
         }
-        .navigationTitle("Add a New Piece")
+        .navigationTitle(isEditing ? "Edit Piece" : "Add a New Piece")
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
         #endif
@@ -197,6 +219,7 @@ struct AddItemSheet: View {
         .fullScreenCover(isPresented: $showCamera) {
             CameraPicker { image in
                 photoData = image.jpegData(compressionQuality: 0.85)
+                photoChanged = true
             }
             .ignoresSafeArea()
         }
@@ -220,9 +243,38 @@ struct AddItemSheet: View {
         .buttonStyle(.plain)
     }
 
+    private func loadEditingItemIfNeeded() {
+        guard let item = editingItem, !didLoadEditingItem else { return }
+        didLoadEditingItem = true
+        name = item.name
+        category = item.category
+        sizeText = item.sizeLabel
+        colorName = item.colorName
+        seasons = Set(item.seasonsList)
+        occasions = Set(item.occasionsList)
+        // Restore the color from hex
+        let hex = item.colorHex.trimmingCharacters(in: .whitespacesAndNewlines)
+        if hex.hasPrefix("#"), hex.count >= 7,
+           let n = UInt32(String(hex.dropFirst().prefix(6)), radix: 16) {
+            let r = Double((n >> 16) & 0xFF) / 255
+            let g = Double((n >> 8) & 0xFF) / 255
+            let b = Double(n & 0xFF) / 255
+            selectedColor = Color(.sRGB, red: r, green: g, blue: b)
+        }
+        // Load existing photo
+        if let path = item.photoPath, FileManager.default.fileExists(atPath: path) {
+            photoData = try? Data(contentsOf: URL(fileURLWithPath: path))
+        }
+    }
+
     private func syncColorName() {
+        guard !isEditing || didLoadEditingItem else { return }
         let hex = WardrobeColorMath.hexFromColor(selectedColor)
-        colorName = WardrobeColorMath.labelForPickedColor(hex: hex)
+        let autoName = WardrobeColorMath.labelForPickedColor(hex: hex)
+        // Only auto-sync if the user hasn't manually typed something different
+        if !isEditing || colorName.isEmpty || colorName == editingItem?.colorName {
+            colorName = autoName
+        }
     }
 
     private func save() {
@@ -241,23 +293,44 @@ struct AddItemSheet: View {
         let finalColorName = resolvedName.isEmpty ? WardrobeColorMath.labelForPickedColor(hex: hex) : resolvedName
         let seasonOrder = ["spring", "summer", "fall", "winter"]
         let seasonsJoined = WardrobeItem.joinSeasons(seasonOrder.filter { seasons.contains($0) })
+        let occasionOrder = WardrobeCatalog.occasions.map { $0.key }
+        let occasionsJoined = WardrobeItem.joinOccasions(occasionOrder.filter { occasions.contains($0) })
 
-        var path: String?
-        if let photoData {
-            path = try? PhotoStorage.saveJPEGData(photoData)
+        if let item = editingItem {
+            // Update existing item
+            item.name = n
+            item.category = category
+            item.sizeLabel = sizeText.trimmingCharacters(in: .whitespacesAndNewlines)
+            item.colorHex = hex
+            item.colorName = finalColorName
+            item.seasonsJoined = seasonsJoined
+            item.occasionsJoined = occasionsJoined
+            // Only save a new photo if user picked a new one
+            if photoChanged, let photoData {
+                let oldPath = item.photoPath
+                item.photoPath = try? PhotoStorage.saveOptimizedPickedPhotoJPEG(from: photoData)
+                PhotoStorage.deleteFileIfExists(at: oldPath)
+            }
+            try? modelContext.save()
+        } else {
+            // Insert new item
+            var path: String?
+            if let photoData {
+                path = try? PhotoStorage.saveOptimizedPickedPhotoJPEG(from: photoData)
+            }
+            let item = WardrobeItem(
+                name: n,
+                category: category,
+                sizeLabel: sizeText.trimmingCharacters(in: .whitespacesAndNewlines),
+                colorHex: hex,
+                colorName: finalColorName,
+                seasonsJoined: seasonsJoined,
+                occasionsJoined: occasionsJoined,
+                photoPath: path,
+            )
+            modelContext.insert(item)
+            try? modelContext.save()
         }
-
-        let item = WardrobeItem(
-            name: n,
-            category: category,
-            sizeLabel: sizeText.trimmingCharacters(in: .whitespacesAndNewlines),
-            colorHex: hex,
-            colorName: finalColorName,
-            seasonsJoined: seasonsJoined,
-            photoPath: path,
-        )
-        modelContext.insert(item)
-        try? modelContext.save()
         onSaved()
         dismiss()
     }

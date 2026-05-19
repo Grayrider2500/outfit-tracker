@@ -14,12 +14,17 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Checkroom
+import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.filled.Explore
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.FolderOpen
@@ -52,18 +57,36 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.dressed.app.BuildConfig
+import com.dressed.app.ui.LibrariesViewModel
 import com.dressed.app.ui.WardrobeViewModel
+import com.dressed.app.ui.library.LibraryExplainerDialog
+import com.dressed.app.ui.outfits.OutfitsViewModel
 import com.dressed.app.ui.theme.WardrobeOnBarText
 import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LandingScreen(
     viewModel: WardrobeViewModel,
+    outfitsViewModel: OutfitsViewModel,
+    librariesViewModel: LibrariesViewModel,
     onMyWardrobe: () -> Unit,
     onSearchFilter: () -> Unit,
     onOutfits: () -> Unit,
+    onSuggestOutfits: () -> Unit,
+    onLibraries: () -> Unit,
+    onNavigateToBorrowedLibraries: () -> Unit = {},
 ) {
+    val items by viewModel.items.collectAsStateWithLifecycle(initialValue = emptyList())
+    val outfits by outfitsViewModel.outfits.collectAsStateWithLifecycle(initialValue = emptyList())
+    val pieceCount = items.size
+    val totalWears = items.sumOf { it.wornCount }
+    val outfitCount = outfits.size
+
     val gradient = Brush.linearGradient(
         colors = listOf(
             Color(0xFF4A3370),
@@ -75,10 +98,33 @@ fun LandingScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     var menuOpen by remember { mutableStateOf(false) }
-    var pendingRestoreUri by remember { mutableStateOf<Uri?>(null) }
+    /** Pick file → choose Merge vs Replace (matches iOS). */
+    var pendingModeChoiceUri by remember { mutableStateOf<Uri?>(null) }
+    /** User chose Replace all → final destructive confirmation. */
+    var pendingReplaceUri by remember { mutableStateOf<Uri?>(null) }
+
+    var showLibraryExplainer by remember { mutableStateOf(false) }
+    var pendingNavigateLibraries by remember { mutableStateOf(false) }
+
+    val openLibraryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument(),
+    ) { uri ->
+        if (uri != null) {
+            librariesViewModel.importLibraryFromUri(uri) { err ->
+                scope.launch {
+                    if (err != null) {
+                        snackbarHostState.showSnackbar("Library import failed: $err")
+                    } else {
+                        snackbarHostState.showSnackbar("Library imported")
+                        onNavigateToBorrowedLibraries()
+                    }
+                }
+            }
+        }
+    }
 
     val createBackupLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.CreateDocument("application/json"),
+        contract = ActivityResultContracts.CreateDocument("application/zip"),
     ) { uri ->
         if (uri != null) {
             viewModel.exportBackup(uri) { err ->
@@ -92,7 +138,7 @@ fun LandingScreen(
 
     val openBackupLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
-    ) { uri -> if (uri != null) pendingRestoreUri = uri }
+    ) { uri -> if (uri != null) pendingModeChoiceUri = uri }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -105,51 +151,22 @@ fun LandingScreen(
                 .background(gradient)
                 .statusBarsPadding(),
         ) {
-            Box(Modifier.align(Alignment.TopEnd).padding(end = 16.dp, top = 8.dp)) {
-                IconButton(
-                    onClick = { menuOpen = true },
-                    colors = IconButtonDefaults.iconButtonColors(
-                        contentColor = WardrobeOnBarText.copy(alpha = 0.92f),
-                    ),
-                    modifier = Modifier
-                        .background(Color.White.copy(alpha = 0.12f), CircleShape),
-                ) {
-                    Icon(Icons.Filled.MoreVert, contentDescription = "Menu")
-                }
-                DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                    DropdownMenuItem(
-                        text = { Text("Backup to file…") },
-                        onClick = {
-                            menuOpen = false
-                            createBackupLauncher.launch("dressed-backup.json")
-                        },
-                        leadingIcon = { Icon(Icons.Outlined.Save, contentDescription = null) },
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Restore from file…") },
-                        onClick = {
-                            menuOpen = false
-                            openBackupLauncher.launch(
-                                arrayOf("application/json", "application/*", "*/*"),
-                            )
-                        },
-                        leadingIcon = { Icon(Icons.Outlined.FolderOpen, contentDescription = null) },
-                    )
-                }
-            }
-
+            // Scrollable hub first; overflow menu after so it stays on top for hit-testing (column is full-width).
             Column(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 32.dp),
+                    .align(Alignment.TopCenter)
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 32.dp)
+                    .padding(bottom = 24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Spacer(Modifier.height(48.dp))
+                Spacer(Modifier.height(32.dp))
                 Surface(
                     shape = RoundedCornerShape(40.dp),
                     color = Color(0x409664FF),
                     border = BorderStroke(1.dp, Color(0x66B48CFF)),
-                    modifier = Modifier.padding(top = 24.dp),
+                    modifier = Modifier.padding(top = 16.dp),
                 ) {
                     Box(
                         modifier = Modifier.padding(32.dp),
@@ -165,7 +182,7 @@ fun LandingScreen(
                     fontWeight = FontWeight.Normal,
                     color = WardrobeOnBarText,
                     letterSpacing = 2.sp,
-                    modifier = Modifier.padding(top = 24.dp),
+                    modifier = Modifier.padding(top = 16.dp),
                 )
                 Text(
                     "YOUR PERSONAL WARDROBE",
@@ -173,15 +190,17 @@ fun LandingScreen(
                     color = WardrobeOnBarText.copy(alpha = 0.55f),
                     letterSpacing = 3.sp,
                 )
-                Spacer(Modifier.height(28.dp))
+                Spacer(Modifier.height(20.dp))
                 Box(
                     modifier = Modifier
                         .height(1.dp)
                         .fillMaxWidth(0.12f)
                         .background(WardrobeOnBarText.copy(alpha = 0.2f)),
                 )
-                Spacer(Modifier.height(28.dp))
+                Spacer(Modifier.height(20.dp))
 
+                StatsCard(pieces = pieceCount, wears = totalWears, outfits = outfitCount)
+                Spacer(Modifier.height(12.dp))
                 HubNavButton(
                     mainLabel = "My Wardrobe",
                     subLabel = "Browse & manage pieces",
@@ -205,34 +224,161 @@ fun LandingScreen(
                     emphasized = false,
                     icon = Icons.Filled.AutoAwesome,
                 )
+                Spacer(Modifier.height(12.dp))
+                HubNavButton(
+                    mainLabel = "Borrowed libraries",
+                    subLabel = "Pieces friends shared with you",
+                    onClick = {
+                        if (!viewModel.libraryExplainerSeen()) {
+                            pendingNavigateLibraries = true
+                            showLibraryExplainer = true
+                        } else {
+                            onLibraries()
+                        }
+                    },
+                    emphasized = false,
+                    icon = Icons.Filled.Send,
+                )
+                Spacer(Modifier.height(12.dp))
+                HubNavButton(
+                    mainLabel = "Suggest outfits",
+                    subLabel = "Picker — smart looks from your closet",
+                    onClick = onSuggestOutfits,
+                    emphasized = false,
+                    icon = Icons.Filled.Explore,
+                )
 
-                Spacer(modifier = Modifier.weight(1f))
+                Spacer(Modifier.height(28.dp))
                 Text(
                     "DRESSED · PERSONAL",
                     style = MaterialTheme.typography.labelSmall,
                     color = WardrobeOnBarText.copy(alpha = 0.3f),
                     letterSpacing = 2.sp,
-                    modifier = Modifier.padding(bottom = 40.dp),
+                    modifier = Modifier.padding(bottom = 8.dp),
                 )
+            }
+
+            Box(Modifier.align(Alignment.TopEnd).padding(end = 16.dp, top = 8.dp)) {
+                IconButton(
+                    onClick = { menuOpen = true },
+                    colors = IconButtonDefaults.iconButtonColors(
+                        contentColor = WardrobeOnBarText.copy(alpha = 0.92f),
+                    ),
+                    modifier = Modifier
+                        .background(Color.White.copy(alpha = 0.12f), CircleShape),
+                ) {
+                    Icon(Icons.Filled.MoreVert, contentDescription = "Menu")
+                }
+                DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                    DropdownMenuItem(
+                        text = { Text("Backup to file…") },
+                        onClick = {
+                            menuOpen = false
+                            val day = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
+                            createBackupLauncher.launch("dressed-backup-$day.zip")
+                        },
+                        leadingIcon = { Icon(Icons.Outlined.Save, contentDescription = null) },
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Restore from file…") },
+                        onClick = {
+                            menuOpen = false
+                            openBackupLauncher.launch(
+                                arrayOf("application/zip", "application/json", "application/*", "*/*"),
+                            )
+                        },
+                        leadingIcon = { Icon(Icons.Outlined.FolderOpen, contentDescription = null) },
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Import shared library…") },
+                        onClick = {
+                            menuOpen = false
+                            openLibraryLauncher.launch(arrayOf("application/zip", "*/*"))
+                        },
+                        leadingIcon = { Icon(Icons.Outlined.FolderOpen, contentDescription = null) },
+                    )
+                    DropdownMenuItem(
+                        text = { Text("About sharing libraries") },
+                        onClick = {
+                            menuOpen = false
+                            viewModel.setLibraryExplainerSeen(false)
+                            pendingNavigateLibraries = false
+                            showLibraryExplainer = true
+                        },
+                    )
+                    if (BuildConfig.DEBUG) {
+                        DropdownMenuItem(
+                            text = { Text("Seed professional closet test data") },
+                            onClick = {
+                                menuOpen = false
+                                scope.launch { snackbarHostState.showSnackbar("Seeding test data…") }
+                                viewModel.seedDebugTestData { message ->
+                                    scope.launch { snackbarHostState.showSnackbar(message) }
+                                }
+                            },
+                            leadingIcon = { Icon(Icons.Filled.AutoAwesome, contentDescription = null) },
+                        )
+                    }
+                }
             }
         }
     }
 
-    pendingRestoreUri?.let { uri ->
+    pendingModeChoiceUri?.let { uri ->
         AlertDialog(
-            onDismissRequest = { pendingRestoreUri = null },
-            title = { Text("Replace wardrobe?") },
+            onDismissRequest = { pendingModeChoiceUri = null },
+            title = { Text("Restore backup") },
             text = {
                 Text(
-                    "Restoring replaces every piece in Dressed with the backup. " +
-                        "Your current list and photos will be removed. This cannot be undone.",
+                    "Merge adds new items and outfits and skips duplicates by id. " +
+                        "Replace all clears your wardrobe and outfits, then loads the backup. " +
+                        "Both options import photos from the file when adding new pieces.",
+                )
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingModeChoiceUri = null }) { Text("Cancel") }
+            },
+            confirmButton = {
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    TextButton(
+                        onClick = {
+                            pendingModeChoiceUri = null
+                            viewModel.importBackupMerge(uri) { err, snack ->
+                                scope.launch {
+                                    if (err != null) snackbarHostState.showSnackbar("Merge failed: $err")
+                                    else snackbarHostState.showSnackbar(snack ?: "Merge completed")
+                                }
+                            }
+                        },
+                    ) { Text("Merge") }
+                    TextButton(
+                        onClick = {
+                            pendingReplaceUri = uri
+                            pendingModeChoiceUri = null
+                        },
+                    ) {
+                        Text("Replace all", color = MaterialTheme.colorScheme.error)
+                    }
+                }
+            },
+        )
+    }
+
+    pendingReplaceUri?.let { uri ->
+        AlertDialog(
+            onDismissRequest = { pendingReplaceUri = null },
+            title = { Text("Replace all data?") },
+            text = {
+                Text(
+                    "This will delete all existing wardrobe items and outfits, replacing them " +
+                        "with the backup. Your current photos will be removed. This cannot be undone.",
                 )
             },
             confirmButton = {
                 TextButton(
                     onClick = {
-                        pendingRestoreUri = null
-                        viewModel.importBackup(uri) { err ->
+                        pendingReplaceUri = null
+                        viewModel.importBackupReplace(uri) { err ->
                             scope.launch {
                                 if (err == null) snackbarHostState.showSnackbar("Restore completed")
                                 else snackbarHostState.showSnackbar("Restore failed: $err")
@@ -240,12 +386,71 @@ fun LandingScreen(
                         }
                     },
                 ) {
-                    Text("Restore", color = MaterialTheme.colorScheme.error)
+                    Text("Replace all", color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { pendingRestoreUri = null }) { Text("Cancel") }
+                TextButton(onClick = { pendingReplaceUri = null }) { Text("Cancel") }
             },
+        )
+    }
+
+    if (showLibraryExplainer) {
+        LibraryExplainerDialog(
+            onDismiss = {
+                showLibraryExplainer = false
+                pendingNavigateLibraries = false
+            },
+            onContinue = { dontShowAgain ->
+                if (dontShowAgain) viewModel.setLibraryExplainerSeen(true)
+                showLibraryExplainer = false
+                if (pendingNavigateLibraries) {
+                    pendingNavigateLibraries = false
+                    onLibraries()
+                }
+            },
+        )
+    }
+}
+
+@Composable
+private fun StatsCard(pieces: Int, wears: Int, outfits: Int) {
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = Color(0x268C5AFF),
+        border = BorderStroke(1.dp, Color(0x40B48CFF)),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 14.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            StatCell(value = pieces, label = "PIECES")
+            Box(Modifier.width(1.dp).height(28.dp).background(WardrobeOnBarText.copy(alpha = 0.2f)))
+            StatCell(value = wears, label = "TOTAL WEARS")
+            Box(Modifier.width(1.dp).height(28.dp).background(WardrobeOnBarText.copy(alpha = 0.2f)))
+            StatCell(value = outfits, label = "OUTFITS")
+        }
+    }
+}
+
+@Composable
+private fun StatCell(value: Int, label: String) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            text = "$value",
+            color = WardrobeOnBarText,
+            fontSize = 22.sp,
+            fontWeight = FontWeight.Medium,
+        )
+        Text(
+            text = label,
+            color = WardrobeOnBarText.copy(alpha = 0.55f),
+            style = MaterialTheme.typography.labelSmall,
+            letterSpacing = 1.5.sp,
         )
     }
 }

@@ -1,0 +1,38 @@
+{
+  "__comment": {
+    "what": "TEMPLATE ONLY — do not commit real secrets.",
+    "copy_to": "dressed-android/app/google-services.json",
+    "steps": [
+      "Copy this file to dressed-android/app/google-services.json (same folder as the app module build.gradle.kts).",
+      "Remove the entire '__comment' object from the copy (required for a clean google-services.json).",
+      "Either replace every YOUR_* / placeholder below, or (recommended) download google-services.json from Firebase Console after registering the Android app."
+    ]
+  },
+  "project_info": {
+    "project_number": "YOUR_PROJECT_NUMBER",
+    "project_id": "your-firebase-project-id",
+    "storage_bucket": "your-firebase-project-id.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:YOUR_PROJECT_NUMBER:android:YOUR_ANDROID_APP_ID",
+        "android_client_info": {
+          "package_name": "com.crossmountproducts.dressed"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "YOUR_ANDROID_API_KEY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

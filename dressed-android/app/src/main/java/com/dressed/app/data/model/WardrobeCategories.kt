@@ -70,3 +70,16 @@ object WardrobeSeasons {
         "winter" to "Winter",
     )
 }
+
+object WardrobeOccasions {
+    val ALL = listOf(
+        "date_night" to "#date night",
+        "concert"    to "#concert",
+        "brunch"     to "#brunch",
+        "work"       to "#work",
+        "gym"        to "#gym",
+        "staying_in" to "#staying in",
+    )
+
+    fun label(key: String): String = ALL.firstOrNull { it.first == key }?.second ?: "#$key"
+}
