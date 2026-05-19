@@ -1,10 +1,13 @@
-Dressed is your personal wardrobe companion — a private, beautiful space to catalog every piece you own, build outfit looks, and track what you actually wear.
+Dressed is your personal wardrobe companion — a private, beautiful space to catalog every piece you own, build outfit looks, track what you actually wear, and share your style with people you trust.
 
 YOUR WARDROBE, ORGANIZED
 Add every piece in your closet with a photo, color, size, category, and season tags. Browse your collection in a clean two-column grid and filter by tops, bottoms, dresses, shoes, outerwear, or accessories with a single tap.
 
 BUILD OUTFITS YOU LOVE
 Mix and match pieces from your wardrobe to create and save outfit looks. Each outfit displays as a photo collage so you can see at a glance how your pieces work together.
+
+SHARE YOUR WARDROBE WITH FAMILY & FRIENDS
+Mark items as available to lend and export them as a Wardrobe Library — a single file with photos included. Share it via AirDrop, Messages, email, or any app. Recipients open it in Dressed and browse your pieces in their own Borrowed Libraries section. Perfect for sharing with a partner, sibling, or friend with similar taste.
 
 FIND ANYTHING FAST
 Search by name, filter by category or season, and sort by recently added, most worn, or alphabetically. Your entire closet is always one tap away.
