@@ -1,0 +1,24 @@
+default_platform(:ios)
+
+platform :ios do
+  desc "Push a new build to the App Store"
+  lane :release do
+    increment_build_number(xcodeproj: "Dressed iOS.xcodeproj")
+
+    build_app(
+      scheme: "Dressed iOS",
+      project: "Dressed iOS.xcodeproj",
+      destination: "generic/platform=iOS",
+      clean: true
+    )
+
+    upload_to_app_store(
+      skip_screenshots: true,
+      skip_metadata: false,
+      overwrite_screenshots: true,
+      submit_for_review: false,
+      automatic_release: false,
+      force: true                     # ← This skips the HTML preview question
+    )
+  end
+end

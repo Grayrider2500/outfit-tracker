@@ -6,6 +6,9 @@ build/
 xcuserdata/
 *.xcodeproj/xcuserdata/
 *.xcodeproj/project.xcworkspace/xcuserdata/
+*.ipa
+*.dSYM.zip
+
 
 # Swift Package Manager
 .build/

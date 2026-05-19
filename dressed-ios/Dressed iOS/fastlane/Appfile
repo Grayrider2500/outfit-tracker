@@ -1,0 +1,3 @@
+app_identifier(com.CrossMountProducts.Dressed-iOS)   # ← Your exact Bundle ID from Xcode
+apple_id(grayrider2500@gmail.com)          # ← Apple ID you use for Developer account
+team_id(AJCGM56D8R)                        # ← Your 10-character Team ID

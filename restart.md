@@ -2,43 +2,45 @@
 
 **Assistants:** see **`CLAUDE.md`** at the repo root for where everything lives; use this file as the latest session checkpoint.
 
-## Where We Stopped (2026-03-27)
+## Where We Stopped (2026-03-30)
 
-iOS app scaffolded, building, and committed. Android app unchanged from previous session.
+iOS **Dressed** builds and runs (simulator + device-ready). Latest **`main`** on GitHub includes search, wardrobe → detail, App Icon fix, and navigation fixes. Android unchanged in recent iOS-focused work.
 
-## What Was Done This Session (iOS)
+## What Exists Now (iOS — `dressed-ios/`)
 
-### Project setup
-- Created Xcode project, merged Cursor's DressedKit files, resolved duplicate `@main` and template conflicts
-- Cleaned up stale `Sources/DressedKit/` folder (duplicates), updated `.gitignore` to track Xcode project files
-- Removed nested `.git` from Xcode project directory
+### Navigation (`RootView`, single `NavigationStack`)
+- **Landing** → **My Wardrobe** | **Search & Filter** | **Outfits** (placeholder)
+- **`MainRoute`**: `wardrobe`, `search`, `outfits`, **`itemDetail(String)`** (shared by wardrobe + search; avoid nested `NavigationStack` inside destinations — broke Search on simulator for some runtimes)
 
-### Wardrobe list + Add item
-- `WardrobeListView` — 2-column grid, category filter chips, item count, empty state, item cards with photo/emoji
-- `AddItemSheet` — PhotosPicker + Camera, system ColorPicker (replaced manual HSV sliders), category/size chips, season toggles, validation
-- `WardrobeCatalog` / `WardrobeColorMath` — category keys, emoji, size suggestions, color name presets, hex extraction from SwiftUI Color
-- `PhotoStorage` — JPEG save to Documents, read helper for backup export
-- Camera: `UIImagePickerController` wrapper, hidden in Simulator (no hardware), privacy keys added (NSCameraUsageDescription, NSPhotoLibraryUsageDescription)
+### Wardrobe
+- **`WardrobeListView`** — grid, category chips, `+` → **`AddItemSheet`**, **tap card** → item detail
+- **`WardrobeItemDetailView`** — layout near Android `ItemDetailScreen`: hero, size, color swatch, seasons, times worn + **outfit count** (outfits referencing item id), **Mark as Worn Today**, **Remove from Wardrobe** (confirms, deletes SwiftData row + **`PhotoStorage.deleteFileIfExists`**)
 
-### Landing page
-- Brand mark (frosted rounded square + 👗 emoji), centered title, uppercase tagline — matches `dressed-mockup.html`
-- ⋯ menu button (top-right) with Backup/Restore options
+### Search
+- **`WardrobeSearchView`** — name field, category / season chips, sort (recent / most worn / A→Z), list rows → same **`itemDetail`** route
+- **`WardrobeCatalog.searchSeasonFilters`** — fall shown as Autumn
+- **`WardrobeItem.wardrobeSubtitleLine`**, **`sortedForDisplay(_:)`** on `[WardrobeItem]`
 
-### Backup & Restore
-- `BackupRestore.swift` — Codable DTOs (`DressedBackupFile` v2 with items + outfits), export (photos as Base64), import (handles Android v1 and iOS v2), merge (skip duplicates by ID) and replace (delete all + insert)
-- `LandingView` — `ShareLink` for backup export, `UIDocumentPickerViewController` for import, merge/replace confirmation dialogs, toast feedback
-- Cross-platform compatible with Android backup format
+### Other
+- **Landing** backup/restore JSON (unchanged pattern)
+- **App icon** — `AppIcon.appiconset/Contents.json` is **iOS-only** single 1024×1024 entry (removed invalid mac slots that reused one PNG and caused asset validation errors)
+- **Placeholders removed** from `PlaceholderScreens.swift` (only **Outfits** placeholder remains)
 
-### App icon
-- Custom icon from user's `Dressed_icon.png`, resized to 1024x1024, all slots in Contents.json
+### Git
+- Pushes included: search + detail + AppIcon ; then wardrobe grid + detail actions (`1b8424f` area — verify with `git log` on `main`)
 
-### Navigation
-- `RootView` routes wardrobe to `WardrobeListView` (with Home back button), search and outfits still use placeholders
+## Next Steps (when resuming)
 
-## Next Steps
+1. **Device QA** — user testing add items, search, wardrobe, backup/restore, camera/photos on iPhone
+2. **Outfits** — replace placeholder: list, create outfit, collage cards (mirror Android `OutfitsNav`)
+3. **Item edit** — Android may not have full edit on item; optional: edit piece from detail or separate flow
+4. **Android backlog** — outfit detail / edit outfit per `backlog.md` if still open
 
-- **Test on a real iOS device** — camera, photo picker, backup/restore file flow
-- Implement Search screen (filter by name, category, season — mirror Android)
-- Implement Outfits screen (list + create outfit + collage cards — mirror Android)
-- Item detail screen (tap card → full detail view)
-- Android: Outfit detail screen, edit outfit (from previous backlog)
+## Quick paths
+
+| Area | Primary sources |
+|------|-----------------|
+| iOS app entry | `dressed-ios/Dressed iOS/Dressed iOS/Dressed_iOSApp.swift` (SwiftData container) |
+| Kit sources | `dressed-ios/Dressed iOS/Dressed iOS/Sources/DressedKit/` |
+| Xcode project | `dressed-ios/Dressed iOS/Dressed iOS.xcodeproj` |
+| Android parity | `dressed-android/app/.../wardrobe/` |
