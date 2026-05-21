@@ -269,6 +269,7 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_AnthropicAPIKey = "";
+				INFOPLIST_KEY_CFBundleDisplayName = "Dressed Outfit Tracker";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Dressed uses the camera to photograph your clothing.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Dressed needs photo access to attach pictures of your clothing.";
 				INFOPLIST_KEY_NSPrincipalClass = "";
@@ -318,6 +319,7 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_AnthropicAPIKey = "";
+				INFOPLIST_KEY_CFBundleDisplayName = "Dressed Outfit Tracker";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Dressed uses the camera to photograph your clothing.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Dressed needs photo access to attach pictures of your clothing.";
 				INFOPLIST_KEY_NSPrincipalClass = "";
